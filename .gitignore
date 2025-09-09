@@ -1,0 +1,8 @@
+virtualenv/
+venv/
+.idea/
+*.pyc
+/env
+*.env
+*.csv
+
