@@ -1,0 +1,29 @@
+@import './base.css';
+header{
+  grid-column: span 3;
+}
+main {
+  display: grid;
+  grid-template-rows: 35px 1fr;
+  grid-template-columns: 250px 230px 1fr;
+  height: 100vh;
+}
+aside {
+  grid-column: 1;
+}
+.search-container {
+  grid-row: 1;
+  grid-column: 2;
+}
+.register-btn {
+  grid-row: 1;
+  grid-column: 4;
+}
+.login-btn {
+  grid-row: 1;
+  grid-column: 5;
+}
+.data {
+  grid-row-start: 2;
+  grid-column: 2 / span 4;
+}
