@@ -58,7 +58,7 @@ export default {
       try {
         const res = await axios.get(`/api/instruments/valueset/${filter.field}/`)
         
-        filter.options = res.data.data || []
+        filter.options = res.data.data.sort() || []
       } 
       catch (error) {
         console.error("Error fetching filter option:", error)
