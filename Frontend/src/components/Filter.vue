@@ -105,7 +105,7 @@ export default {
 </script>
 
 <template>
-  <aside class="w-64 h-screen bg-gray-800 text-black p-4">
+  <aside class="w-64 h-screen bg-gray-800 text-black p-2">
     <h2 class="text-lg font-bold mb-4">{{$t('message.suodatin')}}</h2>
     
     <ul class="filter-list">
