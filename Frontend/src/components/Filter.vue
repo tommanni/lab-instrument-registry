@@ -58,7 +58,7 @@ export default {
       try {
         const res = await axios.get(`/api/instruments/valueset/${filter.field}/`)
         
-        filter.options = res.data.data.map(s => s.trim()).sort() || []
+        filter.options = res.data.data.map(s => s.trim()).sort((a,b) => a ? b ? a.localeCompare(b) : -1 : 1) || []
       } 
       catch (error) {
         console.error("Error fetching filter option:", error)
