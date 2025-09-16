@@ -13,7 +13,10 @@ make up
 # 2. Import your data (optional), file needs to be in the Backend directory under root
 make import-csv-old FILE=your-data.csv 
 
-# 3. Start frontend in dev mode
+# 3.1 Install dependencies (first time only) with
+make frontend-install
+
+# 3.2 Start frontend in dev mode
 make frontend-dev
 
 If it complains about Node.js version, run the following command in the Frontend folder:
