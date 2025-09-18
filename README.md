@@ -2,6 +2,21 @@
 
 A Django REST API backend with Vue.js frontend for managing laboratory equipment inventory.
 
+## Git Policy
+
+- All changes should be merged into `main` via a merge request.
+- When starting work on a new issue, create a new branch:
+  - A new branch can be created in multiple ways
+    - First make sure you are currently on the `main` branch 
+    - One example is `git checkout -b <branch-name>`)
+  - Begin the branch name with the issue ID, followed by a short description separated by hyphens.
+  - Example: Issue #34232 is about deleting the whole system, branch naming would be `34232-delete-entire-system`.
+  - Including the issue ID helps GitLab automatically link the branch to the issue under "Related branches".
+- Write code comments in English.
+- Use `snake_case` for variable names in Python.
+- Use `camelCase` for variable names in Vue.
+
+
 ## 🚀 Quick Start
 
 ```
