@@ -1,30 +1,29 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import axios from 'axios'  // Tuo axios
+import axios from 'axios'  // Bring axios
 import { useDataStore } from '@/stores/data'
 
 const { t } = useI18n()
 
 const showOverlay = ref(false)
-const email = ref('')      // Määritellään email
-const password = ref('')   // Määritellään password
+const email = ref('')      // Define email
+const password = ref('')   // Define password
 const store = useDataStore()
 const loginUser = async () => {
   try {
-    // API-kutsu kirjautumiseen
+    // API-call for login
     const response = await axios.post('/api/login/', {
       email: email.value,
       password: password.value
-    })
-    console.log('Kirjautuminen onnistui:', response.data)
-    //Expiry ei salee toimi :) (skill issue)
-    document.cookie = 'Authorization='+response.data.token+'; Expires='+response.data.expiry+';'
-    console.log(document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1])
+    });
+    console.log('Kirjautuminen onnistui:', response.data);
+    // Set cookie that saves token. Expiry shows in devTools as "Session", but should work for 2h
+    document.cookie = 'Authorization='+response.data.token+'; Expires='+response.data.expiry+'; path=/'
     store.isLoggedIn = true
     email.value = ''
     password.value = ''
-    closeOverlay()
+    closeOverlay();
   } catch (error) {
     console.error('Kirjautumisvirhe:', error)
   }
@@ -41,13 +40,13 @@ const closeOverlay = () => {
 
 <template>
   <div class="login-btn">
-    <!-- Avausnappi -->
+    <!-- Login button to open overlay -->
     <button v-if="!store.isLoggedIn" class="login-button" @click="openOverlay">{{ t('message.kirjaudu_painike') }}</button>
 
-    <!-- Overlay näkyy vain, kun showOverlay on true -->
+    <!-- Overlay only shows when showOverlay = True -->
     <div v-if="showOverlay" class="overlay-backdrop">
       <div class="overlay-content">
-        <!-- X-painike oikeassa yläkulmassa -->
+        <!-- X-button in top right corner -->
         <button class="close-button" @click="closeOverlay">×</button>
         <h3>{{ t('message.kirjaudu') }}</h3>
         <p></p>
@@ -76,7 +75,7 @@ const closeOverlay = () => {
 </template>
 
 <style scoped>
-/* Puoliläpinäkyvä tausta overlaylle */
+/* Half seethrough background for overlay */
 .overlay-backdrop {
   position: fixed;
   top: 0;
@@ -87,7 +86,7 @@ const closeOverlay = () => {
   z-index: 1031;
 }
 
-/* Keskitetty sisältö overlayn sisällä */
+/* Centered content for overlay */
 .overlay-content {
   position: absolute;
   top: 50%;
