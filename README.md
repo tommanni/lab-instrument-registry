@@ -5,6 +5,7 @@ A Django REST API backend with Vue.js frontend for managing laboratory equipment
 ## Git Policy
 
 - All changes should be merged into `dev` via a merge request.
+- All merge requests should be reviewed by at least one person.
 - When starting work on a new issue, create a new branch:
   - A new branch can be created in multiple ways
     - First make sure you are currently on the `dev` branch and you have the newest changes locally
