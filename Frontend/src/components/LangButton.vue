@@ -5,6 +5,7 @@ const { t, locale } = useI18n()
 
 function changeLanguage(lang) {
     locale.value = lang
+    document.cookie = 'Language='+lang+'; path=/'
 }
 </script>
 

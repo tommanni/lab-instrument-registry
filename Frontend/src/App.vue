@@ -6,6 +6,9 @@ import Alert from './components/Alert.vue';
 import { onMounted } from 'vue';
 import { useDataStore } from '@/stores/data';
 import axios from 'axios';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n()
 
 const dataStore = useDataStore()
 
@@ -17,6 +20,20 @@ function getCookie(name) {
     if (key === name) return value;
   }
   return null;
+}
+
+async function checkLanguageStatus() {
+  const lang = getCookie("Language");
+  if (!lang) {
+    locale.value = 'fi';
+    return;
+  }
+  else if (lang === 'fi') {
+    locale.value = 'fi';
+  }
+  else if (lang === 'en') {
+    locale.value = 'en';
+  }
 }
 
 async function checkLogingStatus() {
@@ -43,6 +60,7 @@ async function checkLogingStatus() {
 // Above are cookie things for auto log  in. Not very secure since token is kept clientside.
 
 onMounted(() => {
+  checkLanguageStatus()
   dataStore.fetchData()
   checkLogingStatus()
 })
