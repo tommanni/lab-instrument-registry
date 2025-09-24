@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'  // Bring axios
 import { useDataStore } from '@/stores/data'
+import { useAlertStore } from "@/stores/alert.js";
 
 const { t } = useI18n()
 
@@ -10,6 +11,8 @@ const showOverlay = ref(false)
 const email = ref('')      // Define email
 const password = ref('')   // Define password
 const store = useDataStore()
+const alertStore = useAlertStore()
+
 const loginUser = async () => {
   try {
     // API-call for login
@@ -17,15 +20,24 @@ const loginUser = async () => {
       email: email.value,
       password: password.value
     });
-    console.log('Kirjautuminen onnistui:', response.data);
     // Set cookie that saves token. Expiry shows in devTools as "Session", but should work for 2h
     document.cookie = 'Authorization='+response.data.token+'; Expires='+response.data.expiry+'; path=/'
     store.isLoggedIn = true
     email.value = ''
     password.value = ''
     closeOverlay();
+    // todo users name in the welcome msg (not critical)
+    alertStore.showAlert(0, `${t('message.sisaan_kirjauduttu')}`)
+    closeOverlay()
   } catch (error) {
     console.error('Kirjautumisvirhe:', error)
+
+    // display an appropriate error message if possible
+    if (error.response.data.detail != undefined) {
+      alertStore.showAlert(1, `${t('message.kirjautumisvirhe')} ${t('message.virhe')}: ${error.response.data.detail}`)
+    } else {
+      alertStore.showAlert(1, `${t('message.kirjautumisvirhe')}: ${t('message.tuntematon_virhe')}`)
+    }
   }
 }
 

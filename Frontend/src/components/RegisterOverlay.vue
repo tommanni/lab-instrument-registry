@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useDataStore } from '@/stores/data'
+import { useAlertStore } from '@/stores/alert'
 
 const { t } = useI18n()
 
@@ -12,23 +13,32 @@ const password = ref('')
 const invite_code = ref('')
 const full_name = ref('')
 const store = useDataStore()
+const alertStore = useAlertStore()
+
 const registerUser = async () => {
   try {
     // API-kutsu kirjautumiseen
+    // API call to sign in
     const response = await axios.post('/api/register/', {
       email: email.value,
       password: password.value,
       invite_code: invite_code.value,
       full_name: full_name.value
     })
-    // Joku validaatio joskus pliis et kirjautuko vai ei :)
     email.value = ''
     password.value = ''
     invite_code.value = ''
     full_name.value = ''
+    alertStore.showAlert(0, `${t('message.rekisteroity')}`)
     closeOverlay()
   } catch (error) {
-    console.error('Kirjautumisvirhe:', error)
+    console.error('Error while signing in: ', error)
+    // try to display the error message from the api. if fails, display a generic one
+    if (error.response.data.message != undefined) {
+      alertStore.showAlert(1, `${t('message.rekisteroimisvirhe')} ${t('message.virhe')}: ${error.response.data.message}`)
+    } else {
+      alertStore.showAlert(1, `${t('message.rekisteroimisvirhe')}: ${t('message.tuntematon_virhe')}`)
+    }
   }
 }
 

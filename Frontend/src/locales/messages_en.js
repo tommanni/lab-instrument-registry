@@ -33,9 +33,12 @@ export default {
 	  edellinen: 'Previous',
 	  seuraava: 'Next',
 	  poistettu: "deleted",
+	  ei_poistettu: "failed to delete. Try reloading the page and trying to delete again.",
 	  muokkaa: "Edit",
 	  onPaivitettu: "Information has been updated",
+	  ei_paivitetty: "Updating information failed. Try reloading the page and trying to update the information again.",
 	  lisattu: "has been added",
+	  ei_lisattu: "failed to add",
 	  kirjaudu_painike: "Sign in",
 	  kirjaudu_ulos_painike: "Log out",
 	  register_painike: "Register",
@@ -45,7 +48,6 @@ export default {
 	  ei_vastaus: "No",
 	  sahkoposti: "Email address",
 	  salasana: "Password",
-	  adminteksti: "Access control",
 	  admin_ei_oikeuksia: "You do not have permission to this view",
 	  luo_kayttajakoodi: "Generate user code",
 	  kayttajakoodin_luonti: "User code generation",
@@ -58,8 +60,14 @@ export default {
 	  adminsivu: "Admin",
 	  adminteksti: "Access control",
 	  edellinen_huolto: "Previous maintenance",
-	  seuraava_huolto: "Next maintenance",
-	  huoltosopimus_loppuu: "End of the maintenance contract"
+	  sisaan_kirjauduttu: "Login successful",
+	  ulos_kirjauduttu: "Log out successful",
+	  kirjautumisvirhe: "Error while signing in.",
+	  rekisteroity: "Successfully registered. You can now sign in.",
+	  rekisteroimisvirhe: "Error while registering.",
+	  tuntematon_virhe: "Unknown error",
+	  kutsukoodi_virhe: "Error while fetching invite code",
+	  virhe: "Error"
 	},
 	tableHeaders: [
 	  "Product Name",
@@ -79,8 +87,8 @@ export default {
 	  "Product Name",
 	  "Next maintenance",
 	  "Previous maintenance",
-	  "Maintenance contract ends",
-	  "Person in charge"
+	  "Person in charge",
+	  "Maintenance contract ends"
 	],
 	fullHeaders: [
 	  "ID",

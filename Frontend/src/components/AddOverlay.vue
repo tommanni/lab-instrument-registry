@@ -1,69 +1,90 @@
 <script setup>
-import { ref } from 'vue'
 import axios from 'axios'
+import { ref } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useAlertStore } from '@/stores/alert'
 import { useI18n } from 'vue-i18n';
-  const i18n = useI18n();
-  const store = useDataStore()
-  const showOverlay = ref(false)
-  const alertStore = useAlertStore()
 
-  // Lomakedata, joka tallennetaan
-  const formData = ref({
-      tay_numero: '',
-      tuotenimi: '',
-      merkki_ja_malli: '',
-      sarjanumero: '',
-      yksikko: '',
-      kampus: '',
-      rakennus: '',
-      huone: '',
-      vastuuhenkilo: '',
-      toimituspvm: '',
-      toimittaja: '',
-      lisatieto: '',
-      tilanne: "Saatavilla"
-  })
+const i18n = useI18n();
+const store = useDataStore()
+const showOverlay = ref(false)
+const alertStore = useAlertStore()
 
-  const openOverlay = () => {
-    showOverlay.value = true
-  }
+// Factory function to create base form data (core instrument fields only)
+// Funktio, joka luo peruslomakedata (vain ydinlaitteen kentät)
+const createBaseFormData = () => ({
+  tay_numero: '',
+  tuotenimi: '',
+  merkki_ja_malli: '',
+  sarjanumero: '',
+  yksikko: '',
+  kampus: '',
+  rakennus: '',
+  huone: '',
+  vastuuhenkilo: '',
+  toimituspvm: '',
+  toimittaja: '',
+  lisatieto: '',
+  tilanne: "Saatavilla"
+})
 
-  const closeOverlay = () => {
-    showOverlay.value = false
-  }
+// Factory function to create form data with maintenance fields for reset
+// Funktio, joka luo lomakedata huoltokentillä nollausta varten
+const createFormDataWithMaintenance = () => ({
+  ...createBaseFormData(),
+  huoltosopimus_loppuu: '',
+  edellinen_huolto: '',
+  seuraava_huolto: ''
+})
 
-  const saveData = () => {
-    console.log(JSON.parse(JSON.stringify(formData.value)))
-    axios.post('/api/instruments/', JSON.parse(JSON.stringify(formData.value), {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
+// Lomakedata, joka tallennetaan
+// Form data that will be saved
+const formData = ref(createBaseFormData())
+
+const openOverlay = () => {
+  showOverlay.value = true
+}
+
+const closeOverlay = () => {
+  showOverlay.value = false
+}
+
+const emptyForm = () => {
+  formData.value = createFormDataWithMaintenance()
+}
+
+const saveData = async () => {
+  console.log(JSON.parse(JSON.stringify(formData.value)))
+  /*
+    attempt to save the instrument
+    alert the user whether it succeeded
+  */
+  try {
+    const headers = {
+      "Authorization":  'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
+    }
+    // send the data without any empty fields
+    var dataToSend = {};
+    for (const key in formData.value) {
+      if (formData.value[key] !== "") {
+        dataToSend[key] = formData.value[key]
       }
-    }))
-    alertStore.showAlert(0, `${formData.value.tuotenimi} ${i18n.t('message.lisattu')}`)
-    store.addObject(formData.value)
-    // Tyhjennä lomake
-    formData.value = {
-      tay_numero: '',
-      tuotenimi: '',
-      merkki_ja_malli: '',
-      sarjanumero: '',
-      yksikko: '',
-      kampus: '',
-      rakennus: '',
-      huone: '',
-      vastuuhenkilo: '',
-      toimituspvm: '',
-      toimittaja: '',
-      lisatieto: '',
-      huoltosopimus_loppuu: '',
-      edellinen_huolto: '', 
-      seuraava_huolto: '',
-      tilanne: "Saatavilla"
     }
 
-    closeOverlay()
+    await axios.post('/api/instruments/', dataToSend, {headers: headers})
+
+    alertStore.showAlert(0, `${dataToSend.tuotenimi} ${i18n.t('message.lisattu')}`)
+    store.addObject(formData.value)
+    // todo sometimes the instrument doesn't appear in the list or otherwise breaks it
+    // doesn't make any sense why
+
+  }
+  catch (e) {
+    alertStore.showAlert(1, `${formData.value.tuotenimi} ${i18n.t('message.ei_lisattu')}: ${e}`)
+  }
+
+  emptyForm()
+  closeOverlay()
   }
 </script>
 
@@ -71,12 +92,15 @@ import { useI18n } from 'vue-i18n';
 <template>
     <div>
       <!-- Avausnappi -->
+      <!-- Open button -->
       <button v-if="store.isLoggedIn" class="add-button" @click="openOverlay">{{$t('message.uusi_laite')}}</button>
   
       <!-- Overlay näkyy vain, kun showOverlay on true -->
+      <!-- Overlay is visible on when showOverlay is true -->
       <div v-if="showOverlay" class="overlay-backdrop">
         <div class="overlay-content">
           <!-- X-painike oikeassa yläkulmassa -->
+          <!-- X button in upper right corner -->
           <button class="close-button" @click="closeOverlay">×</button>
           
           <h3>{{$t('message.tiedot_uusi')}}</h3>
@@ -149,6 +173,7 @@ import { useI18n } from 'vue-i18n';
   
 <style scoped>
 /* Puoliläpinäkyvä tausta overlaylle */
+/* Semi transparent background for overlay */
 .overlay-backdrop {
   position: fixed;
   top: 0;
@@ -160,6 +185,7 @@ import { useI18n } from 'vue-i18n';
 }
 
 /* Keskitetty sisältö overlayn sisällä */
+/* Centered content inside the overlay */
 .overlay-content {
   position: absolute;
   top: 50%;
@@ -184,11 +210,13 @@ import { useI18n } from 'vue-i18n';
 }
 
 /* Tyylit aktiiviselle hover-tilalle */
+/* Styles for the active hover mode */
 .add-button:hover {
-  background-color: #F5A5C8; /* hieman tummempi sävy hoverissa */
+  background-color: #F5A5C8; /* hieman tummempi sävy hoverissa / slighly darkder shade while hovering*/
 }
 
 /* X-painike overlayn yläkulmassa */
+/* X button in the upper corner of the overlay */
 .close-button {
   position: absolute;
   top: 0.5em;
@@ -201,9 +229,10 @@ import { useI18n } from 'vue-i18n';
 }
 
 .close-button:hover {
-  color: #b00; /* Vaihda hoverin väri tarpeen mukaan */
+  color: #b00; /* Vaihda hoverin väri tarpeen mukaan / change the hover color if needed*/
 }
 /* Kaksi saraketta vierekkäin */
+/* Two columns side by side */
 .two-col-form {
   display: flex;
   gap: 1em;
@@ -212,7 +241,7 @@ import { useI18n } from 'vue-i18n';
 .col {
   display: flex;
   flex-direction: column;
-  gap: 0.5em; /* pieni väli kenttien välillä */
+  gap: 0.5em; /* pieni väli kenttien välillä / small gap between fields*/
 }
 
 .save-button {
@@ -227,7 +256,7 @@ import { useI18n } from 'vue-i18n';
 }
 
 .save-button:hover {
-  background-color: rgb(0, 234, 0); /* hieman tummempi sävy hoverissa */
+  background-color: rgb(0, 234, 0); /* hieman tummempi sävy hoverissa / slighly darker shade when hovering*/
 }
 
 </style>

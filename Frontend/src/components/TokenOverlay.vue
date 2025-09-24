@@ -1,9 +1,11 @@
 <script setup>
+import { useAlertStore } from '@/stores/alert';
+import axios from 'axios'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import axios from 'axios'  // Tuo axios
 import { useUserStore } from '@/stores/user'
 
+const alertStore = useAlertStore()
 const { t } = useI18n()
 const showOverlay = ref(false)
 const userStore = useUserStore()
@@ -18,13 +20,17 @@ const closeOverlay = () => {
 }
 
 const generateToken = async() => {
-  const res = await axios.get('/api/invite/', {
-    headers: {
-      'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-    }
-  })
-  console.log(res)
-  token.value = res.data.invite_code
+  try {
+    const res = await axios.get('/api/invite/', {
+      headers: {
+        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
+      }
+    })
+    console.log(res)
+    token.value = res.data.invite_code
+  } catch (error) {
+    alertStore.showAlert(1, `${t('message.kutsukoodi_virhe')}`)
+  }
 }
 </script>
 

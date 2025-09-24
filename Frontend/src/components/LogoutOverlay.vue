@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useDataStore } from '@/stores/data'
+import { useAlertStore } from '@/stores/alert'
 
 const { t } = useI18n()
 
 const showOverlay = ref(false)
 const store = useDataStore()
+const alertStore = useAlertStore()
 
 const openOverlay = () => {
     showOverlay.value = true
@@ -39,6 +41,8 @@ const logoutUser = async () => {
         document.cookie = "Authorization=; Max-age=0";;
         store.isLoggedIn = false
         closeOverlay();
+        // Show success alert
+        alertStore.showAlert(0, t('message.ulos_kirjauduttu'))
     } catch (error) {
         console.error('Virhe uloskirjautuessa:', error)
     }
