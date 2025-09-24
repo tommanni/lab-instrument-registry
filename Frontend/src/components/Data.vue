@@ -5,7 +5,7 @@ import axios from 'axios';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const i18n = useI18n();
+const { t } = useI18n();
 const store = useDataStore();
 const visible = ref(false)
 const clickedObject = ref({})
@@ -14,6 +14,7 @@ const clickedUpdate = ref(false)
 const alertStore = useAlertStore()
 
 // Sarakkeet:
+// Columns:
 const headerToKey = {
   "Tuotenimi": "tuotenimi",
   "Merkki ja malli": "merkki_ja_malli",
@@ -34,6 +35,7 @@ const headerToKey = {
 }
 
 // Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
+// Sorting: which column and which direction (asc, desc, none)
 const sortColumn = ref('')
 const sortDirection = ref('none')
 // DEMO
@@ -69,19 +71,23 @@ const updateFormData = ref({
   })
 
 // Lajittelun hallinta klikkaamalla
+// Toggling sorting by clicking
 function toggleSort(columnKey) {
   if (sortColumn.value !== columnKey) {
     // Uusi sarake: aloitetaan lajittelu nousevaksi
+    // New column: start with ascending sorting
     sortColumn.value = columnKey
     sortDirection.value = 'asc'
   }
   else {
     // Sama sarake: järjestyksen suunta vaihtuu
+    // Same column: switch the direction of sorting
     if (sortDirection.value === 'asc') {
       sortDirection.value = 'desc'
     }
     else if (sortDirection.value === 'desc') {
       // Kolmannella klikkauksella palautuu 'none'
+      // On the third click return to 'none'
       sortColumn.value = ''
       sortDirection.value = 'none'
     }
@@ -89,6 +95,7 @@ function toggleSort(columnKey) {
 }
 
 // CSS-luokan palautus lajittelun tilan perusteella
+// Returning of the CSS class by the state of the sorting
 function getSortClass(columnKey) {
   if (sortColumn.value !== columnKey || sortDirection.value === 'none' ) {
     return 'sort-none'
@@ -98,15 +105,20 @@ function getSortClass(columnKey) {
 
 // Lajitellaan näytettävä data
 // Aktiivinen lajittelutila lajittelee datan ennen sivutusta
+// Sort visible data
+// Active sorting mode sorts data before paging
 const displayedData = computed(() => {
   // Perusaineiston haku
+  // Retrieve base data
   let baseData = store.searchedData || []
   if (!sortColumn.value || sortDirection.value === 'none') {
     // Ilman lajittelua sivutetaan normaalisti
+    // Without sorting page normally
     return store.data
   }
   else {
     // Tehdään kopio kokonaisdatasta
+    // Make a copy of all data
     let sorted = [...baseData]
     const key = headerToKey[sortColumn.value] || sortColumn.value
     sorted.sort((a, b) => {
@@ -116,6 +128,7 @@ const displayedData = computed(() => {
       return sortDirection.value === 'asc' ? comp : -comp
     })
     // Käytetään normaalia sivutusta
+    // Use normal paging
     const start = (store.currentPage - 1) * 15
     const end = store.currentPage * 15
     return sorted.slice(start, end) 
@@ -157,33 +170,63 @@ const closeOverlay = () => {
   clickedUpdate.value = false
 }
 
+/*
+  todo
+  in case the instrument was just added (during the same session)
+  the deletion will fail because the frontend wont know the id of the instrument
+  because it hasnt fetched the new data with the new instrument from the database
+  and instead just added the new instrument to its own list of instruments
+*/
 const confirmDelete = async (id) => {
   visible.value = false
   showDeleteConfirmation.value = false
-  await axios.delete('/api/instruments/' + clickedObject.value.id + '/', {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-      }
-    })
-  alertStore.showAlert(0, `${clickedObject.value.tuotenimi} ${i18n.t('message.poistettu')}`)
-  store.deleteObject(clickedObject.value.id)
+  try {
+    await axios.delete('/api/instruments/' + clickedObject.value.id + '/', {
+        headers: {
+          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
+        }
+      })
+    alertStore.showAlert(0, `${clickedObject.value.tuotenimi} ${t('message.poistettu')}`)
+    store.deleteObject(clickedObject.value.id)
+  } catch (error) {
+    if (error.response.data.detail != undefined) {
+      alertStore.showAlert(1, `${t('message.ei_poistettu')} ${t('message.virhe')}: ${error.response.data.detail}`)
+    } else {
+      alertStore.showAlert(1, `${t('message.ei_poistettu')}: ${t('message.tuntematon_virhe')}`)
+    }
+    
+  }
 }
 
 const updateData = () => {
   clickedUpdate.value = !clickedUpdate.value
 }
 
+/*
+  todo
+  for the same reason as confirmDelete, the updating fails
+  if the instrument just added
+*/
 const confirmUpdate = async () => {
   clickedUpdate.value = false
   visible.value = false
   console.log(JSON.parse(JSON.stringify(updateFormData.value)));
-  await axios.put('/api/instruments/' + clickedObject.value.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-      }
-    })
-  alertStore.showAlert(0, i18n.t('message.onPaivitettu'))
-  store.updateObject({ ...updateFormData.value, id: clickedObject.value.id })
+  try {
+    await axios.put('/api/instruments/' + clickedObject.value.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
+        headers: {
+          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
+        }
+      })
+    alertStore.showAlert(0, t('message.on_paivitetty'))
+    store.updateObject({ ...updateFormData.value, id: clickedObject.value.id })
+  } catch (error) {
+    // try to show the error message from the backend
+    if (error.response.data.detail != undefined) {
+      alertStore.showAlert(1, `${t('message.ei_paivitetty')} ${t('message.virhe')}: ${error.response.data.detail}`)
+    } else {
+      alertStore.showAlert(1, `${t('message.ei_paivitetty')}: ${t('message.tuntematon_virhe')}`)
+    }
+  }
 }
 </script>
 
@@ -261,6 +304,7 @@ const confirmUpdate = async () => {
         <thead>
           <tr>
             <!-- Käydään läpi sarakeotsikot ja lisätään sort-indikaattori -->
+            <!-- Go through the column headers and add a sort indicator -->
             <th v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
               <span class="header-text" @click.stop="toggleSort(key)">{{ key }}</span>
               <span class="sort-indicator" :class="getSortClass(key)" @click.stop="toggleSort(key)"></span>
