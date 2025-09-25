@@ -71,10 +71,11 @@ const saveData = async () => {
       }
     }
 
-    await axios.post('/api/instruments/', dataToSend, {headers: headers})
+    const response = await axios.post('/api/instruments/', dataToSend, {headers: headers})
 
     alertStore.showAlert(0, `${dataToSend.tuotenimi} ${i18n.t('message.lisattu')}`)
-    store.addObject(formData.value)
+    const savedItem = response.data
+    store.addObject(savedItem)
     // todo sometimes the instrument doesn't appear in the list or otherwise breaks it
     // doesn't make any sense why
 

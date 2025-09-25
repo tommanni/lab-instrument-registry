@@ -35,7 +35,7 @@ export default {
 	  poistettu: "poistettu",
 	  ei_poistettu: "poisto ei onnistunut. Lataa sivu uudelleen ja yritä poistaa laite uudelleen.",
 	  muokkaa: "Muokkaa",
-	  onPaivitettu: "Tiedot päivitetty",
+	  on_paivitetty: "Tiedot päivitetty",
 	  ei_paivitetty: "Tietojen päivitys ei onnistunut. Lataa sivu uudelleen ja yritä päivittää tiedot uudelleen.",
 	  lisattu: "on lisätty",
 	  ei_lisattu: "lisääminen epäonnistui",

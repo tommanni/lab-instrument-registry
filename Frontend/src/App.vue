@@ -22,7 +22,7 @@ function getCookie(name) {
   return null;
 }
 
-async function checkLanguageStatus() {
+function checkLanguageStatus() {
   const lang = getCookie("Language");
   if (!lang) {
     locale.value = 'fi';
