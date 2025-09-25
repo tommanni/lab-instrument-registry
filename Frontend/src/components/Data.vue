@@ -170,13 +170,6 @@ const closeOverlay = () => {
   clickedUpdate.value = false
 }
 
-/*
-  todo
-  in case the instrument was just added (during the same session)
-  the deletion will fail because the frontend wont know the id of the instrument
-  because it hasnt fetched the new data with the new instrument from the database
-  and instead just added the new instrument to its own list of instruments
-*/
 const confirmDelete = async (id) => {
   visible.value = false
   showDeleteConfirmation.value = false
@@ -202,11 +195,6 @@ const updateData = () => {
   clickedUpdate.value = !clickedUpdate.value
 }
 
-/*
-  todo
-  for the same reason as confirmDelete, the updating fails
-  if the instrument just added
-*/
 const confirmUpdate = async () => {
   clickedUpdate.value = false
   visible.value = false
