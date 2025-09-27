@@ -65,14 +65,30 @@ const closeOverlay = () => {
         <form @submit.prevent="loginUser">
           <!-- Email input -->
           <div data-mdb-input-init class="form-outline mb-4">
-            <label class="form-label" for="form2Example1">{{ t('message.sahkoposti') }}</label>
-            <input v-model="email" type="email" id="form2Example1" class="form-control" />
+            <label class="form-label" for="login-email">{{ t('message.sahkoposti') }}</label>
+            <input
+              v-model="email"
+              type="email"
+              id="login-email"
+              name="email"
+              autocomplete="email"
+              class="form-control"
+              required
+            />
           </div>
 
           <!-- Password input -->
           <div data-mdb-input-init class="form-outline mb-4">
-            <label class="form-label" for="form2Example2">{{ t('message.salasana') }}</label>
-            <input v-model="password" type="password" id="form2Example2" class="form-control" /> 
+            <label class="form-label" for="login-password">{{ t('message.salasana') }}</label>
+            <input
+              v-model="password"
+              type="password"
+              id="login-password"
+              name="password"
+              autocomplete="current-password"
+              class="form-control"
+              required
+            />
           </div>
 
           <!-- Submit button -->
