@@ -35,7 +35,7 @@ export default {
 	  poistettu: "deleted",
 	  ei_poistettu: "failed to delete. Try reloading the page and trying to delete again.",
 	  muokkaa: "Edit",
-	  onPaivitettu: "Information has been updated",
+	  on_paivitetty: "Information has been updated",
 	  ei_paivitetty: "Updating information failed. Try reloading the page and trying to update the information again.",
 	  lisattu: "has been added",
 	  ei_lisattu: "failed to add",
