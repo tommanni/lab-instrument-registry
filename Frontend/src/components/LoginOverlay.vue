@@ -20,8 +20,10 @@ const loginUser = async () => {
       email: email.value,
       password: password.value
     });
-    // Set cookie that saves token. Expiry shows in devTools as "Session", but should work for 2h
-    document.cookie = 'Authorization='+response.data.token+'; Expires='+response.data.expiry+'; path=/'
+    // Set cookie that saves token. Should work for 2h
+    const expiryDate = new Date(response.data.expiry).toUTCString();
+    // TODO add commented parameters to cookie definition for live build HTTPS
+    document.cookie = 'Authorization=' + response.data.token + '; Expires=' + expiryDate + '; path=/' /*; Secure; SameSite=Strict'; */
     store.isLoggedIn = true
     email.value = ''
     password.value = ''

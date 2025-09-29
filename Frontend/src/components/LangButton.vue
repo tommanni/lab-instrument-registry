@@ -5,7 +5,9 @@ const { t, locale } = useI18n()
 
 function changeLanguage(lang) {
     locale.value = lang
-    document.cookie = 'Language='+lang+'; path=/'
+    const maxAge = 60 * 60 * 24 * 365 * 10; // 10 years
+    // TODO add commented parameters to cookie definition for live build HTTPS
+    document.cookie = 'Language=' + lang + '; Max-Age=' + maxAge + '; path=/' /*; Secure; SameSite=Strict'; */
 }
 </script>
 
