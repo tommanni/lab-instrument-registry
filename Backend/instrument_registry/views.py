@@ -1,5 +1,5 @@
 from instrument_registry.models import Instrument, RegistryUser, InviteCode
-from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
+from instrument_registry.serializers import HistoricalInstrumentSerializer, InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv
@@ -31,6 +31,20 @@ class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = InstrumentSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+# This view returns the history of a single instrument.
+class InstrumentHistory(generics.ListAPIView):
+    queryset = Instrument.objects.all()
+    serializer_class = HistoricalInstrumentSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, *args, **kwargs):
+        instrument = self.get_object()
+        history = instrument.history.all()
+        # TODO: diffs between versions
+        serializer = self.serializer_class(history, many=True)
+        return Response(serializer.data)
 
 # This returns all the instruments that match the given filter
 class InstrumentValueSet(APIView):

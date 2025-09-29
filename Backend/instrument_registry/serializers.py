@@ -7,6 +7,11 @@ class InstrumentSerializer(serializers.ModelSerializer):
         model = Instrument
         fields = '__all__'
 
+class HistoricalInstrumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Instrument.history.model
+        fields = '__all__'
+
 # Instrument serializer for CSV import/export.
 class InstrumentCSVSerializer(serializers.ModelSerializer):
     class Meta:
