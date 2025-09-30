@@ -99,7 +99,7 @@ const confirmUpdate = async () => {
         'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
       }
     })
-  alertStore.showAlert(0, i18n.t('message.onPaivitettu'))
+  alertStore.showAlert(0, i18n.t('message.on_paivitetty'))
   store.updateObject({ ...updateFormData.value, id: clickedObject.value.id })
 }
 </script>
