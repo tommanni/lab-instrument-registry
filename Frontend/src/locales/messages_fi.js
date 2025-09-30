@@ -67,7 +67,11 @@ export default {
 	  rekisteroimisvirhe: "Virhe rekisteröityessä.",
 	  tuntematon_virhe: "Tuntematon virhe",
 	  kutsukoodi_virhe: "Virhe käyttäjäkoodia haettaessa",
-	  virhe: "Virhe"
+	  virhe: "Virhe",
+	  historia: "Historia",
+	  muutoshistoria: "Muutoshistoria",
+	  takaisin: "Takaisin",
+	  muokkaa_tietoja: "Muokkaa tietoja"
 	},
 	tableHeaders: [
 	  "Tuotenimi",
