@@ -1,5 +1,5 @@
 from instrument_registry.models import Instrument, RegistryUser, InviteCode
-from instrument_registry.serializers import HistoricalInstrumentSerializer, InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
+from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv
@@ -33,18 +33,53 @@ class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns the history of a single instrument.
-class InstrumentHistory(generics.ListAPIView):
+class InstrumentHistory(generics.RetrieveAPIView):
     queryset = Instrument.objects.all()
-    serializer_class = HistoricalInstrumentSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         instrument = self.get_object()
-        history = instrument.history.all()
-        # TODO: diffs between versions
-        serializer = self.serializer_class(history, many=True)
-        return Response(serializer.data)
+        
+        history_records = list(instrument.history.all().order_by('history_date'))
+
+        if not history_records:
+            return Response([])
+
+        first_record = history_records[0]
+        changes = []
+        # Add first record as creation event
+        changes.append({
+            'history_date': first_record.history_date,
+            'history_user': first_record.history_user.full_name if first_record.history_user else None,
+            'history_type': first_record.get_history_type_display(),
+            'changes': [
+                {'field': f.name, 'old': None, 'new': getattr(first_record, f.name)}
+                for f in first_record.instance._meta.get_fields()
+                if f.concrete and not f.many_to_many and not f.auto_created
+            ]
+        })
+        
+        # Compare consecutive records and add diffs
+        for i in range(len(history_records) - 1):
+            current = history_records[i]
+            next_record = history_records[i + 1]
+            
+            delta = current.diff_against(next_record)
+            changes.append({
+                'history_date': next_record.history_date,
+                'history_user': next_record.history_user.full_name if next_record.history_user else None,
+                'history_type': next_record.get_history_type_display(),
+                'changes': [
+                    {
+                        'field': change.field,
+                        'old': change.old,
+                        'new': change.new
+                    } for change in delta.changes
+                ]
+            })
+        
+        return Response(changes)
 
 # This returns all the instruments that match the given filter
 class InstrumentValueSet(APIView):
