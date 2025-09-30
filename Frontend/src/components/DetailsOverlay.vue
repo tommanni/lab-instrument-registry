@@ -210,7 +210,7 @@ const confirmDelete = async () => {
               </ul>
             </div>
           </div>
-          <div class="buttons">
+          <div class="buttons history-buttons">
             <button @click="view = 'details'" class="btn btn-cancel">{{$t('message.takaisin')}}</button>
           </div>
         </div>
@@ -345,5 +345,13 @@ const confirmDelete = async () => {
 .history-record ul {
   list-style-type: none;
   padding-left: 0;
+}
+.history-buttons {
+  position: sticky;
+  bottom: -2em;
+  background-color: white;
+  padding: 1em 2em;
+  margin: 0 -2em;
+  justify-content: center;
 }
 </style>
