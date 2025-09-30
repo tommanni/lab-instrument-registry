@@ -65,7 +65,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
             current = history_records[i]
             next_record = history_records[i + 1]
             
-            delta = current.diff_against(next_record)
+            delta = next_record.diff_against(current)
             changes.append({
                 'history_date': next_record.history_date,
                 'history_user': next_record.history_user.full_name if next_record.history_user else None,
