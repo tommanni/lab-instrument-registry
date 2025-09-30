@@ -1,17 +1,13 @@
 <script setup>
-import { useAlertStore } from '@/stores/alert';
 import { useDataStore } from '@/stores/data'
-import axios from 'axios';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import DetailsOverlay from './DetailsOverlay.vue';
 
 const { t } = useI18n();
 const store = useDataStore();
 const visible = ref(false)
 const clickedObject = ref({})
-const showDeleteConfirmation = ref(false);
-const clickedUpdate = ref(false)
-const alertStore = useAlertStore()
 
 // Sarakkeet:
 // Columns:
@@ -49,26 +45,6 @@ const columnWidths = ref([
   50,
   30
   ]);
-const updateFormData = ref({
-      tay_numero: '',
-      tuotenimi: '',
-      merkki_ja_malli: '',
-      sarjanumero: '',
-      yksikko: '',
-      kampus: '',
-      rakennus: '',
-      huone: '',
-      vastuuhenkilo: '',
-      toimituspvm: '',
-      toimittaja: '',
-      lisatieto: '',
-      vanha_sijainti: '',
-      tarkistettu: '',
-      huoltosopimus_loppuu: '',
-      edellinen_huolto: '', 
-      seuraava_huolto: '',
-      tilanne: ''
-  })
 
 // Lajittelun hallinta klikkaamalla
 // Toggling sorting by clicking
@@ -157,133 +133,34 @@ const startResize = (event, column) => {
 };
 
 const openOverlay = (item) => {
-  console.log("opened: " + item["tuotenimi"]);
   clickedObject.value = {...item}
   visible.value = true
-  updateFormData.value = Object.fromEntries(
-    Object.entries(clickedObject.value).filter(([key]) => key !== 'id')
-  );
 }
 
 const closeOverlay = () => {
   visible.value = false
-  clickedUpdate.value = false
 }
 
-const confirmDelete = async (id) => {
-  visible.value = false
-  showDeleteConfirmation.value = false
-  try {
-    await axios.delete('/api/instruments/' + clickedObject.value.id + '/', {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }
-      })
-    alertStore.showAlert(0, `${clickedObject.value.tuotenimi} ${t('message.poistettu')}`)
-    store.deleteObject(clickedObject.value.id)
-  } catch (error) {
-    if (error.response.data.detail != undefined) {
-      alertStore.showAlert(1, `${t('message.ei_poistettu')} ${t('message.virhe')}: ${error.response.data.detail}`)
-    } else {
-      alertStore.showAlert(1, `${t('message.ei_poistettu')}: ${t('message.tuntematon_virhe')}`)
-    }
-    
-  }
+const handleUpdate = (updatedItem) => {
+  store.updateObject(updatedItem);
+  // Find the updated item in the store's data and update clickedObject
+  clickedObject.value = store.data.find(item => item.id === updatedItem.id) || updatedItem;
 }
 
-const updateData = () => {
-  clickedUpdate.value = !clickedUpdate.value
-}
-
-const confirmUpdate = async () => {
-  clickedUpdate.value = false
-  visible.value = false
-  console.log(JSON.parse(JSON.stringify(updateFormData.value)));
-  try {
-    await axios.put('/api/instruments/' + clickedObject.value.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }
-      })
-    alertStore.showAlert(0, t('message.on_paivitetty'))
-    store.updateObject({ ...updateFormData.value, id: clickedObject.value.id })
-  } catch (error) {
-    // try to show the error message from the backend
-    if (error.response.data.detail != undefined) {
-      alertStore.showAlert(1, `${t('message.ei_paivitetty')} ${t('message.virhe')}: ${error.response.data.detail}`)
-    } else {
-      alertStore.showAlert(1, `${t('message.ei_paivitetty')}: ${t('message.tuntematon_virhe')}`)
-    }
-  }
+const handleDelete = (itemId) => {
+  store.deleteObject(itemId);
 }
 </script>
 
 <template>
   <div>
-    <div v-if="visible" class="overlay-backdrop" @click="closeOverlay">
-      <div @click.stop class="overlay-content">
-        <button class="close-button" @click="closeOverlay">×</button>
-        <h3 class="text-lg font-bold mb-2">{{$t('message.tiedot_nykyinen')}}</h3>
-        <div v-if="!clickedUpdate" class="data-container">
-          <p><strong>{{ $tm('fullHeaders')[0] }}: </strong>{{ clickedObject.id }}</p>
-          <p><strong>{{ $tm('fullHeaders')[1] }}: </strong>{{ clickedObject.tay_numero }}</p>
-          <p><strong>{{ $tm('fullHeaders')[2] }}: </strong>{{ clickedObject.tuotenimi }}</p>
-          <p><strong>{{ $tm('fullHeaders')[3] }}: </strong>{{ clickedObject.merkki_ja_malli }}</p>
-          <p><strong>{{ $tm('fullHeaders')[4] }}: </strong>{{ clickedObject.sarjanumero }}</p>
-          <p><strong>{{ $tm('fullHeaders')[5] }}: </strong>{{ clickedObject.yksikko }}</p>
-          <p><strong>{{ $tm('fullHeaders')[6] }}: </strong>{{ clickedObject.kampus }}</p>
-          <p><strong>{{ $tm('fullHeaders')[7] }}: </strong>{{ clickedObject.rakennus }}</p>
-          <p><strong>{{ $tm('fullHeaders')[8] }}: </strong>{{ clickedObject.huone }}</p>
-          <p><strong>{{ $tm('fullHeaders')[9] }}: </strong>{{ clickedObject.vastuuhenkilo }}</p>
-          <p><strong>{{ $tm('fullHeaders')[10] }}: </strong>{{ clickedObject.toimituspvm }}</p>
-          <p><strong>{{ $tm('fullHeaders')[11] }}: </strong>{{ clickedObject.toimittaja }}</p>
-          <p><strong>{{ $tm('fullHeaders')[12] }}: </strong>{{ clickedObject.lisatieto }}</p>
-          <p><strong>{{ $tm('fullHeaders')[13] }}: </strong>{{ clickedObject.vanha_sijainti }}</p>
-          <p><strong>{{ $tm('fullHeaders')[14] }}: </strong>{{ clickedObject.tarkistettu }}</p>
-          <p v-if="store.isLoggedIn"><strong>{{ $tm('fullHeaders')[15] }}: </strong>{{ clickedObject.huoltosopimus_loppuu }}</p>
-          <p v-if="store.isLoggedIn"><strong>{{ $tm('fullHeaders')[16] }}: </strong>{{ clickedObject.edellinen_huolto }}</p>
-          <p v-if="store.isLoggedIn"><strong>{{ $tm('fullHeaders')[17] }}: </strong>{{ clickedObject.seuraava_huolto }}</p>
-          <p><strong>{{ $tm('fullHeaders')[18] }}: </strong>{{ clickedObject.tilanne }}</p>
-        </div>
-        <div v-if="clickedUpdate" class="data-container">
-          <p><strong>{{ $tm('fullHeaders')[0] }}: </strong>{{ clickedObject.id }}</p>
-          <p><strong>{{ $tm('fullHeaders')[1] }}: </strong><input v-model="updateFormData['tay_numero']" type="text"></p>
-          <p><strong>{{ $tm('fullHeaders')[2] }}: </strong><input v-model="updateFormData['tuotenimi']" type="text"></p>
-          <p><strong>{{ $tm('fullHeaders')[3] }}: </strong><input type="text" v-model="updateFormData['merkki_ja_malli']"></p>
-          <p><strong>{{ $tm('fullHeaders')[4] }}: </strong><input type="text" v-model="updateFormData['sarjanumero']"></p>
-          <p><strong>{{ $tm('fullHeaders')[5] }}: </strong><input type="text" v-model="updateFormData['yksikko']"></p>
-          <p><strong>{{ $tm('fullHeaders')[6] }}: </strong><input type="text" v-model="updateFormData['kampus']"></p>
-          <p><strong>{{ $tm('fullHeaders')[7] }}: </strong><input type="text" v-model="updateFormData['rakennus']"></p>
-          <p><strong>{{ $tm('fullHeaders')[8] }}: </strong><input type="text" v-model="updateFormData['huone']"></p>
-          <p><strong>{{ $tm('fullHeaders')[9] }}: </strong><input type="text" v-model="updateFormData['vastuuhenkilo']"></p>
-          <p><strong>{{ $tm('fullHeaders')[10] }}: </strong><input type="date" v-model="updateFormData['toimituspvm']"></p>
-          <p><strong>{{ $tm('fullHeaders')[11] }}: </strong><input type="text" v-model="updateFormData['toimittaja']"></p>
-          <p><strong>{{ $tm('fullHeaders')[12] }}: </strong><input type="text" v-model="updateFormData['lisatieto']"></p>
-          <p><strong>{{ $tm('fullHeaders')[13] }}: </strong><input type="text" v-model="updateFormData['vanha_sijainti']"></p>
-          <p><strong>{{ $tm('fullHeaders')[14] }}: </strong><input type="text" v-model="updateFormData['tarkistettu']"></p>
-          <p><strong>{{ $tm('fullHeaders')[15] }}: </strong><input type="date" v-model="updateFormData['huoltosopimus_loppuu']"></p>
-          <p><strong>{{ $tm('fullHeaders')[16] }}: </strong><input type="date" v-model="updateFormData['edellinen_huolto']"></p>
-          <p><strong>{{ $tm('fullHeaders')[17] }}: </strong><input type="date" v-model="updateFormData['seuraava_huolto']"></p>
-          <p><strong>{{ $tm('fullHeaders')[18] }}: </strong><input type="text" v-model="updateFormData['tilanne']"></p>
-        </div>
-        <div class="buttons">
-          <button v-if="store.isLoggedIn" @click="showDeleteConfirmation = true" class="btn btn-delete">{{$t('message.poista')}}</button>
-          <button v-if="clickedUpdate" @click="confirmUpdate" class="btn btn-update2">{{ $t('message.paivita') }}</button>
-          <button v-if="store.isLoggedIn" @click="updateData" class="btn btn-update">{{clickedUpdate ? $t('message.peruuta') : $t('message.muokkaa')}}</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showDeleteConfirmation" class="overlay-backdrop">
-      <div class="overlay-content">
-        <p>{{$t('message.poisto_teksti')}}</p>
-        <div class="modal-buttons">
-          <button @click="confirmDelete" class="btn btn-delete">{{$t('message.kylla_poisto')}}</button>
-          <button @click="showDeleteConfirmation = false" class="btn btn-cancel">{{$t('message.peruuta')}}</button>
-        </div>
-      </div>
-    </div>
-    
+    <DetailsOverlay 
+      :item="clickedObject" 
+      :visible="visible" 
+      @close="closeOverlay" 
+      @update-item="handleUpdate" 
+      @delete-item="handleDelete" 
+    />
     <div class="table-container">
       <table>
         <colgroup>
