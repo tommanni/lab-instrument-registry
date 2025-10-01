@@ -10,6 +10,7 @@ import Pagination from '@/components/Pagination.vue';
 import { useDataStore } from '@/stores/data';
 import RegisterOverlay from '@/components/RegisterOverlay.vue';
 const store = useDataStore()
+const dataComponent = ref(null)
 
 const activateFilters = ref({
   yksikko : null,
@@ -26,6 +27,12 @@ function onFilterChange({ filterName, value }) {
     tilanne: activateFilters.value.tilanne,
   })
 }
+
+function handleNewInstrument(item) {
+  if (dataComponent.value) {
+    dataComponent.value.openOverlay(item);
+  }
+}
 </script>
 
 <template>
@@ -34,7 +41,7 @@ function onFilterChange({ filterName, value }) {
     <Search />
     <ul class="navbar-nav d-flex flex-row ms-auto mb-2 mb-lg-0">
       <li class="nav-item me-2">
-        <AddOverlay />
+        <AddOverlay @new-instrument-added="handleNewInstrument" />
       </li>
       <li class="nav-item"> 
         <LogoutOverlay  />
@@ -43,7 +50,7 @@ function onFilterChange({ filterName, value }) {
     <LoginOverlay />
     <RegisterOverlay />
     <div class="data">
-      <Data />
+      <Data ref="dataComponent" />
       <Pagination />
     </div>
   </main>

@@ -150,6 +150,10 @@ const handleUpdate = (updatedItem) => {
 const handleDelete = (itemId) => {
   store.deleteObject(itemId);
 }
+
+defineExpose({
+  openOverlay
+});
 </script>
 
 <template>
