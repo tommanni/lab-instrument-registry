@@ -103,6 +103,19 @@ export const useDataStore = defineStore('dataStore', () => {
       
       // Etsi kaikista mahdollisista nimikentistä
       return (
+        (item.id.toString().includes(lowerSearchTerm)) ||
+        (item.tay_numero &&
+          item.tay_numero.toLowerCase().includes(lowerSearchTerm)) ||
+        (item.sarjanumero &&
+          item.sarjanumero.toLowerCase().includes(lowerSearchTerm)) ||
+        (item.toimituspvm &&
+          item.toimituspvm.toString().toLowerCase().includes(lowerSearchTerm)) ||
+        (item.toimittaja &&
+          item.toimittaja.toLowerCase().includes(lowerSearchTerm)) ||
+        (item.lisatieto &&
+          item.lisatieto.toLowerCase().includes(lowerSearchTerm)) ||
+        (item.vanha_sijainti &&
+          item.vanha_sijainti.toLowerCase().includes(lowerSearchTerm)) ||
         (item.tuotenimi && 
          item.tuotenimi.toLowerCase().includes(lowerSearchTerm)) ||
         (item.merkki_ja_malli && 
