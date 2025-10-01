@@ -206,7 +206,7 @@ const confirmDelete = async () => {
               <hr>
               <ul>
                 <li v-for="change in record.changes" :key="change.field">
-                  • <strong>{{ $tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{ change.old }} {{ change.old ? "→" : "" }} {{ change.new ? change.new : "-" }}
+                  • <strong>{{ $tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{ change.old }} <strong>{{ change.old ? "→" : "" }}</strong> {{ change.new ? change.new : "-" }}
                 </li>
               </ul>
             </div>
