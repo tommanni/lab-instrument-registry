@@ -21,6 +21,7 @@ const showDeleteConfirmation = ref(false);
 const updateFormData = ref({});
 const instrumentHistory = ref([]);
 
+// Map field names to their respective indices in fullHeaders array in messages.js
 const fieldToIndexMap = {
   id: 0,
   tay_numero: 1,
@@ -200,12 +201,12 @@ const confirmDelete = async () => {
           <h3 class="text-lg font-bold mb-2">{{$t('message.muutoshistoria')}}</h3>
           <div class="history-details">
             <div v-for="record in instrumentHistory" :key="record.history_date" class="history-record">
-              <p><strong>📅 {{ formatDate(record.history_date) }} — {{ record.history_type }}</strong></p>
+              <p><strong>🗓️ {{ formatDate(record.history_date) }} — {{ record.history_type }}</strong></p>
               <p>👤 {{ record.history_user || 'Järjestelmä' }}</p>
               <hr>
               <ul>
                 <li v-for="change in record.changes" :key="change.field">
-                  • <strong>{{ $tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{ change.old }} → {{ change.new }}
+                  • <strong>{{ $tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{ change.old }} {{ change.old ? "→" : "" }} {{ change.new ? change.new : "-" }}
                 </li>
               </ul>
             </div>
