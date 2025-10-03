@@ -15,9 +15,7 @@ export const useUserStore = defineStore('userStore', () => {
   const fetchData = async () => {
     try {
       const res = await axios.get('/api/users/', {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }
+        withCredentials: true
       })
 
       fullData.value = res.data

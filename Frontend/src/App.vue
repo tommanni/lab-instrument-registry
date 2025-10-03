@@ -37,43 +37,53 @@ function checkLanguageStatus() {
 }
 
 async function checkLogingStatus() {
-  const token = getCookie("Authorization");
-  if (!token) {
-    dataStore.isLoggedIn = false;
-    return;
-  }
-
   try {
     const response = await axios.get('/api/users/me/', {
-      headers: {
-        Authorization: `Token ${token}`
-      }
+      withCredentials: true
     });
     dataStore.isLoggedIn = true;
     dataStore.user = response.data;
   } catch (error) {
     dataStore.isLoggedIn = false;
-
-    document.cookie = "Authorization=; Max-age=0";
+  } finally {
+    dataStore.loginChecked = true;
   }
 }
-// Above are cookie things for auto log  in. Not very secure since token is kept clientside.
+// Above are cookie things for auto log  in. Secure since authentication is happening server side
+// and token is kept in HttpOnly cookie
 
-onMounted(() => {
+onMounted(async() => {
   checkLanguageStatus()
-  dataStore.fetchData()
   checkLogingStatus()
+  await dataStore.fetchData()
+  dataStore.initializePageFromCookies()
+  dataStore.isInitialized = true
 })
 </script>
 
 <template>
-  <Navigation />
-  <Alert />
-  <RouterView />
-  <TuniFooter />
+  <div v-if="!dataStore.loginChecked || !dataStore.isInitialized" class="loading-screen">
+    Loading...
+  </div>
+
+  <div v-else>
+    <Navigation />
+    <Alert />
+    <RouterView />
+    <TuniFooter />
+  </div>
 </template>
 
-
+<style>
+.loading-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+</style>
 
 
 

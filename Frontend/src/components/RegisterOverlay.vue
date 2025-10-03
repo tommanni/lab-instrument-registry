@@ -24,6 +24,8 @@ const registerUser = async () => {
       password: password.value,
       invite_code: invite_code.value,
       full_name: full_name.value
+    }, {
+      withCredentials: true
     })
     email.value = ''
     password.value = ''
@@ -104,7 +106,7 @@ const closeOverlay = () => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 
 /* Keskitetty sisältö overlayn sisällä */

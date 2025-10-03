@@ -62,7 +62,7 @@ main {
 }
 .data {
   padding-bottom: 88px;
-  padding-top: 5px
+  padding-top: 5px;
 }
 
 .nav-item {

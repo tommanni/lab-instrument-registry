@@ -38,9 +38,8 @@ export const useContractStore = defineStore('contractStore', () => {
   const fetchData = async () => {
     try {
       const res = await axios.get('/api/service/', {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }})
+        withCredentials: true
+      })
       console.log('Haettu data:', res.data)
       originalData.value = res.data
       contractData.value = res.data

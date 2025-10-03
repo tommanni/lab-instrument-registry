@@ -95,9 +95,7 @@ const confirmUpdate = async () => {
   visible.value = false
   console.log(JSON.parse(JSON.stringify(updateFormData.value)));
   await axios.put('/api/instruments/' + clickedObject.value.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-      }
+      withCredentials: true
     })
   alertStore.showAlert(0, i18n.t('message.on_paivitetty'))
   store.updateObject({ ...updateFormData.value, id: clickedObject.value.id })

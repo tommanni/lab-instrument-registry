@@ -14,6 +14,14 @@ from shutil import copyfileobj
 from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
 
+# Custom authentication class to handle login tokens in HttpOnly cookies
+class CookieTokenAuthentication(TokenAuthentication):
+    def authenticate(self, request):
+        token = request.COOKIES.get('Authorization')
+        if not token:
+            return None
+        else:
+            return self.authenticate_credentials(token.encode('utf-8'))
 
 """
 Instrument related views
@@ -22,14 +30,14 @@ Instrument related views
 class InstrumentList(generics.ListCreateAPIView):
     queryset = Instrument.objects.all()
     serializer_class = InstrumentSerializer
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns a single instrument.
 class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Instrument.objects.all()
     serializer_class = InstrumentSerializer
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns the history of a single instrument.
@@ -83,7 +91,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
 
 # This returns all the instruments that match the given filter
 class InstrumentValueSet(APIView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request, field_name):
@@ -98,7 +106,7 @@ class InstrumentValueSet(APIView):
 
 # This view returns all the data in Instrument table as a csv file.
 class InstrumentCSV(APIView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
@@ -110,7 +118,7 @@ class InstrumentCSV(APIView):
         return response
 
 class ServiceValueSet(APIView):
-    authentication_classes = [TokenAuthentication]  # Add your authentication if needed
+    authentication_classes = [CookieTokenAuthentication]  # Add your authentication if needed
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -130,14 +138,14 @@ User related views
 class UserList(generics.ListAPIView):
     queryset = RegistryUser.objects.all()
     serializer_class = RegistryUserSerializer
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 # This view returns a single user.
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = RegistryUser.objects.all()
     serializer_class = RegistryUserSerializer
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsSameUserOrReadOnly]
     
     def get_object(self):
@@ -155,7 +163,7 @@ Authentication related views
 
 # This view creates an invite code and retunrs it.
 class GenerateInviteCode(APIView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -183,10 +191,37 @@ class Login(knox_views.LoginView):
     authentication_classes = [JSONAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def post(self, request, format=None):
+        response = super().post(request, format=None)
+
+        token = response.data.get('token')
+        print("Token from Knox:", token)
+
+        # Remove token from JSON response for added security
+        response.data.pop('token', None)
+
+        response.set_cookie(
+            key='Authorization',
+            value=token,
+            httponly=True,
+            #secure=True,        todo: Add secure=true and samesite for live build!!!
+            #samesite='Strict',  
+            max_age=2 * 60 * 60      # 2h, same as knox token
+        )
+        print("Set cookie with token:", token)
+        return response
+
 class Logout(knox_views.LogoutView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def post(self, request, format=None):
+        response = super().post(request, format=None)
+
+        # Delete the cookie
+        response.delete_cookie('Authorization')
+        return response
+
 class LogoutAll(knox_views.LogoutAllView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]

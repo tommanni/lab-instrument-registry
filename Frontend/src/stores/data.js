@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
@@ -10,8 +10,17 @@ export const useDataStore = defineStore('dataStore', () => {
   const currentPage = ref(1)
   const numberOfPages = ref(1)
   const isLoggedIn = ref(false)
+  const loginChecked = ref(false)
+  const isInitialized = ref(false)
   const sortColumn = ref('')
   const sortDirection = ref('none')
+  const searchTerm = ref('')
+  const filterValues = ref({
+  yksikko: null,
+  huone: null,
+  vastuuhenkilo: null,
+  tilanne: null,
+})
  
   const updateVisibleData = () => {
     // Tehdään kopio hakutuloksista
@@ -33,7 +42,9 @@ export const useDataStore = defineStore('dataStore', () => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get('/api/instruments/')
+      const res = await axios.get('/api/instruments/', {
+        withCredentials: true
+      });
       originalData.value = res.data
       data.value = res.data.slice(0, 15)
       numberOfPages.value = Math.ceil(res.data.length / 15)
@@ -67,81 +78,130 @@ export const useDataStore = defineStore('dataStore', () => {
     updateVisibleData()
   }
   const filterData = ({yksikko, huone, vastuuhenkilo, tilanne}) => {
-    filteredData.value = originalData.value.filter(item => {
-    let match = true
-    if (yksikko) {
-    match = match && item.yksikko === yksikko
-     }
-    if (huone) {
-    match = match && item.huone === huone
-     }
-    if (vastuuhenkilo) {
-    match = match && item.vastuuhenkilo === vastuuhenkilo
-     }
-    if (tilanne) {
-    match = match && item.tilanne === tilanne
-     }
-    return match
-     })
-    searchedData.value = filteredData.value
-    currentPage.value = 1
-    numberOfPages.value = Math.ceil(searchedData.value.length / 15)
-    updateVisibleData()
-     }
+    // TODO Add cookie flags for live build
+    if (yksikko !== undefined) {
+    filterValues.value.yksikko = yksikko
+    document.cookie = `YksikkoFilter=${encodeURIComponent(yksikko || '')}; Path=/` /*; Secure; SameSite=Strict*/
+  }
+  if (huone !== undefined) {
+    filterValues.value.huone = huone
+    document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
+  }
+  if (vastuuhenkilo !== undefined) {
+    filterValues.value.vastuuhenkilo = vastuuhenkilo
+    document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
+  }
+  if (tilanne !== undefined) {
+    filterValues.value.tilanne = tilanne
+    document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
+  }
 
-  const searchData = (searchTerm) => {
-    if (!searchTerm) {
-      searchedData.value = [...filteredData.value]
-      currentPage.value = 1
-      numberOfPages.value = Math.ceil(searchedData.value.length / 15)
-      updateVisibleData()
-      return
-    }
-
-    const results = filteredData.value.filter((item) => {
-      const lowerSearchTerm = searchTerm.toLowerCase()
-      
-      // Etsi kaikista mahdollisista nimikentistä
-      return (
-        (item.id.toString().includes(lowerSearchTerm)) ||
-        (item.tay_numero &&
-          item.tay_numero.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.sarjanumero &&
-          item.sarjanumero.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.toimituspvm &&
-          item.toimituspvm.toString().toLowerCase().includes(lowerSearchTerm)) ||
-        (item.toimittaja &&
-          item.toimittaja.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.lisatieto &&
-          item.lisatieto.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.vanha_sijainti &&
-          item.vanha_sijainti.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.tuotenimi && 
-         item.tuotenimi.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.merkki_ja_malli && 
-         item.merkki_ja_malli.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.yksikko && 
-         item.yksikko.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.kampus && 
-         item.kampus.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.rakennus && 
-         item.rakennus.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.huone && 
-         item.huone.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.vastuuhenkilo && 
-         item.vastuuhenkilo.toLowerCase().includes(lowerSearchTerm)) ||
-        (item.tilanne && 
-         item.tilanne.toLowerCase().includes(lowerSearchTerm))
-      )
-    })
-
-    searchedData.value = results
-
-    currentPage.value = 1
-    numberOfPages.value = Math.ceil(searchedData.value.length / 15)
-    updateVisibleData()
+  applySearchAndFilter()
   
   }
+
+  function searchData(term) {
+    // TODO Add cookie flags for live build
+    searchTerm.value = term
+    document.cookie = `SearchTerm=${encodeURIComponent(term)}; Path=/` /*; Secure; SameSite=Strict*/
+    applySearchAndFilter()
+}
+
+  function applySearchAndFilter() {
+    const lowerSearch = searchTerm.value.toLowerCase()
+
+    // Apply filters
+    const filtered = originalData.value.filter(item => {
+      let match = true
+      if (filterValues.value.yksikko)
+        match = match && item.yksikko === filterValues.value.yksikko
+      if (filterValues.value.huone)
+        match = match && item.huone === filterValues.value.huone
+      if (filterValues.value.vastuuhenkilo)
+        match = match && item.vastuuhenkilo === filterValues.value.vastuuhenkilo
+      if (filterValues.value.tilanne)
+        match = match && item.tilanne === filterValues.value.tilanne
+      return match
+    })
+
+    filteredData.value = filtered
+
+    // Apply search term
+    let results = filtered
+    if (lowerSearch) {
+      results = filtered.filter((item) =>
+        (item.id.toString().includes(lowerSearch)) ||
+        (item.tay_numero && item.tay_numero.toLowerCase().includes(lowerSearch)) ||
+        (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lowerSearch)) ||
+        (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lowerSearch)) ||
+        (item.toimittaja && item.toimittaja.toLowerCase().includes(lowerSearch)) ||
+        (item.lisatieto && item.lisatieto.toLowerCase().includes(lowerSearch)) ||
+        (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lowerSearch)) ||
+        (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lowerSearch)) ||
+        (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lowerSearch)) ||
+        (item.yksikko && item.yksikko.toLowerCase().includes(lowerSearch)) ||
+        (item.kampus && item.kampus.toLowerCase().includes(lowerSearch)) ||
+        (item.rakennus && item.rakennus.toLowerCase().includes(lowerSearch)) ||
+        (item.huone && item.huone.toLowerCase().includes(lowerSearch)) ||
+        (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lowerSearch)) ||
+        (item.tilanne && item.tilanne.toLowerCase().includes(lowerSearch))
+      )
+    }
+
+    searchedData.value = results
+    currentPage.value = 1
+    numberOfPages.value = Math.ceil(results.length / 15)
+
+    updateVisibleData()
+  }
+
+  // Function for data initialization based on active filters
+  const initializePageFromCookies = () => {
+    
+    const cookies = Object.fromEntries(
+    document.cookie.split('; ').map(cookie => {
+      const [key, ...rest] = cookie.split('=')
+      return [key.trim(), rest.join('=')]
+    })
+  )
+
+  const FilterCookies = {}
+
+  if (cookies.YksikkoFilter) {
+    FilterCookies.yksikko = decodeURIComponent(cookies.YksikkoFilter)
+  }
+  if (cookies.HuoneFilter) {
+    FilterCookies.huone = decodeURIComponent(cookies.HuoneFilter)
+  }
+  if (cookies.VastuuHFilter) {
+    FilterCookies.vastuuhenkilo = decodeURIComponent(cookies.VastuuHFilter)
+  }
+  if (cookies.TilanneFilter) {
+    FilterCookies.tilanne = decodeURIComponent(cookies.TilanneFilter)
+  }
+
+  if (Object.keys(FilterCookies).length > 0) {
+    filterData(FilterCookies)
+  }
+
+  if (cookies.SearchTerm) {
+    searchData(decodeURIComponent(cookies.SearchTerm))
+  }
+
+  if (cookies.CurrentPage) {
+    const page = parseInt(cookies.CurrentPage, 10)
+    if (!isNaN(page)) {
+      currentPage.value = page
+    }
+  }
+
+    updateVisibleData()
+  }
+  // TODO Add cookie flags for live build
+  watch(currentPage, (newPage) => {
+    document.cookie = `CurrentPage=${newPage}; Path=/` /*; Secure; SameSite=Strict*/
+  })
+  
 
   return { 
     data, 
@@ -158,6 +218,7 @@ export const useDataStore = defineStore('dataStore', () => {
     searchedData, 
     isLoggedIn,
     sortColumn, 
-    sortDirection  
+    sortDirection,
+    initializePageFromCookies
   }
 })

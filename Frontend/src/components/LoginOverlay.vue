@@ -19,11 +19,10 @@ const loginUser = async () => {
     const response = await axios.post('/api/login/', {
       email: email.value,
       password: password.value
+    }, {
+      withCredentials: true
     });
-    // Set cookie that saves token. Should work for 2h
-    const expiryDate = new Date(response.data.expiry).toUTCString();
-    // TODO add commented parameters to cookie definition for live build HTTPS
-    document.cookie = 'Authorization=' + response.data.token + '; Expires=' + expiryDate + '; path=/' /*; Secure; SameSite=Strict'; */
+    
     store.isLoggedIn = true
     email.value = ''
     password.value = ''
@@ -113,7 +112,7 @@ const closeOverlay = () => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 
 /* Centered content for overlay */

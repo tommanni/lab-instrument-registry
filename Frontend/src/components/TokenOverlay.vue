@@ -22,9 +22,7 @@ const closeOverlay = () => {
 const generateToken = async() => {
   try {
     const res = await axios.get('/api/invite/', {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-      }
+      withCredentials: true
     })
     console.log(res)
     token.value = res.data.invite_code
@@ -64,7 +62,7 @@ const generateToken = async() => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 
 /* Keskitetty sisältö overlayn sisällä */
