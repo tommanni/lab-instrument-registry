@@ -9,6 +9,7 @@ const i18n = useI18n();
 const store = useDataStore()
 const showOverlay = ref(false)
 const alertStore = useAlertStore()
+const emit = defineEmits(['new-instrument-added'])
 
 // Factory function to create base form data (core instrument fields only)
 // Funktio, joka luo peruslomakedata (vain ydinlaitteen kentät)
@@ -76,6 +77,7 @@ const saveData = async () => {
     alertStore.showAlert(0, `${dataToSend.tuotenimi} ${i18n.t('message.lisattu')}`)
     const savedItem = response.data
     store.addObject(savedItem)
+    emit('new-instrument-added', savedItem)
     // todo sometimes the instrument doesn't appear in the list or otherwise breaks it
     // doesn't make any sense why
 

@@ -67,7 +67,11 @@ export default {
 	  rekisteroimisvirhe: "Error while registering.",
 	  tuntematon_virhe: "Unknown error",
 	  kutsukoodi_virhe: "Error while fetching invite code",
-	  virhe: "Error"
+	  virhe: "Error",
+	  historia: "History",
+	  muutoshistoria: "Change History",
+	  takaisin: "Back",
+	  muokkaa_tietoja: "Edit Information"
 	},
 	tableHeaders: [
 	  "Product Name",
