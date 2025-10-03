@@ -31,14 +31,7 @@ const loginUser = async () => {
     alertStore.showAlert(0, `${t('message.sisaan_kirjauduttu')}`)
     closeOverlay()
   } catch (error) {
-    console.error('Kirjautumisvirhe:', error)
-
-    // display an appropriate error message if possible
-    if (error.response.data.detail != undefined) {
-      alertStore.showAlert(1, `${t('message.kirjautumisvirhe')} ${t('message.virhe')}: ${error.response.data.detail}`)
-    } else {
-      alertStore.showAlert(1, `${t('message.kirjautumisvirhe')}: ${t('message.tuntematon_virhe')}`)
-    }
+    alertStore.showAlert(1, t('message.kirjautumisvirhe'))
   }
 }
 

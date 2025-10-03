@@ -55,7 +55,6 @@ const emptyForm = () => {
 }
 
 const saveData = async () => {
-  console.log(JSON.parse(JSON.stringify(formData.value)))
   /*
     attempt to save the instrument
     alert the user whether it succeeded

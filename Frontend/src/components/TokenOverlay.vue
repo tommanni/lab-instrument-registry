@@ -24,7 +24,6 @@ const generateToken = async() => {
     const res = await axios.get('/api/invite/', {
       withCredentials: true
     })
-    console.log(res)
     token.value = res.data.invite_code
   } catch (error) {
     alertStore.showAlert(1, `${t('message.kutsukoodi_virhe')}`)

@@ -66,9 +66,9 @@ export default {
         });
         
         filter.options = res.data.data.map(s => s.trim()).sort((a,b) => a ? b ? a.localeCompare(b) : -1 : 1) || []
-      } 
+      }
       catch (error) {
-        console.error("Error fetching filter option:", error)
+        // Error fetching filter option
       }
     },
 

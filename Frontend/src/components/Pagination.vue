@@ -4,7 +4,6 @@ import { computed } from 'vue';
 
 const store = useDataStore();
 const changePage = (index) => {
-  console.log("about to change the page to: " + index);
   if (index < 1) {
     store.currentPage = 1
     store.updateVisibleData()

@@ -34,13 +34,7 @@ const registerUser = async () => {
     alertStore.showAlert(0, `${t('message.rekisteroity')}`)
     closeOverlay()
   } catch (error) {
-    console.error('Error while signing in: ', error)
-    // try to display the error message from the api. if fails, display a generic one
-    if (error.response.data.message != undefined) {
-      alertStore.showAlert(1, `${t('message.rekisteroimisvirhe')} ${t('message.virhe')}: ${error.response.data.message}`)
-    } else {
-      alertStore.showAlert(1, `${t('message.rekisteroimisvirhe')}: ${t('message.tuntematon_virhe')}`)
-    }
+    alertStore.showAlert(1, t('message.rekisteroimisvirhe'))
   }
 }
 
