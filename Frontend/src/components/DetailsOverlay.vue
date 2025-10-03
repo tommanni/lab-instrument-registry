@@ -58,9 +58,7 @@ const fetchHistory = async (id) => {
   if (!id) return;
   try {
     const response = await axios.get(`/api/instruments/${id}/history/`, {
-      headers: {
-        'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-      }
+      withCredentials: true
     });
     instrumentHistory.value = response.data.reverse();
   } catch (error) {
@@ -77,9 +75,7 @@ const closeOverlay = () => {
 const confirmUpdate = async () => {
   try {
     await axios.put('/api/instruments/' + props.item.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }
+        withCredentials: true
       })
     alertStore.showAlert(0, t('message.on_paivitetty'))
     emit('update-item', { ...updateFormData.value, id: props.item.id });
@@ -111,9 +107,7 @@ const formatDate = (dateString) => {
 const confirmDelete = async () => {
   try {
     await axios.delete('/api/instruments/' + props.item.id + '/', {
-        headers: {
-          'Authorization': 'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-        }
+        withCredentials: true
       })
     alertStore.showAlert(0, `${props.item.tuotenimi} ${t('message.poistettu')}`)
     emit('delete-item', props.item.id);
@@ -239,7 +233,7 @@ const confirmDelete = async () => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 .overlay-content {
   position: absolute;
