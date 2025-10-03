@@ -113,8 +113,6 @@ const displayedData = computed(() => {
 
 // Handle column resizing
 const startResize = (event, column) => {
-  console.log(column);
-  
   const startX = event.clientX;
   const startWidth = columnWidths.value[column];
 
@@ -158,12 +156,12 @@ defineExpose({
 
 <template>
   <div>
-    <DetailsOverlay 
-      :item="clickedObject" 
-      :visible="visible" 
-      @close="closeOverlay" 
-      @update-item="handleUpdate" 
-      @delete-item="handleDelete" 
+    <DetailsOverlay
+      :item="clickedObject"
+      :visible="visible"
+      @close="closeOverlay"
+      @update-item="handleUpdate"
+      @delete-item="handleDelete"
     />
     <div class="table-container">
       <table>
@@ -240,6 +238,15 @@ th, td {
 th {
   background: #f4f4f4;
   position: relative;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f0f0f0;
 }
 
 .resizer {

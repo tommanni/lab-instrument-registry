@@ -18,7 +18,6 @@ const showDeleteConfirmation = ref(false);
 const clickedToken = ref(false)
 
 const openTokenOverlay = () => {
-  console.log("Opened token overlay");
   visible.value = true
 }
 

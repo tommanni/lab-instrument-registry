@@ -51,7 +51,7 @@ export const useDataStore = defineStore('dataStore', () => {
       searchedData.value = res.data
       filteredData.value = res.data
     } catch (error) {
-      console.log('Error fetching data: ', error);
+      // Error fetching data
     }
   }
   const deleteObject = async (id) => {

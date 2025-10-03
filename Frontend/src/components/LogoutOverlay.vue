@@ -23,16 +23,14 @@ const logoutUser = async () => {
     try {
         // API-call for logout
         const response = await axios.post('/api/logout/', {}, {
-          withCredentials: true  
+          withCredentials: true
         });
-
-        console.log('Ulos kirjautuminen onnistui:', response.data);
         store.isLoggedIn = false
         closeOverlay();
         // Show success alert
         alertStore.showAlert(0, t('message.ulos_kirjauduttu'))
     } catch (error) {
-        console.error('Virhe uloskirjautuessa:', error)
+        // Error logging out
     }
 }
 

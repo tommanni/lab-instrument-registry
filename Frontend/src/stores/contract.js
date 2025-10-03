@@ -17,7 +17,6 @@ export const useContractStore = defineStore('contractStore', () => {
   // Jos dataa ei ole, palautetaan vähintään 1.
   const numberOfPages = computed(() => {
     const totalCount = contractData.value.length;
-    console.log("Tietueiden määrä: ", totalCount);
     const pages = Math.ceil(totalCount / 15);
     return pages > 0 ? pages : 1;
   })
@@ -28,7 +27,6 @@ export const useContractStore = defineStore('contractStore', () => {
       (currentPage.value - 1) * 15,
       currentPage.value * 15
     )
-    console.log('Päivitetty näkyvä data:', data.value);
   }
 
   // Watcher: jos filteredSortedData muuttuu, nollataan sivunumero ja päivitetään visible data.
@@ -40,13 +38,12 @@ export const useContractStore = defineStore('contractStore', () => {
       const res = await axios.get('/api/service/', {
         withCredentials: true
       })
-      console.log('Haettu data:', res.data)
       originalData.value = res.data
       contractData.value = res.data
       currentPage.value = 1  // Nollataan sivunumero
       updateVisibleData()
     } catch (error) {
-      console.log('Error fetching data: ', error)
+      // Error fetching data
     }
   }
 

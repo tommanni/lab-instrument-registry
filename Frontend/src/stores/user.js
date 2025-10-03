@@ -22,7 +22,7 @@ export const useUserStore = defineStore('userStore', () => {
       currentData.value = res.data.slice(0, 15)
       numberOfPages.value = Math.ceil(res.data.length / 15)
     } catch (error) {
-      console.log('Error fetching user data: ', error);
+      // Error fetching user data
     }
   }
 

@@ -53,8 +53,6 @@ const isMaintenanceDue = (dateStr) => {
 
 // Handle column resizing
 const startResize = (event, column) => {
-  console.log(column);
-  
   const startX = event.clientX;
   const startWidth = columnWidths.value[column];
 
@@ -73,7 +71,6 @@ const startResize = (event, column) => {
 };
 
 const openOverlay = (item) => {
-  console.log("opened: " + item["tuotenimi"]);
   clickedObject.value = {...item}
   visible.value = true
   updateFormData.value = Object.fromEntries(
@@ -93,7 +90,6 @@ const updateData = () => {
 const confirmUpdate = async () => {
   clickedUpdate.value = false
   visible.value = false
-  console.log(JSON.parse(JSON.stringify(updateFormData.value)));
   await axios.put('/api/instruments/' + clickedObject.value.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
       withCredentials: true
     })
@@ -305,6 +301,15 @@ th, td {
 th {
   background: #f4f4f4;
   position: relative;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f0f0f0;
 }
 
 .resizer {
