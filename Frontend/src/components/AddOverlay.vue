@@ -61,9 +61,6 @@ const saveData = async () => {
     alert the user whether it succeeded
   */
   try {
-    const headers = {
-      "Authorization":  'Token ' + document.cookie.split("; ").find((row) => row.startsWith("Authorization="))?.split("=")[1]
-    }
     // send the data without any empty fields
     var dataToSend = {};
     for (const key in formData.value) {
@@ -72,7 +69,7 @@ const saveData = async () => {
       }
     }
 
-    const response = await axios.post('/api/instruments/', dataToSend, {headers: headers})
+    const response = await axios.post('/api/instruments/', dataToSend, {withCredentials: true})
 
     alertStore.showAlert(0, `${dataToSend.tuotenimi} ${i18n.t('message.lisattu')}`)
     const savedItem = response.data
@@ -184,7 +181,7 @@ const saveData = async () => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 
 /* Keskitetty sisältö overlayn sisällä */

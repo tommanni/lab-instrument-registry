@@ -20,25 +20,13 @@ const closeOverlay = () => {
 }
 
 const logoutUser = async () => {
-    const token = getCookie("Authorization");
-    if (!token) {
-        useDataStore.isLoggedIn = false;
-    return;
-    }
-
     try {
         // API-call for logout
-        const response = await axios.post('/api/logout/', {
-            },
-        {
-            headers: {
-                Authorization: `Token ${token}`
-      }
-            
+        const response = await axios.post('/api/logout/', {}, {
+          withCredentials: true  
         });
+
         console.log('Ulos kirjautuminen onnistui:', response.data);
-        // Delete cookie
-        document.cookie = "Authorization=; Max-age=0";;
         store.isLoggedIn = false
         closeOverlay();
         // Show success alert
@@ -46,16 +34,6 @@ const logoutUser = async () => {
     } catch (error) {
         console.error('Virhe uloskirjautuessa:', error)
     }
-}
-
-// Get cookie where the token is
-function getCookie(name) {
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const [key, value] = cookie.trim().split('=');
-    if (key === name) return value;
-  }
-  return null;
 }
 
 </script>
@@ -93,7 +71,7 @@ function getCookie(name) {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1031;
+  z-index: 1060;
 }
 
 /* Centered content for overlay */
@@ -111,7 +89,7 @@ function getCookie(name) {
 .logout-button {
   padding: 5px 10px;
   margin-left: 5px;
-  margin-right: 20px;
+  margin-right: 0px;
   background-color: #cf286f;
   color: white;
   border: none;

@@ -35,9 +35,11 @@ const dataStore = useDataStore()
 </template>
 
 <style scoped>
+
 header {
   width: 100%;
   position: fixed;
   top: 0;
+  z-index: 1050;
 }
 </style>

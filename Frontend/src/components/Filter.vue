@@ -49,6 +49,11 @@ export default {
 
   mounted() {
     this.filters.forEach(filter => {
+      const cookieName = this.getCookieName(filter.field);
+      const savedValue = this.getCookie(cookieName);
+      if (savedValue) {
+        filter.selected = savedValue;
+      }
       this.fetchFilterOptions(filter)
     })
   },
@@ -56,7 +61,9 @@ export default {
   methods: {
     async fetchFilterOptions(filter) {
       try {
-        const res = await axios.get(`/api/instruments/valueset/${filter.field}/`)
+        const res = await axios.get(`/api/instruments/valueset/${filter.field}/`, {
+          withCredentials: true
+        });
         
         filter.options = res.data.data.map(s => s.trim()).sort((a,b) => a ? b ? a.localeCompare(b) : -1 : 1) || []
       } 
@@ -79,13 +86,32 @@ export default {
       })
     },
 
-    clearFilter(filterIndex) {
-      this.filters[filterIndex].selected = null;
+    getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    },
 
-      this.filters[filterIndex].searchTerm = ''
+    getCookieName(field) {
+      switch (field) {
+        case 'yksikko': return 'YksikkoFilter';
+        case 'huone': return 'HuoneFilter';
+        case 'vastuuhenkilo': return 'VastuuHFilter';
+        case 'tilanne': return 'TilanneFilter';
+        default: return '';
+      }
+    },
+
+    clearFilter(filterIndex) {
+      const filter = this.filters[filterIndex];
+      filter.selected = null;
+      filter.searchTerm = ''
+
+      const cookieName = this.getCookieName(filter.field);
+      // TODO Add cookie flags for live build
+      document.cookie = `${cookieName}=; Path=/; Max-Age=0` /*; Secure; SameSite=Strict*/
 
       this.$emit('filter-change', {
-        filterName: this.filters[filterIndex].field,
+        filterName: filter.field,
         value: null
       })
     },

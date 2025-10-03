@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useDataStore } from '@/stores/data';
 
 const store = useDataStore();
@@ -8,6 +8,14 @@ const searchTerm = ref('');
 const performSearch = () => {
     store.searchData(searchTerm.value);
 };
+
+// Check for active search terms on page load
+onMounted(() => {
+  const match = document.cookie.match(/SearchTerm=([^;]+)/);
+  if (match) {
+    searchTerm.value = decodeURIComponent(match[1]);
+  }
+});
 
 </script>
 
