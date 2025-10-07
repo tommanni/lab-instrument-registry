@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios';
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router'
 import { useAlertStore } from '@/stores/alert';
 import { useDataStore } from '@/stores/data'
 import { useUserStore } from '@/stores/user';
@@ -9,13 +10,14 @@ import { useI18n } from 'vue-i18n';
 const { t, tm } = useI18n();
 const dataStore = useDataStore();
 const userStore = useUserStore();
-const alertStore = useAlertStore()
+const alertStore = useAlertStore();
+const router = useRouter();
 
-const visible = ref(false)
-const tokenOverlay = ref(false)
-const clickedObject = ref({})
+const visible = ref(false);
+const tokenOverlay = ref(false);
+const clickedObject = ref({});
 const showDeleteConfirmation = ref(false);
-const clickedToken = ref(false)
+const clickedToken = ref(false);
 
 const openTokenOverlay = () => {
   visible.value = true
@@ -23,6 +25,10 @@ const openTokenOverlay = () => {
 
 const closeOverlay = () => {
   visible.value = false
+}
+
+function goToUser(id) {
+  router.push({ name: 'UserInfoView', params: { id } })
 }
 </script>
 
@@ -39,7 +45,11 @@ const closeOverlay = () => {
       </thead>
 
       <tbody>
-        <tr v-for="(item, index) in userStore.currentData" :key="index">
+        <tr v-for="(item, index) in userStore.currentData" 
+        :key="index" 
+        @click="goToUser(item.id)" 
+        style="cursor: pointer;"
+        >
           <td>
             {{ item.full_name }}
           </td>
