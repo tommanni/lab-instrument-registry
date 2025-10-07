@@ -13,6 +13,8 @@ from datetime import datetime
 from shutil import copyfileobj
 from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -146,7 +148,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = RegistryUser.objects.all()
     serializer_class = RegistryUserSerializer
     authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsSameUserOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_object(self):
         # if the URL argument is 'me', return logged in user
@@ -161,7 +163,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 Authentication related views
 """
 
-# This view creates an invite code and retunrs it.
+# This view creates an invite code and returns it.
 class GenerateInviteCode(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -185,6 +187,60 @@ class Register(APIView):
             return Response({'message': 'user registered'})
         else:
             return Response({'message': 'invite code invalid or missing'}, status=400)
+
+# This view allows a logged in user to change their password.
+class ChangePasswordView(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user_id = request.data.get('id')
+        new_password = request.data.get('new_password')
+        
+        try:
+            user = RegistryUser.objects.get(pk=user_id)
+        except RegistryUser.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=404)
+
+        #try:
+        #    validate_password(new_password, user=user)
+        #except ValidationError as e:
+        #    return Response({'errors': e.messages}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'detail': 'Password updated successfully.'})
+
+# This view allows an admin user to add or remove admin rights to a user.
+class ChangeAdminStatus(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.is_superuser: # only superusers can create new admins
+            return Response({'detail': 'Not authorized.'}, status=403)
+
+        user_id = request.data.get('id')
+
+        try:
+            user = RegistryUser.objects.get(pk=user_id)
+        except RegistryUser.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=404)
+        
+        if user.is_superuser:
+            user.is_staff = False
+            user.is_superuser = False
+            user.save()
+            return Response({'message': 'Admin rights removed', 'newAdminStatus': False})
+
+        else:
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            return Response({'message': 'Admin user created', 'newAdminStatus': True})
+
+        
 
 # These last views should be pretty self explanatory based on their names.
 class Login(knox_views.LoginView):

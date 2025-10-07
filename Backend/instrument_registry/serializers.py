@@ -25,6 +25,8 @@ class RegistryUserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.email = validated_data.get('email', instance.email)
         instance.full_name = validated_data.get('full_name', instance.full_name)
+        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
+        instance.is_superuser = validated_data.get('is_superuser', instance.is_superuser)
         password = validated_data.get('password', None)
         if password:
             instance.set_password(password)
