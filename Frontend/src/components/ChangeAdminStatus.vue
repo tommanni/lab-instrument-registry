@@ -1,6 +1,5 @@
 <script setup>
 import axios from 'axios';
-import { ref, onMounted } from 'vue';
 import { useAlertStore } from '@/stores/alert';
 import { useI18n } from 'vue-i18n';
 
@@ -17,12 +16,10 @@ async function changeAdminValue() {
             },
             {
             withCredentials: true
-
         });
 
         props.user.is_superuser = res.data.newAdminStatus;
         alertStore.showAlert(0, res.data.message);
-        
     } catch (error) {
         if (error.response && error.response.data && error.response.data.detail) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);

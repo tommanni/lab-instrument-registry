@@ -47,6 +47,7 @@ export default {
 	  ei_vastaus: "Ei",
 	  sahkoposti: "Sähköposti",
 	  salasana: "Salasana",
+	  omat_tiedot: "Omat tiedot",
 	  adminteksti: "Käyttöoikeuksien hallinta",
 	  admin_ei_oikeuksia: "Sinulla ei ole oikeuksia tähän näkymään",
 	  luo_kayttajakoodi: "Luo käyttäjäkoodi",
