@@ -81,7 +81,9 @@ export default {
 	  muutoshistoria: "Change History",
 	  takaisin: "Back",
 	  muokkaa_tietoja: "Edit Information",
-      jarjestelma: "System"
+      jarjestelma: "System",
+	  nollaa_haku: "Clear search",
+	  nollaa_suodattimet: "Clear filters"
 	},
 	tableHeaders: [
 	  "Product Name",

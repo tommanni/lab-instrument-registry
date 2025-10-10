@@ -124,6 +124,25 @@ export default {
       return filter.options.filter(opt =>
         opt.toLowerCase().includes(lowerTerm)
       )
+    },
+    
+    clearAllFilters() {
+      const clearedFilters = {};
+
+      this.filters.forEach(filter => {
+        filter.selected = null;
+        filter.searchTerm = ''
+
+        const cookieName = this.getCookieName(filter.field);
+        // TODO Add cookie flags for live build
+        document.cookie = `${cookieName}=; Path=/; Max-Age=0` /*; Secure; SameSite=Strict*/
+
+        clearedFilters[filter.field] = null;
+      });
+
+      this.openDropdown = null;
+
+      this.$emit('all-filters-cleared', clearedFilters);
     }
   },
 
@@ -157,6 +176,7 @@ export default {
       </div>
 
     </li>
+    <button v-if="filters.some(f => f.selected)" class="btn btn-primary ms-2" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
   </ul>
 </template>
 

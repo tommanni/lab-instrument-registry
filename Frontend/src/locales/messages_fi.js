@@ -81,7 +81,9 @@ export default {
 	  muutoshistoria: "Muutoshistoria",
 	  takaisin: "Takaisin",
 	  muokkaa_tietoja: "Muokkaa tietoja",
-      jarjestelma: "Järjestelmä"
+      jarjestelma: "Järjestelmä",
+	  nollaa_haku: "Nollaa haku",
+	  nollaa_suodattimet: "Nollaa suodattimet"
 	},
 	tableHeaders: [
 	  "Tuotenimi",
