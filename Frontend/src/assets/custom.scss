@@ -41,6 +41,10 @@ $form-control-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
 // 6️⃣ Utilities
 $enable-gradients: true;
 
+/* -------------------------------------------------------------------------- */
+/*                               Custom classes                               */
+/* -------------------------------------------------------------------------- */
+
 .dropdown-content-scrollable {
   max-height: 240px;
   overflow-y: auto;
@@ -62,6 +66,50 @@ $enable-gradients: true;
     border-radius: 0.2rem;
     border-bottom: 1px solid var(--bs-gray-200);
     
+}
+
+
+.tuni-table-wrapper table {
+  min-width: 600px;
+}
+
+.tuni-table-wrapper thead tr:first-child th:first-child {
+  border-top-left-radius: var(--bs-border-radius-lg);
+}
+
+.tuni-table-wrapper thead tr:first-child th:last-child {
+  border-top-right-radius: var(--bs-border-radius-lg);
+}
+
+tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--bs-border-radius-lg);
+}
+
+tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--bs-border-radius-lg);
+}
+
+.tuni-table-wrapper th {
+  background-color: var(--bs-secondary-bg-subtle);
+  position: sticky;
+  top: calc(var(--header-height) + 56px);
+  z-index: 10;
+}
+
+
+.tuni-table-wrapper td {
+  white-space: nowrap;
+  max-width: 150px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+
+@media screen and (max-width: 768px) {
+  .tuni-table-wrapper th {
+    position: static
+  }
 }
 
 // 7️⃣ Import Bootstrap
