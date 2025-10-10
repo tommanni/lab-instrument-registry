@@ -9,6 +9,7 @@ export default {
 	  tilanne: 'Status',
 	  uusi_laite: 'Add a new instrument',
 	  tiedot_uusi: 'Add new instrument information',
+	  omat_tiedot: "My information",
 	  tay: 'TAY-number',
 	  tuotenimi: 'Product name',
 	  merkki: 'Make and model',
