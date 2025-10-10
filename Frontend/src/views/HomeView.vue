@@ -39,7 +39,7 @@ function handleNewInstrument(item) {
     <!----<Filter @filter-change="onFilterChange" />-->
     <div class="home-root">
 
-      <div class="actions-wrapper p-2 z-2 gap-2  mb-2">
+      <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
         <div><Search /> </div>
         <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" /></div>
         <div class="d-flex align-items-center justify-content-end">
@@ -73,6 +73,7 @@ function handleNewInstrument(item) {
   background: var(--bs-secondary-bg-subtle);
   border-radius: 8px;
   padding-top: 0.5rem;
+  z-index: 11;
 }
   
 

@@ -44,7 +44,7 @@ export default {
 	  register_painike: "Register",
 	  kirjaudu: "Sign in",
 	  kirjaudu_ulos: "Log out?",
-	  kyllä_vastaus: "Yes",
+	  kylla_vastaus: "Yes",
 	  ei_vastaus: "No",
 	  sahkoposti: "Email address",
 	  salasana: "Password",

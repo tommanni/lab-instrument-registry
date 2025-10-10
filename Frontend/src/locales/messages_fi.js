@@ -43,7 +43,7 @@ export default {
 	  kirjaudu_ulos_painike: "Kirjaudu ulos",
 	  kirjaudu: "Kirjaudu sisään",
 	  kirjaudu_ulos: "Kirjaudu ulos?",
-	  kyllä_vastaus: "Kyllä",
+	  kylla_vastaus: "Kyllä",
 	  ei_vastaus: "Ei",
 	  sahkoposti: "Sähköposti",
 	  salasana: "Salasana",

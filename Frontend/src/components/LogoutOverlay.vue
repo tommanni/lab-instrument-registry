@@ -55,7 +55,7 @@ const logoutUser = async () => {
 
         <div class="modal-footer justify-content-center gap-2">
             <button @click="logoutUser" class="btn btn-primary">
-                {{ t('message.kyllä_vastaus') }}
+                {{ t('message.kylla_vastaus') }}
             </button>
             <button @click="closeOverlay" class="btn btn-secondary">
                 {{ t('message.ei_vastaus') }}

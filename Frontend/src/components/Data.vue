@@ -244,6 +244,9 @@ td {
 
 th {
   background-color: var(--bs-secondary-bg-subtle);
+  position: sticky;
+  top: calc(var(--header-height) + 56px);
+  z-index: 10;
 }
 
 /* Round top corners of header */
