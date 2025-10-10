@@ -124,21 +124,21 @@ export const useDataStore = defineStore('dataStore', () => {
     if (yksikko !== undefined) {
     filterValues.value.yksikko = yksikko
     document.cookie = `YksikkoFilter=${encodeURIComponent(yksikko || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (huone !== undefined) {
-    filterValues.value.huone = huone
-    document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (vastuuhenkilo !== undefined) {
-    filterValues.value.vastuuhenkilo = vastuuhenkilo
-    document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (tilanne !== undefined) {
-    filterValues.value.tilanne = tilanne
-    document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
+    }
+    if (huone !== undefined) {
+      filterValues.value.huone = huone
+      document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
+    if (vastuuhenkilo !== undefined) {
+      filterValues.value.vastuuhenkilo = vastuuhenkilo
+      document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
+    if (tilanne !== undefined) {
+      filterValues.value.tilanne = tilanne
+      document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
 
-  applySearchAndFilter()
+    applySearchAndFilter()
   
   }
 
