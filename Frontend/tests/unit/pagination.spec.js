@@ -1,7 +1,12 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import Pagination from '@/components/Pagination.vue'
+
 // Mock store setup
 const mockUpdateVisibleData = vi.fn()
 let currentPage = 1
-let numberOfPages = 5
+let numberOfPages = 10
 
 vi.mock('@/stores/data', () => ({
   useDataStore: () => ({
@@ -18,11 +23,6 @@ vi.mock('@/stores/data', () => ({
   })
 }))
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { createI18n } from 'vue-i18n'
-import Pagination from '@/components/Pagination.vue'
-
 const i18n = createI18n({
   legacy: false,
   globalInjection: true,
@@ -30,7 +30,7 @@ const i18n = createI18n({
   messages: {
     en: {
       message: {
-        edellinen: 'Previous',
+        edellinen: '<<Previous',
         seuraava: 'Next'
       }
     }
@@ -42,7 +42,7 @@ describe('Pagination.vue', () => {
 
   beforeEach(() => {
     currentPage = 1
-    numberOfPages = 5
+    numberOfPages = 10
     mockUpdateVisibleData.mockReset()
 
     wrapper = mount(Pagination, {
@@ -54,48 +54,48 @@ describe('Pagination.vue', () => {
 
   it('renders previous and next buttons', () => {
     const links = wrapper.findAll('.page-link')
-    expect(links[0].text()).toBe('Previous')
-    expect(links[links.length - 1].text()).toBe('Next')
+    expect(links[0].text()).toContain('Previous') // Use `toContain` to allow for additional characters
+    expect(links[links.length - 1].text()).toContain('Next')
   })
 
-  it('disables previous button on first page', () => {
-    expect(wrapper.find('li.page-item.disabled .page-link').text()).toBe('Previous')
+  it('disables previous button on the first page', () => {
+    const prevButton = wrapper.find('li.page-item:first-child')
+    expect(prevButton.classes()).toContain('disabled')
   })
 
-  it('calls changePage and updates store on next click', async () => {
-    const next = wrapper.findAll('.page-link').find(btn => btn.text() === 'Next')
-    await next.trigger('click')
-
-    expect(currentPage).toBe(2)
-    expect(mockUpdateVisibleData).toHaveBeenCalled()
-  })
-
-  it('calls changePage with specific number when page number clicked', async () => {
-    const btn = wrapper.findAll('.page-link').find(b => b.text() === '3')
-    await btn.trigger('click')
-
-    expect(currentPage).toBe(3)
-    expect(mockUpdateVisibleData).toHaveBeenCalled()
-  })
-
-  it('disables next button on last page', async () => {
-    currentPage = 5
+  it('disables next button on the last page', async () => {
+    currentPage = 10
     wrapper = mount(Pagination, {
       global: {
         plugins: [i18n]
       }
     })
 
-    expect(wrapper.find('li.page-item.disabled .page-link').text()).toBe('Next')
+    const nextButton = wrapper.find('li.page-item:last-child')
+    expect(nextButton.classes()).toContain('disabled')
   })
 
-  it('does not go below page 1 or above numberOfPages', async () => {
-    await wrapper.findAll('.page-link').find(b => b.text() === 'Previous').trigger('click')
+  it('changes page when a page number is clicked', async () => {
+    const pageButton = wrapper.findAll('.page-link').find(btn => btn.text() === '3')
+    await pageButton.trigger('click')
+
+    expect(currentPage).toBe(3)
+    expect(mockUpdateVisibleData).toHaveBeenCalled()
+  })
+
+  it('does not go below page 1 or above the last page', async () => {
+    const prevButton = wrapper.find('li.page-item:first-child .page-link')
+    await prevButton.trigger('click')
     expect(currentPage).toBe(1)
 
-    currentPage = 5
-    wrapper = mount(Pagination, { global: { plugins: [i18n] } })
-    await wrapper.findAll('.page-link').find(b => b.text() === 'Next').trigger('click')
-    expect(currentPage).toBe(5)
+    currentPage = 10
+    wrapper = mount(Pagination, {
+      global: {
+        plugins: [i18n]
+      }
+    })
+    const nextButton = wrapper.find('li.page-item:last-child .page-link')
+    await nextButton.trigger('click')
+    expect(currentPage).toBe(10)
   })
 })

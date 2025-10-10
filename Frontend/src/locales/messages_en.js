@@ -9,7 +9,7 @@ export default {
 	  tilanne: 'Status',
 	  uusi_laite: 'Add a new instrument',
 	  tiedot_uusi: 'Add new instrument information',
-	  tay: 'TAY number',
+	  tay: 'TAY-number',
 	  tuotenimi: 'Product name',
 	  merkki: 'Make and model',
 	  sarjanumero: 'Serialnumber',
@@ -37,8 +37,8 @@ export default {
 	  muokkaa: "Edit",
 	  on_paivitetty: "Information has been updated",
 	  ei_paivitetty: "Updating information failed. Try reloading the page and trying to update the information again.",
-	  lisattu: "has been added",
-	  ei_lisattu: "failed to add",
+	  lisatty: "has been added",
+	  ei_lisatty: "failed to add",
 	  kirjaudu_painike: "Sign in",
 	  kirjaudu_ulos_painike: "Log out",
 	  register_painike: "Register",
@@ -79,7 +79,8 @@ export default {
 	  historia: "History",
 	  muutoshistoria: "Change History",
 	  takaisin: "Back",
-	  muokkaa_tietoja: "Edit Information"
+	  muokkaa_tietoja: "Edit Information",
+      jarjestelma: "System"
 	},
 	tableHeaders: [
 	  "Product Name",
@@ -104,7 +105,7 @@ export default {
 	],
 	fullHeaders: [
 	  "ID",
-	  "TAY number",
+	  "TAY-number",
 	  "Product name",
 	  "Brand and Model",
 	  "Serial number",

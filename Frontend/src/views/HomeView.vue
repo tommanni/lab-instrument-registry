@@ -36,34 +36,46 @@ function handleNewInstrument(item) {
 </script>
 
 <template>
-  <main>
-    <Filter @filter-change="onFilterChange" />
-    <Search />
-    <ul class="navbar-nav d-flex flex-row ms-auto mb-2 mb-lg-0">
-      <li class="nav-item me-2">
-        <AddOverlay @new-instrument-added="handleNewInstrument" />
-      </li>
-      <li class="nav-item"> 
-        <LogoutOverlay  />
-      </li>
-    </ul>
-    <LoginOverlay />
-    <RegisterOverlay />
-    <div class="data">
-      <Data ref="dataComponent" />
-      <Pagination />
+    <!----<Filter @filter-change="onFilterChange" />-->
+    <div class="home-root">
+
+      <div class="actions-wrapper p-2 z-2 gap-2  mb-2">
+        <div><Search /> </div>
+        <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" /></div>
+        <div class="d-flex align-items-center justify-content-end">
+          <AddOverlay @new-instrument-added="handleNewInstrument" />
+        </div>
+      </div>
+      <div class="data">
+        <Data ref="dataComponent" />
+        <Pagination />
+      </div>
     </div>
-  </main>
 </template>
 
 <style scoped>
-main {
-  padding-top: 65px;
+
+.home-root {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  height: 100%;
 }
-.data {
-  padding-bottom: 88px;
-  padding-top: 5px;
+
+
+.actions-wrapper {
+  display: grid;
+  position: sticky;
+  width: 100%;
+  top: var(--header-height);
+  grid-template-columns: 2fr 4fr 1fr;
+  background: var(--bs-secondary-bg-subtle);
+  border-radius: 8px;
+  padding-top: 0.5rem;
 }
+  
+
 
 .nav-item {
   margin-right: 20px;

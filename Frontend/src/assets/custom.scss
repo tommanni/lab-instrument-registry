@@ -1,0 +1,70 @@
+// 1️⃣ Core colors
+$primary: #4E008E;
+$secondary: #C3B9D7;
+$success: #28a745;
+$danger: #dc3545;
+$warning: #ffc107;
+$info: #17a2b8;
+$light: #f4f4f8;
+$dark: #1a1a1a;
+
+$body-bg: #fff;
+$body-color: $dark;
+
+$navbar-dark-color: $primary;
+
+
+$font-weight-bold: 600;
+
+
+// 2️⃣ Buttons
+$btn-border-radius: 0.25rem;
+$btn-font-size: 14px;
+$btn-font-weight: 600;
+$btn-hover-bg-shade: 10%;
+
+// 3️⃣ Navbar
+$navbar-dark-color: $light;
+$navbar-dark-hover-color: lighten($primary, 10%);
+$navbar-light-color: $dark;
+$navbar-light-hover-color: darken($primary, 10%);
+$navbar-border-radius: 0.2rem;
+
+// 4️⃣ Cards
+$card-border-radius: 0.2rem;
+$card-box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+
+// 5️⃣ Forms
+$input-border-radius: 0.2rem;
+$form-control-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+
+// 6️⃣ Utilities
+$enable-gradients: true;
+
+.dropdown-content-scrollable {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.dropdown-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+.dropdown-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.dropdown-item.tuni-dropdown-item {
+    width: 300px;
+    white-space: wrap;
+    border-radius: 0.2rem;
+    border-bottom: 1px solid var(--bs-gray-200);
+    
+}
+
+// 7️⃣ Import Bootstrap
+@import "bootstrap/scss/bootstrap";
+
+

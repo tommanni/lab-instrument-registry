@@ -52,29 +52,120 @@ async function checkLogingStatus() {
 // Above are cookie things for auto log  in. Secure since authentication is happening server side
 // and token is kept in HttpOnly cookie
 
-onMounted(async() => {
+onMounted(async () => {
   checkLanguageStatus()
   checkLogingStatus()
   await dataStore.fetchData()
   dataStore.initializePageFromCookies()
-  dataStore.isInitialized = true
+  dataStore.isInitialized = true;
 })
+
+
+
+
 </script>
 
 <template>
-  <div v-if="!dataStore.loginChecked || !dataStore.isInitialized" class="loading-screen">
-    Loading...
+  <div class="screen-container">
+    <div v-if="!dataStore.loginChecked || !dataStore.isInitialized" class="loading-screen">
+      Loading...
+    </div>
+
+    <div v-else class="layout">
+      <div class="main-wrapper">
+        <div id="nw-1" class="navigation-wrapper">
+           <Navigation />
+        </div>
+        <Alert />
+        <div id="c1" class="content">
+          <div class="main-content-wrapper p-2">
+            <RouterView />
+          </div>
+        </div>
+        <div class="content-bottom">
+          <TuniFooter />
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <div v-else>
-    <Navigation />
-    <Alert />
-    <RouterView />
-    <TuniFooter />
-  </div>
 </template>
 
 <style>
+
+.screen-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: var(--bs-light-bg-subtle);
+}
+
+.layout {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  min-height: 100vh;
+}
+
+.navigation-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  height: var(--header-height)
+}
+
+.layout .main-wrapper {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.layout .content {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.layout .content-bottom {
+  bottom: 0;
+  /*position: sticky;*/
+  z-index: 100;
+}
+
+.content .main-content-wrapper {
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  position: relative;
+  box-sizing: border-box;
+  margin: 0 auto;
+  width: 100%;
+}
+
 .loading-screen {
   height: 100vh;
   display: flex;
@@ -84,6 +175,3 @@ onMounted(async() => {
   font-size: 1.2rem;
 }
 </style>
-
-
-

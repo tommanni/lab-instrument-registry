@@ -7,9 +7,9 @@ export default {
 	  huone: 'Huone',
 	  vastuuhenkilo: 'Vastuuhenkilö',
 	  tilanne: 'Tilanne',
-	  uusi_laite: 'Lisää uusi laite',
+	  uusi_laite: 'Uusi laite',
 	  tiedot_uusi: 'Lisää uuden laitteen tiedot',
-	  tay: 'TAY numero',
+	  tay: 'TAY-numero',
 	  tuotenimi: 'Tuotenimi',
 	  merkki: 'Merkki ja malli',
 	  sarjanumero: 'Sarjanumero',
@@ -37,8 +37,8 @@ export default {
 	  muokkaa: "Muokkaa",
 	  on_paivitetty: "Tiedot päivitetty",
 	  ei_paivitetty: "Tietojen päivitys ei onnistunut. Lataa sivu uudelleen ja yritä päivittää tiedot uudelleen.",
-	  lisattu: "on lisätty",
-	  ei_lisattu: "lisääminen epäonnistui",
+	  lisatty: "on lisätty",
+	  ei_lisatty: "lisääminen epäonnistui",
 	  kirjaudu_painike: "Kirjaudu",
 	  kirjaudu_ulos_painike: "Kirjaudu ulos",
 	  kirjaudu: "Kirjaudu sisään",
@@ -79,7 +79,8 @@ export default {
 	  historia: "Historia",
 	  muutoshistoria: "Muutoshistoria",
 	  takaisin: "Takaisin",
-	  muokkaa_tietoja: "Muokkaa tietoja"
+	  muokkaa_tietoja: "Muokkaa tietoja",
+      jarjestelma: "Järjestelmä"
 	},
 	tableHeaders: [
 	  "Tuotenimi",
@@ -104,7 +105,7 @@ export default {
 	],
 	fullHeaders: [
 	  "ID",
-	  "TAY numero",
+	  "TAY-numero",
 	  "Tuotenimi",
 	  "Merkki ja malli",
 	  "Sarjanumero",

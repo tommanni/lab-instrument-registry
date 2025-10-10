@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useDataStore } from '@/stores/data'
 import { useAlertStore } from '@/stores/alert'
+import { useMediaQuery } from '@vueuse/core'
 
-const { t } = useI18n()
+const { t } = useI18n();
+const isMobile = useMediaQuery('(max-width: 768px');
 
 const showOverlay = ref(false)
 const store = useDataStore()
@@ -37,21 +39,25 @@ const logoutUser = async () => {
 </script>
 
 <template>
-  <div class="logout-btn">
+  <div>
     <!-- Logout button to open overlay -->
-    <button v-if="store.isLoggedIn" class="logout-button" @click="openOverlay">{{ t('message.kirjaudu_ulos_painike') }}</button>
+     <div v-if="store.isLoggedIn">
+        <button v-if="isMobile" class="btn btn-outline-primary fs-4 d-flex" @click="openOverlay"><i class="bi bi-box-arrow-right"></i></button>
+        <button v-else class="btn btn-primary" @click="openOverlay">{{ t('message.kirjaudu_ulos_painike') }}</button>
+     </div>
+    
 
     <!-- Overlay only shows when showOverlay = True -->
     <div v-if="showOverlay" class="overlay-backdrop">
       <div class="overlay-content">
         <h3>{{ t('message.kirjaudu_ulos') }}</h3>
         <p></p>
-        
-        <div class="button-row">
-            <button @click="logoutUser" class="confirm-button">
+
+        <div class="modal-footer justify-content-center gap-2">
+            <button @click="logoutUser" class="btn btn-primary">
                 {{ t('message.kyllä_vastaus') }}
             </button>
-            <button @click="closeOverlay" class="cancel-button">
+            <button @click="closeOverlay" class="btn btn-secondary">
                 {{ t('message.ei_vastaus') }}
             </button>
         </div>
@@ -84,53 +90,5 @@ const logoutUser = async () => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.logout-button {
-  padding: 5px 10px;
-  margin-left: 5px;
-  margin-right: 0px;
-  background-color: #cf286f;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.logout-button:hover {
-  background-color: #F5A5C8;
-}
-
-.confirm-button {
-  padding: 5px 10px;
-  margin-left: 10px;
-  background-color: #4E008E;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.confirm-button:hover {
-  background-color: #ab9bcb;
-}
-
-.cancel-button {
-  padding: 5px 10px;
-  margin-left: 10px;
-  background-color: #4E008E;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.cancel-button:hover {
-  background-color: #ab9bcb;
-}
 
 </style>

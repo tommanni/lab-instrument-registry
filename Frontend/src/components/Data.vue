@@ -73,7 +73,7 @@ function toggleSort(columnKey) {
 // CSS-luokan palautus lajittelun tilan perusteella
 // Returning of the CSS class by the state of the sorting
 function getSortClass(columnKey) {
-  if (sortColumn.value !== columnKey || sortDirection.value === 'none' ) {
+  if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
     return 'sort-none'
   }
   return sortDirection.value === 'asc' ? 'sort-asc' : 'sort-desc'
@@ -107,7 +107,7 @@ const displayedData = computed(() => {
     // Use normal paging
     const start = (store.currentPage - 1) * 15
     const end = store.currentPage * 15
-    return sorted.slice(start, end) 
+    return sorted.slice(start, end)
   }
 })
 
@@ -131,7 +131,8 @@ const startResize = (event, column) => {
 };
 
 const openOverlay = (item) => {
-  clickedObject.value = {...item}
+  console.log("opened: " + item["tuotenimi"]);
+  clickedObject.value = { ...item }
   visible.value = true
 }
 
@@ -163,7 +164,7 @@ defineExpose({
       @update-item="handleUpdate"
       @delete-item="handleDelete"
     />
-    <div class="table-container">
+    <div class="table-container rounded shadow-sm">
       <table>
         <colgroup>
           <col v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }" />
@@ -181,7 +182,8 @@ defineExpose({
         </thead>
 
         <tbody>
-          <tr  v-for="(item, index) in displayedData" @click="openOverlay(item)" :key="index">
+          <tr v-for="(item, index) in displayedData" @click="openOverlay(item)" data-bs-toggle="modal"
+            data-bs-target="#dataModal" :key="index">
             <td>
               {{ item.tuotenimi }}
             </td>
@@ -216,28 +218,50 @@ defineExpose({
 <style scoped>
 .table-container {
   width: 100%;
-  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
+  border-radius: 8px;
 }
 
-th, td {
-  border: 1px solid #ddd;
+th,
+td {
+  /*border: 1px solid #ddd;*/
   padding: 8px;
   position: relative;
   text-align: left;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
 }
 
 th {
-  background: #f4f4f4;
-  position: relative;
+  background-color: var(--bs-secondary-bg-subtle);
+}
+
+/* Round top corners of header */
+thead tr:first-child th:first-child {
+  border-top-left-radius: 8px;
+}
+
+thead tr:first-child th:last-child {
+  border-top-right-radius: 8px;
+}
+
+/* Round bottom corners of last row */
+tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
 }
 
 tbody tr {
@@ -247,6 +271,15 @@ tbody tr {
 
 tbody tr:hover {
   background-color: #f0f0f0;
+}
+
+/* Round bottom corners of the last row */
+tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
 }
 
 .resizer {
@@ -278,10 +311,12 @@ tbody tr:hover {
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
 }
+
 .sort-indicator.sort-none::before {
   border-bottom: 4px solid #ccc;
   margin-right: 2px;
 }
+
 .sort-indicator.sort-none::after {
   border-top: 4px solid #ccc;
 }
@@ -293,6 +328,7 @@ tbody tr:hover {
   border-right: 4px solid transparent;
   border-bottom: 4px solid #4E008E;
 }
+
 .sort-indicator.sort-asc::after {
   content: none;
 }
@@ -304,6 +340,7 @@ tbody tr:hover {
   border-right: 4px solid transparent;
   border-top: 4px solid #4E008E;
 }
+
 .sort-indicator.sort-desc::before {
   content: none;
 }
@@ -311,5 +348,4 @@ tbody tr:hover {
 .header-text {
   cursor: pointer;
 }
-
 </style>
