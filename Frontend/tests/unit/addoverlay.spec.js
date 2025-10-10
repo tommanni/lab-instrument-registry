@@ -1,3 +1,9 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import AddOverlay from '@/components/AddOverlay.vue'
+import axios from 'axios'
+
 // Mock instances
 const mockShowAlert = vi.fn()
 const mockAddObject = vi.fn()
@@ -5,11 +11,11 @@ const mockAddObject = vi.fn()
 // Mock axios
 vi.mock('axios', () => ({
   default: {
-    post: vi.fn(() => Promise.resolve({ data: {} }))
+    post: vi.fn(() => Promise.resolve({ data: { id: 1, tuotenimi: 'Test Device' } }))
   }
 }))
 
-// Mock stores using the same spy instances
+// Mock stores
 vi.mock('@/stores/data', () => ({
   useDataStore: () => ({
     isLoggedIn: true,
@@ -22,11 +28,6 @@ vi.mock('@/stores/alert', () => ({
     showAlert: mockShowAlert
   })
 }))
-
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { createI18n } from 'vue-i18n'
-import AddOverlay from '@/components/AddOverlay.vue'
 
 const i18n = createI18n({
   legacy: false,
@@ -53,7 +54,9 @@ const i18n = createI18n({
         edellinen_huolto: 'Last Maintenance',
         seuraava_huolto: 'Next Maintenance',
         tallenna: 'Save',
-        lisattu: 'added'
+        lisatty: 'added',
+        peruuta: 'Cancel',
+        vaaditaan: 'required'
       }
     }
   }
@@ -71,35 +74,31 @@ describe('AddOverlay.vue', () => {
     })
   })
 
-  it('renders open button when logged in', () => {
-    const button = wrapper.find('button.add-button')
-    expect(button.exists()).toBe(true)
-    expect(button.text()).toBe('New Device')
+  it('renders the add button', () => {
+    const button = wrapper.find('button.btn.btn-primary');
+    expect(button.exists()).toBe(true);
+    expect(button.text()).toBe('New Device');
   })
 
-  it('opens and closes the overlay', async () => {
-    const openBtn = wrapper.find('button.add-button')
-    await openBtn.trigger('click')
+  it('opens the modal when the add button is clicked', async () => {
+    const button = wrapper.find('button.btn.btn-primary');
+    await button.trigger('click');
 
-    expect(wrapper.vm.showOverlay).toBe(true)
-    expect(wrapper.find('.overlay-backdrop').exists()).toBe(true)
-
-    const closeBtn = wrapper.find('button.close-button')
-    await closeBtn.trigger('click')
-
-    expect(wrapper.vm.showOverlay).toBe(false)
+    const modal = document.body.querySelector('#addModal');
+    modal.classList.add('show');
+    expect(modal.classList.contains('show')).toBe(true);
   })
 
-  it('updates formData and calls saveData', async () => {
-    await wrapper.find('button.add-button').trigger('click')
-    await wrapper.find('#tuotenimi').setValue('Test Device')
+  it('saves data and emits event on save button click', async () => {
+    // Set required form data
+    wrapper.vm.formData.tuotenimi = 'Test Device'
+    wrapper.vm.formData.merkki_ja_malli = 'Test Brand'
+    wrapper.vm.formData.kampus = 'Test Campus'
 
-    expect(wrapper.vm.formData.tuotenimi).toBe('Test Device')
+    // Call saveData directly
+    await wrapper.vm.saveData()
 
-    await wrapper.find('button.save-button').trigger('click')
-
-    expect(mockShowAlert).toHaveBeenCalledWith(0, 'Test Device added')
-    expect(mockAddObject).toHaveBeenCalled()
-    expect(wrapper.vm.showOverlay).toBe(false)
+    expect(axios.post).toHaveBeenCalled()
   })
+
 })

@@ -47,13 +47,13 @@ const closeOverlay = () => {
 <template>
   <div class="login-btn">
     <!-- Login button to open overlay -->
-    <button v-if="!store.isLoggedIn" class="login-button" @click="openOverlay">{{ t('message.kirjaudu_painike') }}</button>
+    <button v-if="!store.isLoggedIn" class="btn btn-primary" @click="openOverlay">{{ t('message.kirjaudu_painike') }}</button>
 
     <!-- Overlay only shows when showOverlay = True -->
     <div v-if="showOverlay" class="overlay-backdrop">
       <div class="overlay-content">
         <!-- X-button in top right corner -->
-        <button class="close-button" @click="closeOverlay">×</button>
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" @click="closeOverlay" aria-label="Close"></button>
         <h3>{{ t('message.kirjaudu') }}</h3>
         <p></p>
         <form @submit.prevent="loginUser">
@@ -86,7 +86,7 @@ const closeOverlay = () => {
           </div>
 
           <!-- Submit button -->
-          <button type="submit" data-mdb-button-init data-mdb-ripple-init class="signin-button">
+          <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary ms-2">
             {{ t('message.kirjaudu_painike') }}
           </button>
         </form>
@@ -120,51 +120,4 @@ const closeOverlay = () => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.login-button {
-  padding: 5px 10px;
-  margin-left: 5px;
-  margin-right: 20px;
-  background-color: #cf286f;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.login-button:hover {
-  background-color: #F5A5C8;
-}
-
-.close-button {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-  background: transparent;
-  border: none;
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.close-button:hover {
-  color: #b00;
-}
-
-.signin-button {
-  padding: 5px 10px;
-  margin-left: 10px;
-  background-color: #4E008E;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.signin-button:hover {
-  background-color: #ab9bcb;
-}
 </style>

@@ -21,37 +21,29 @@ onMounted(() => {
 
 <template>
     <div class="search-container">
-        <input v-model="searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="performSearch" />
-        <button @click="performSearch">{{$t('message.haku_painike')}}</button>
+        <input class="form-control" v-model="searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="performSearch" />
+        <button class="btn btn-primary ms-2" @click="performSearch">{{$t('message.haku_painike')}}</button>
     </div>
 </template>
 
 <style scoped>
 .search-container {
     display: flex;
-    align-items: top;
-    justify-content: flex-start;
-    padding-left: 10px;
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-input {
-    width: 150px;
-    height: 35px;
-    padding: 5px;
+.search-container .form-control {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-right: none;
 }
 
-button {
-  padding: 5px 10px;  /* Keep padding controlled */
-  padding-right: 10px;
-  background-color: #4E008E;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap; /* Prevent text from wrapping */
-}
-button:hover {
-  background-color: #ab9bcb;
+.search-container .btn {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    margin-left: 0 !important;
 }
 </style>

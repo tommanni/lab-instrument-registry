@@ -89,13 +89,13 @@ const store = useAlertStore()
 }
 
 .alert-success {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(21, 128, 61, 0.95) 100%);
+    background: rgba(34, 197, 94, 0.95);
     color: white;
     border-color: rgba(34, 197, 94, 0.3);
 }
 
 .alert-error {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.95) 100%);
+    background: rgba(239, 68, 68, 0.95);
     color: white;
     border-color: rgba(239, 68, 68, 0.3);
 }
@@ -210,11 +210,11 @@ const store = useAlertStore()
     }
 
     .alert-success {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.9) 0%, rgba(21, 128, 61, 0.9) 100%);
+        background: rgba(34, 197, 94, 0.9);
     }
 
     .alert-error {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%);
+        background: rgba(239, 68, 68, 0.9);
     }
 }
 </style>

@@ -46,43 +46,34 @@ describe('Filter.vue', () => {
   })
 
   it('renders all filters with correct titles', () => {
-    const categories = wrapper.findAll('.category')
-    expect(categories.length).toBe(4)
-    expect(categories[0].text()).toContain('Unit')
-    expect(categories[1].text()).toContain('Room')
-    expect(categories[2].text()).toContain('Responsible Person')
-    expect(categories[3].text()).toContain('Status')
-  })
-
-  it('toggles dropdown visibility on category click', async () => {
-    const category = wrapper.findAll('.category')[0]
-    await category.trigger('click')
-    expect(wrapper.find('.dropdown-content').exists()).toBe(true)
-
-    await category.trigger('click')
-    expect(wrapper.find('.dropdown-content').exists()).toBe(false)
+    const filters = wrapper.findAll('.filter-slot')
+    expect(filters.length).toBe(4)
+    expect(filters[0].text()).toContain('Unit')
+    expect(filters[1].text()).toContain('Room')
+    expect(filters[2].text()).toContain('Responsible Person')
+    expect(filters[3].text()).toContain('Status')
   })
 
   it('shows options from API and filters them based on input', async () => {
-    const category = wrapper.findAll('.category')[0]
-    await category.trigger('click')
+    const filter = wrapper.findAll('.filter-slot')[0]
+    await filter.find('.d-toggle').trigger('click')
     await flushPromises()
 
-    const input = wrapper.find('input')
+    const input = filter.find('input')
     await input.setValue('Test')
     await flushPromises()
 
-    const options = wrapper.findAll('.option')
+    const options = filter.findAll('.dropdown-item')
     expect(options.length).toBe(1)
     expect(options[0].text()).toContain('Test Option')
   })
 
   it('emits filter-change event on option select', async () => {
-    const category = wrapper.findAll('.category')[0]
-    await category.trigger('click')
+    const filter = wrapper.findAll('.filter-slot')[0]
+    await filter.find('.d-toggle').trigger('click')
     await flushPromises()
 
-    const option = wrapper.findAll('.option')[1]
+    const option = filter.findAll('.dropdown-item')[1]
     await option.trigger('click')
 
     expect(wrapper.emitted()['filter-change']).toBeTruthy()
@@ -93,14 +84,14 @@ describe('Filter.vue', () => {
 
   it('clears selection and emits filter-change on clear button click', async () => {
     // Select an option first
-    const category = wrapper.findAll('.category')[0]
-    await category.trigger('click')
+    const filter = wrapper.findAll('.filter-slot')[0]
+    await filter.find('.d-toggle').trigger('click')
     await flushPromises()
-    const option = wrapper.findAll('.option')[0]
+    const option = filter.findAll('.dropdown-item')[0]
     await option.trigger('click')
 
     // Clear it
-    const clearBtn = wrapper.find('.reset-button')
+    const clearBtn = filter.find('.clear-button')
     await clearBtn.trigger('click')
 
     const lastEmit = wrapper.emitted()['filter-change'].pop()[0]

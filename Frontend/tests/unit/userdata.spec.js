@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { useAlertStore } from '@/stores/alert'
 import { useDataStore } from '@/stores/data'
 import { createI18n, useI18n } from 'vue-i18n'
+import { createRouter, createWebHistory } from 'vue-router'
 
 // Mocks
 vi.mock('@/stores/user', () => ({
@@ -37,11 +38,19 @@ const i18n = createI18n({
   }
 })
 
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: { template: '<div>Home</div>' } },
+    { path: '/user/:id', component: { template: '<div>User</div>' } }
+  ]
+})
+
 describe('UserData.vue', () => {
   it('renders user table correctly', () => {
     const wrapper = mount(UserData, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n, router]
       }
     })
     const rows = wrapper.findAll('tbody tr')
@@ -57,7 +66,7 @@ describe('UserData.vue', () => {
   it('opens the token overlay when openTokenOverlay is called', async () => {
     const wrapper = mount(UserData, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n, router]
       }
     })
     await wrapper.vm.openTokenOverlay()
@@ -67,7 +76,7 @@ describe('UserData.vue', () => {
   it('closes the overlay when closeOverlay is called', async () => {
     const wrapper = mount(UserData, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n, router]
       }
     })
     await wrapper.vm.openTokenOverlay()
