@@ -48,7 +48,7 @@ function handleNewInstrument(item) {
 <template>
     <!----<Filter @filter-change="onFilterChange" />-->
     <div class="home-root">
-      <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
+      <div class="actions-wrapper py-2 px-3 gap-2 mb-2 rounded" style="z-index: 10;">
         <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
         <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" /></div>
         <div class="d-flex align-items-center justify-content-end">
@@ -68,7 +68,6 @@ function handleNewInstrument(item) {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-
   height: 100%;
 }
 
@@ -80,15 +79,7 @@ function handleNewInstrument(item) {
   top: var(--header-height);
   grid-template-columns: 2fr 4fr 1fr;
   background: var(--bs-secondary-bg-subtle);
-  border-radius: 8px;
-  padding-top: 0.5rem;
   z-index: 11;
+  box-sizing: border-box;
 }
-  
-
-
-.nav-item {
-  margin-right: 20px;
-}
-
 </style>

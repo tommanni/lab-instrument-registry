@@ -76,9 +76,9 @@ function toggleSort(columnKey) {
 // Returning of the CSS class by the state of the sorting
 function getSortClass(columnKey) {
   if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
-    return 'bi bi-caret-down'
+    return 'bi bi-caret-down text-body-tertiary'
   }
-  return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill' : 'bi bi-caret-down-fill'
+  return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
 }
 
 // Lajitellaan näytettävä data

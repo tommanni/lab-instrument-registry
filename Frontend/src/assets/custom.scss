@@ -41,6 +41,7 @@ $form-control-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
 // 6️⃣ Utilities
 $enable-gradients: true;
 
+
 /* -------------------------------------------------------------------------- */
 /*                               Custom classes                               */
 /* -------------------------------------------------------------------------- */
@@ -74,26 +75,26 @@ $enable-gradients: true;
 }
 
 .tuni-table-wrapper thead tr:first-child th:first-child {
-  border-top-left-radius: var(--bs-border-radius-lg);
+  border-top-left-radius: var(--bs-border-radius);
 }
 
 .tuni-table-wrapper thead tr:first-child th:last-child {
-  border-top-right-radius: var(--bs-border-radius-lg);
+  border-top-right-radius: var(--bs-border-radius);
 }
 
 tbody tr:last-child td:first-child {
-  border-bottom-left-radius: var(--bs-border-radius-lg);
+  border-bottom-left-radius: var(--bs-border-radius);
 }
 
 tbody tr:last-child td:last-child {
-  border-bottom-right-radius: var(--bs-border-radius-lg);
+  border-bottom-right-radius: var(--bs-border-radius);
 }
 
 .tuni-table-wrapper th {
   background-color: var(--bs-secondary-bg-subtle);
   position: sticky;
   top: calc(var(--header-height) + 56px);
-  z-index: 10;
+  z-index: 9;
 }
 
 

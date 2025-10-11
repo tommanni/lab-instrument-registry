@@ -29,11 +29,13 @@ onMounted(() => {
 
 <template>
     <div class="search-container">
-        <input class="form-control" v-model="searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="performSearch" />
-        <button class="btn btn-primary ms-2" @click="performSearch">{{$t('message.haku_painike')}}</button>
-        <button v-if="searchTerm" class="btn text-muted mx-1 clear-button" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
-            <i class="bi bi-x text-primary"></i>
-        </button>
+        <div class="input-wrapper">
+            <input class="form-control" v-model="searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="performSearch" />
+            <a v-if="searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
+                <i class="bi bi-x text-primary"></i>
+            </a>
+        </div>
+        <button class="btn btn-primary" @click="performSearch">{{$t('message.haku_painike')}}</button>
     </div>
 </template>
 
@@ -41,43 +43,47 @@ onMounted(() => {
 .search-container {
     display: flex;
     align-items: top;
-    justify-content: flex-start;
-    padding-left: 10px;
-    gap: 5px; /* Add a gap between the input and the button */
+    justify-content: space-between;
+    gap: .3rem; /*Gap for input focus borders not to clip */
+    max-width: 600px;
 }
 
-input {
+.input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+/*input {
     width: 150px;
     height: 35px;
     padding: 5px;
     width: 100%;
     height: 40px;
-    border-radius: 8px;
     overflow: hidden;
-}
+}*/
 
 .search-container .form-control {
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
-    border-right: none;
-    width: 80%;
-    max-width: 600px;
+    border-top-left-radius: var(--bs-border-radius-lg);
+    border-bottom-left-radius: var(--bs-border-radius-lg);
+    border-collapse: collapse;
+    padding-right: 1.8rem; /*room for the clear button */
+    box-sizing: border-box;
 }
 
 .search-container .btn {
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
-    margin-left: 0 !important;
+    border-top-right-radius: var(--bs-border-radius-lg);
+    border-bottom-right-radius: var(--bs-border-radius-lg);
 }
 
 .clear-button {
-    width: 32px;
-    height: 42px;
     display: flex;
     align-items: center;
-    border: none;
-    padding: 0.5rem;
-    font-size: 2.0rem;
+    padding: 0;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
 }
 
 .clear-button:hover i {

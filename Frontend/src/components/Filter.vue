@@ -153,15 +153,15 @@ export default {
   <ul class="filter-wrapper gap-3">
     <li class="filter-slot" v-for="(filter, index) in filters" :key="index">
       <div class="dropdown">
-        <button class="btn border dropdown-toggle d-toggle" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
+        <button class="btn border dropdown-toggle d-toggle rounded" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
           aria-expanded="false">
-          <div class="selection-wrapper">
+          <div class="selection-wrapper" :title="filter.selected || $t('message.' + filter.field)">
             {{ filter.selected || $t('message.' + filter.field) }}
           </div>
-          <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="clearFilter(index)">
+        </button>
+        <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="(event) => {event.stopPropagation(); clearFilter(index); }">
             <i class="bi bi-x text-primary"></i>
           </a>
-        </button>
         <div class="dropdown-menu p-2" :aria-labelledby="'dropdownInputButton-'+index">
           <input v-model="filter.searchTerm" type="text" class="form-control mb-2"
             :placeholder="$t('message.placeholder')" />
@@ -181,6 +181,11 @@ export default {
 </template>
 
 <style scoped>
+
+.dropdown {
+
+  position: relative;
+}
 .filter-wrapper {
   display: flex;
   width: fit-content;
@@ -196,14 +201,11 @@ export default {
 .filter-wrapper .d-toggle {
   width: 150px;
   height: 40px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 8px;
-  background-color: white;
+  background-color: var(--bs-light-bg-subtle);
 }
 
 .filter-wrapper .filter-slot {
@@ -213,7 +215,7 @@ export default {
 
 .selection-wrapper {
   font-weight: inherit;
-  max-width: 140px;
+  max-width: 70%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -221,6 +223,14 @@ export default {
 
 .clear-button {
   padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1.5rem;
+}
+.clear-button:hover {
+  background-color: var(--bs-tertiary-bg);
 }
 
 ul {
