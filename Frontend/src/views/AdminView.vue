@@ -5,6 +5,7 @@ import UserData from '@/components/UserData.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';
+import Search from '@/components/Search.vue';
 
 const { t } = useI18n();
 
@@ -17,6 +18,13 @@ onMounted(async () => {
     await userStore.fetchData();
   } finally {
     loading.value = false;
+  }
+  // Check for active search terms on page load
+  const match = document.cookie.match(/UserSearchTerm=([^;]+)/);
+  if (match) {
+    userStore.searchData(decodeURIComponent(match[1]));
+  } else {
+    userStore.searchData(''); // Clear search if no cookie
   }
 })
 </script>
@@ -33,6 +41,11 @@ onMounted(async () => {
       </li>
     </ul>
     <div class="admindata">
+      <Search 
+        class="user-search-component" 
+        :searchFunction="userStore.searchData" 
+        cookieName="UserSearchTerm" 
+      />
       <UserData />
     </div>
   </main>
@@ -64,4 +77,8 @@ main {
   grid-column: 1 / span 3;
 }
 
+.user-search-component {
+  margin-bottom: 5px;
+  margin-left: -10px;
+}
 </style>

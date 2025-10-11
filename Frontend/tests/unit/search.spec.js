@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import Search from "@/components/Search.vue";
 import { useDataStore } from "@/stores/data";
 
@@ -18,13 +18,22 @@ const globalMock = {
 };
 
 describe("Search.vue", () => {
+  beforeEach(() => {
+    searchDataMock.mockClear(); // Reset mock calls
+  })
   it("renders input and button correctly", () => {
-    const wrapper = mount(Search, globalMock);
+    const wrapper = mount(Search, {
+      props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
+      ...globalMock
+    });
     expect(wrapper.find("input").exists()).toBe(true)
     expect(wrapper.find("button").exists()).toBe(true)
   })
   it("updates searchTerm when input changes", async () => {
-    const wrapper = mount(Search, globalMock);
+    const wrapper = mount(Search, {
+      props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
+      ...globalMock
+    });
     const input = wrapper.find("input");
 
     await input.setValue("Vue Testing");
@@ -32,8 +41,10 @@ describe("Search.vue", () => {
   });
 
   it("calls store.searchData() when button is clicked", async () => {
-    searchDataMock.mockClear(); // Reset mock calls
-    const wrapper = mount(Search, globalMock);
+    const wrapper = mount(Search, {
+      props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
+      ...globalMock
+    });
 
     const input = wrapper.find("input");
     await input.setValue("Test Search");
@@ -44,8 +55,10 @@ describe("Search.vue", () => {
   });
 
   it("calls store.searchData() when Enter key is pressed", async () => {
-    searchDataMock.mockClear(); // Reset mock calls
-    const wrapper = mount(Search, globalMock);
+    const wrapper = mount(Search, {
+      props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
+      ...globalMock
+    });
 
     const input = wrapper.find("input");
     await input.setValue("Enter Pressed");

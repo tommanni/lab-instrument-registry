@@ -10,6 +10,7 @@ export const useUserStore = defineStore('userStore', () => {
   const numberOfPages = ref(1)
   const user = ref(null)
   const dataStore = useDataStore()
+  const searchTerm = ref('')
 
   const updateVisibleData = () => {
     currentData.value = fullData.value.slice((currentPage.value-1)*15, currentPage.value*15)
@@ -52,6 +53,23 @@ export const useUserStore = defineStore('userStore', () => {
     updateVisibleData()
   }
 
+  const searchData = (term) => {
+    searchTerm.value = term
+    
+    // TODO Add cookie flags for live build
+    document.cookie = `UserSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
+
+    const lowerSearch = term.toLowerCase()
+    if (lowerSearch) {
+      currentData.value = fullData.value.filter(user => 
+        user.full_name.toLowerCase().includes(lowerSearch) || 
+        user.email.includes(lowerSearch)
+      )
+    } else {
+      currentData.value = fullData.value
+    }
+  }
+
   return { fullData, currentData, currentPage, numberOfPages, user,
-    fetchData, deleteUser, updateVisibleData, fetchUser }
+    fetchData, deleteUser, updateVisibleData, fetchUser, searchData }
 })
