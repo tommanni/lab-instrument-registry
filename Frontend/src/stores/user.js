@@ -1,12 +1,16 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useDataStore } from '@/stores/data';
 
 export const useUserStore = defineStore('userStore', () => {
   const fullData = ref([])
   const currentData = ref([])
   const currentPage = ref(1)
   const numberOfPages = ref(1)
+  const user = ref(null)
+  const dataStore = useDataStore()
+  const searchTerm = ref('')
 
   const updateVisibleData = () => {
     currentData.value = fullData.value.slice((currentPage.value-1)*15, currentPage.value*15)
@@ -26,12 +30,46 @@ export const useUserStore = defineStore('userStore', () => {
     }
   }
 
+  const fetchUser = async () => {
+    // If not logged in, set user to null
+    if (!dataStore.isLoggedIn) {
+      user.value = ref(null)
+      return
+    }
+    // Fetch current user data
+    try {
+      const res = await axios.get(`/api/users/${'me'}/`, { 
+        withCredentials: true
+      })
+      user.value = res.data
+    } catch (error) {
+      user.value = ref(null)
+    }
+  }
+
   const deleteUser = async (id) => {
     fullData.value = originalData.value.filter(o => o.id !== id)
     currentData.value = filteredData.value.filter(o => o.id !== id)
     updateVisibleData()
   }
 
-  return { fullData, currentData, currentPage, numberOfPages,
-    fetchData, deleteUser, updateVisibleData }
+  const searchData = (term) => {
+    searchTerm.value = term
+    
+    // TODO Add cookie flags for live build
+    document.cookie = `UserSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
+
+    const lowerSearch = term.toLowerCase()
+    if (lowerSearch) {
+      currentData.value = fullData.value.filter(user => 
+        user.full_name.toLowerCase().includes(lowerSearch) || 
+        user.email.includes(lowerSearch)
+      )
+    } else {
+      currentData.value = fullData.value
+    }
+  }
+
+  return { fullData, currentData, currentPage, numberOfPages, user,
+    fetchData, deleteUser, updateVisibleData, fetchUser, searchData }
 })

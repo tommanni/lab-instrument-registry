@@ -1,15 +1,33 @@
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink } from 'vue-router';
 import LangButton from './LangButton.vue';
 import { useDataStore } from '@/stores/data';
+import { useUserStore } from '@/stores/user';
+import { ref, onMounted, watch } from 'vue';
+import axios from 'axios';
+import { useI18n } from 'vue-i18n';
+import { useAlertStore } from '@/stores/alert';
 import LogoutOverlay from './LogoutOverlay.vue';
 import LoginOverlay from './LoginOverlay.vue';
 import RegisterOverlay from './RegisterOverlay.vue';
 import { useMediaQuery } from '@vueuse/core';
 
-const dataStore = useDataStore()
+const { t } = useI18n();
+
+const dataStore = useDataStore();
+const userStore = useUserStore();
+const alertStore = useAlertStore();
 const isMobile = useMediaQuery('(max-width: 768px');
 
+onMounted(() => {
+  // Get current user (null if not logged in)
+  userStore.fetchUser();
+})
+
+watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
+  // Refetch user when login status changes
+  userStore.fetchUser();
+});
 </script>
 
 <template>
@@ -27,7 +45,10 @@ const isMobile = useMediaQuery('(max-width: 768px');
         <RouterLink v-if="isMobile" class="bi bi-card-checklist btn btn-primary fs-5" to="/contracts"/>
         <RouterLink v-else class="nav-link" to="/contracts">{{ $t('message.huoltosivu') }}</RouterLink>
       </li>
-      <li v-if="dataStore.isLoggedIn" class="nav-item">
+      <li v-if="dataStore.isLoggedIn && userStore.user" class="nav-item">
+        <RouterLink class="nav-link" :to="`/users/${userStore.user.id}`">{{$t('message.omat_tiedot')}}</RouterLink>
+      </li>
+      <li v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="nav-item">
         <RouterLink v-if="isMobile" class="bi bi-people btn btn-primary fs-5" to="/admin"/>
         <RouterLink v-else class="nav-link" to="/admin">{{ $t('message.kayttajasivu') }}</RouterLink>
       </li>

@@ -2,22 +2,35 @@
 import { ref, onMounted } from 'vue';
 import TokenOverlay from '@/components/TokenOverlay.vue';
 import UserData from '@/components/UserData.vue';
-import { useUserStore } from '@/stores/user';
 import { useDataStore } from '@/stores/data';
-import { useI18n } from 'vue-i18n'
+import { useUserStore } from '@/stores/user';
+import { useI18n } from 'vue-i18n';
+import Search from '@/components/Search.vue';
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const userStore = useUserStore()
-const dataStore = useDataStore()
+const dataStore = useDataStore();
+const userStore = useUserStore();
+const loading = ref(true);
 
-onMounted(() => {
-  userStore.fetchData()
+onMounted(async () => {
+  try {
+    await userStore.fetchData();
+  } finally {
+    loading.value = false;
+  }
+  // Check for active search terms on page load
+  const match = document.cookie.match(/UserSearchTerm=([^;]+)/);
+  if (match) {
+    userStore.searchData(decodeURIComponent(match[1]));
+  } else {
+    userStore.searchData(''); // Clear search if no cookie
+  }
 })
 </script>
 
 <template>
-  <main v-if="dataStore.isLoggedIn">
+  <main v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser">
     <div class="admins">
       <h2>{{$t('message.adminteksti')}}</h2>
     </div>
@@ -28,11 +41,16 @@ onMounted(() => {
       </li>
     </ul>
     <div class="admindata">
+      <Search 
+        class="user-search-component" 
+        :searchFunction="userStore.searchData" 
+        cookieName="UserSearchTerm" 
+      />
       <UserData />
     </div>
   </main>
 
-  <main v-else>
+  <main v-else-if="!loading">
     <h1 class="text-center"> {{ t('message.admin_ei_oikeuksia') }} </h1>
   </main>
 </template>
@@ -59,4 +77,8 @@ main {
   grid-column: 1 / span 3;
 }
 
+.user-search-component {
+  margin-bottom: 5px;
+  margin-left: -10px;
+}
 </style>

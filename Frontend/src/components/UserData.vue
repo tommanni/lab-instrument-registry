@@ -33,7 +33,7 @@ function goToUser(id) {
 </script>
 
 <template>
-  <div class="table-container">
+  <div v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="table-container">
     <table>
       <colgroup>
         <col v-for="(key, index) in $tm('userTableHeaders')" :key="key" />

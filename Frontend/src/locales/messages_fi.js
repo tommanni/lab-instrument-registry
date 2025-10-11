@@ -47,6 +47,7 @@ export default {
 	  ei_vastaus: "Ei",
 	  sahkoposti: "Sähköposti",
 	  salasana: "Salasana",
+	  omat_tiedot: "Omat tiedot",
 	  adminteksti: "Käyttöoikeuksien hallinta",
 	  admin_ei_oikeuksia: "Sinulla ei ole oikeuksia tähän näkymään",
 	  luo_kayttajakoodi: "Luo käyttäjäkoodi",
@@ -80,7 +81,9 @@ export default {
 	  muutoshistoria: "Muutoshistoria",
 	  takaisin: "Takaisin",
 	  muokkaa_tietoja: "Muokkaa tietoja",
-      jarjestelma: "Järjestelmä"
+      jarjestelma: "Järjestelmä",
+	  nollaa_haku: "Nollaa haku",
+	  nollaa_suodattimet: "Nollaa suodattimet"
 	},
 	tableHeaders: [
 	  "Tuotenimi",

@@ -9,6 +9,7 @@ export default {
 	  tilanne: 'Status',
 	  uusi_laite: 'Add a new instrument',
 	  tiedot_uusi: 'Add new instrument information',
+	  omat_tiedot: "My information",
 	  tay: 'TAY-number',
 	  tuotenimi: 'Product name',
 	  merkki: 'Make and model',
@@ -80,7 +81,9 @@ export default {
 	  muutoshistoria: "Change History",
 	  takaisin: "Back",
 	  muokkaa_tietoja: "Edit Information",
-      jarjestelma: "System"
+      jarjestelma: "System",
+	  nollaa_haku: "Clear search",
+	  nollaa_suodattimet: "Clear filters"
 	},
 	tableHeaders: [
 	  "Product Name",

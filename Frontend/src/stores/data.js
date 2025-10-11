@@ -2,6 +2,8 @@ import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
+import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
+
 export const useDataStore = defineStore('dataStore', () => {
   const originalData = ref([])
   const data = ref([])
@@ -38,6 +40,46 @@ export const useDataStore = defineStore('dataStore', () => {
     
     // Tehdään sivutus lopuksi
     data.value = displayData.slice((currentPage.value - 1) * 15, currentPage.value * 15)
+  }
+
+  const matchesBooleanQuery = (item, query) => {
+
+    const getFieldValue = (obj, field) => {
+      const v = obj[field]
+      return v === undefined || v === null ? '' : String(v).toLowerCase()
+    }
+
+    const anyFieldIncludes = (lower) => (
+      (item.id !== undefined && item.id !== null && item.id.toString().includes(lower)) ||
+      (item.tay_numero && item.tay_numero.toLowerCase().includes(lower)) ||
+      (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lower)) ||
+      (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lower)) ||
+      (item.toimittaja && item.toimittaja.toLowerCase().includes(lower)) ||
+      (item.lisatieto && item.lisatieto.toLowerCase().includes(lower)) ||
+      (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lower)) ||
+      (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lower)) ||
+      (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lower)) ||
+      (item.yksikko && item.yksikko.toLowerCase().includes(lower)) ||
+      (item.kampus && item.kampus.toLowerCase().includes(lower)) ||
+      (item.rakennus && item.rakennus.toLowerCase().includes(lower)) ||
+      (item.huone && item.huone.toLowerCase().includes(lower)) ||
+      (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lower)) ||
+      (item.tilanne && item.tilanne.toLowerCase().includes(lower))
+    )
+
+    const itemMatchesSingleTerm = (symbol) => {
+      const lower = String(symbol.value || '').toLowerCase()
+      if (symbol.fieldName) {
+        // Field targeted search
+        const fieldLower = getFieldValue(item, symbol.fieldName)
+        return fieldLower.includes(lower)
+      }
+      // Fallback: any field
+      return anyFieldIncludes(lower)
+    }
+
+    const rpn = parseQueryToRpn(query)
+    return evaluateRpnBoolean(rpn, item, itemMatchesSingleTerm)
   }
 
   const fetchData = async () => {
@@ -82,28 +124,28 @@ export const useDataStore = defineStore('dataStore', () => {
     if (yksikko !== undefined) {
     filterValues.value.yksikko = yksikko
     document.cookie = `YksikkoFilter=${encodeURIComponent(yksikko || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (huone !== undefined) {
-    filterValues.value.huone = huone
-    document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (vastuuhenkilo !== undefined) {
-    filterValues.value.vastuuhenkilo = vastuuhenkilo
-    document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
-  if (tilanne !== undefined) {
-    filterValues.value.tilanne = tilanne
-    document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
-  }
+    }
+    if (huone !== undefined) {
+      filterValues.value.huone = huone
+      document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
+    if (vastuuhenkilo !== undefined) {
+      filterValues.value.vastuuhenkilo = vastuuhenkilo
+      document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
+    if (tilanne !== undefined) {
+      filterValues.value.tilanne = tilanne
+      document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
+    }
 
-  applySearchAndFilter()
+    applySearchAndFilter()
   
   }
 
   function searchData(term) {
     // TODO Add cookie flags for live build
     searchTerm.value = term
-    document.cookie = `SearchTerm=${encodeURIComponent(term)}; Path=/` /*; Secure; SameSite=Strict*/
+    document.cookie = `InstrumentSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
     applySearchAndFilter()
 }
 
@@ -129,25 +171,29 @@ export const useDataStore = defineStore('dataStore', () => {
     // Apply search term
     let results = filtered
     if (lowerSearch) {
-      results = filtered.filter((item) =>
-        (item.id.toString().includes(lowerSearch)) ||
-        (item.tay_numero && item.tay_numero.toLowerCase().includes(lowerSearch)) ||
-        (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lowerSearch)) ||
-        (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lowerSearch)) ||
-        (item.toimittaja && item.toimittaja.toLowerCase().includes(lowerSearch)) ||
-        (item.lisatieto && item.lisatieto.toLowerCase().includes(lowerSearch)) ||
-        (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lowerSearch)) ||
-        (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lowerSearch)) ||
-        (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lowerSearch)) ||
-        (item.yksikko && item.yksikko.toLowerCase().includes(lowerSearch)) ||
-        (item.kampus && item.kampus.toLowerCase().includes(lowerSearch)) ||
-        (item.rakennus && item.rakennus.toLowerCase().includes(lowerSearch)) ||
-        (item.huone && item.huone.toLowerCase().includes(lowerSearch)) ||
-        (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lowerSearch)) ||
-        (item.tilanne && item.tilanne.toLowerCase().includes(lowerSearch))
-      )
+      const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm.value) || /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTerm.value)
+      if (hasBooleanOperator) {
+        results = filtered.filter((item) => matchesBooleanQuery(item, searchTerm.value))
+      } else { 
+        results = filtered.filter((item) =>
+          (item.id.toString().includes(lowerSearch)) ||
+          (item.tay_numero && item.tay_numero.toLowerCase().includes(lowerSearch)) ||
+          (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lowerSearch)) ||
+          (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lowerSearch)) ||
+          (item.toimittaja && item.toimittaja.toLowerCase().includes(lowerSearch)) ||
+          (item.lisatieto && item.lisatieto.toLowerCase().includes(lowerSearch)) ||
+          (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lowerSearch)) ||
+          (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lowerSearch)) ||
+          (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lowerSearch)) ||
+          (item.yksikko && item.yksikko.toLowerCase().includes(lowerSearch)) ||
+          (item.kampus && item.kampus.toLowerCase().includes(lowerSearch)) ||
+          (item.rakennus && item.rakennus.toLowerCase().includes(lowerSearch)) ||
+          (item.huone && item.huone.toLowerCase().includes(lowerSearch)) ||
+          (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lowerSearch)) ||
+          (item.tilanne && item.tilanne.toLowerCase().includes(lowerSearch))
+        )
+      }
     }
-
     searchedData.value = results
     currentPage.value = 1
     numberOfPages.value = Math.ceil(results.length / 15)
@@ -184,8 +230,8 @@ export const useDataStore = defineStore('dataStore', () => {
     filterData(FilterCookies)
   }
 
-  if (cookies.SearchTerm) {
-    searchData(decodeURIComponent(cookies.SearchTerm))
+  if (cookies.InstrumentSearchTerm) {
+    searchData(decodeURIComponent(cookies.InstrumentSearchTerm))
   }
 
   if (cookies.CurrentPage) {
