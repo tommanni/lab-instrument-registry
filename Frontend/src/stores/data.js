@@ -145,7 +145,7 @@ export const useDataStore = defineStore('dataStore', () => {
   function searchData(term) {
     // TODO Add cookie flags for live build
     searchTerm.value = term
-    document.cookie = `SearchTerm=${encodeURIComponent(term)}; Path=/` /*; Secure; SameSite=Strict*/
+    document.cookie = `InstrumentSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
     applySearchAndFilter()
 }
 
@@ -230,8 +230,8 @@ export const useDataStore = defineStore('dataStore', () => {
     filterData(FilterCookies)
   }
 
-  if (cookies.SearchTerm) {
-    searchData(decodeURIComponent(cookies.SearchTerm))
+  if (cookies.InstrumentSearchTerm) {
+    searchData(decodeURIComponent(cookies.InstrumentSearchTerm))
   }
 
   if (cookies.CurrentPage) {

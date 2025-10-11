@@ -13,7 +13,10 @@ vi.mock('@/stores/user', () => ({
     currentData: [
       { full_name: 'John Doe', email: 'john@example.com' },
       { full_name: 'Jane Smith', email: 'jane@example.com' }
-    ]
+    ],
+    user: {
+      is_superuser: true
+    }
   })
 }))
 
@@ -24,7 +27,9 @@ vi.mock('@/stores/alert', () => ({
 }))
 
 vi.mock('@/stores/data', () => ({
-  useDataStore: () => ({})
+  useDataStore: () => ({
+    isLoggedIn: true
+  })
 }))
 
 const i18n = createI18n({

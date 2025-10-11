@@ -48,9 +48,8 @@ function handleNewInstrument(item) {
 <template>
     <!----<Filter @filter-change="onFilterChange" />-->
     <div class="home-root">
-
       <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
-        <div><Search /> </div>
+        <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
         <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" /></div>
         <div class="d-flex align-items-center justify-content-end">
           <AddOverlay @new-instrument-added="handleNewInstrument" />
