@@ -176,8 +176,8 @@ export default {
       </div>
 
     </li>
-    <button v-if="filters.some(f => f.selected)" class="btn btn-primary ms-2" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
   </ul>
+  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
 </template>
 
 <style scoped>
@@ -221,6 +221,10 @@ export default {
 
 .clear-button {
   padding: 0;
+}
+
+.btn-primary {
+  margin-left: 0.5rem;
 }
 
 ul {
