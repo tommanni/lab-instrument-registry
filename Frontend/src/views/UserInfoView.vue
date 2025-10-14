@@ -2,6 +2,7 @@
 import axios from 'axios';
 import UserInfo from '@/components/UserInfo.vue';
 import ChangeAdminStatus from '@/components/ChangeAdminStatus.vue';
+import ChangeActiveStatus from '@/components/ChangeActiveStatus.vue';
 import ChangePassword from '@/components/ChangePassword.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
@@ -72,6 +73,9 @@ watch(
       </div>
       <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-admin">
         <ChangeAdminStatus :user="user"/>
+      </div>
+      <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-active">
+        <ChangeActiveStatus :user="user"/>
       </div>
     </template>
     <template v-else>

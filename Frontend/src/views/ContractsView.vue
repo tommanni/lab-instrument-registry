@@ -3,8 +3,10 @@ import { onMounted } from 'vue';
 import ContractsData from '@/components/ContractsData.vue';
 import ContractsPagination from '@/components/ContractsPagination.vue';
 import { useContractStore } from '@/stores/contract';
+import { useDataStore } from '@/stores/data';
 
-const store = useContractStore()
+const store = useContractStore();
+const dataStore = useDataStore();
 
 onMounted(() => {
   store.fetchData()
@@ -12,7 +14,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main>
+  <main v-if="dataStore.isLoggedIn">
     <div class="contracts">
       <h2>{{$t('message.huoltoteksti')}}</h2>
 
@@ -21,6 +23,9 @@ onMounted(() => {
       <ContractsData />
       <ContractsPagination />
     </div>
+  </main>
+  <main v-else>
+    <h1 class="text-center"> {{ $t('message.admin_ei_oikeuksia') }} </h1>
   </main>
 </template>
 

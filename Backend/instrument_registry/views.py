@@ -240,7 +240,31 @@ class ChangeAdminStatus(APIView):
             user.save()
             return Response({'message': 'Admin user created', 'newAdminStatus': True})
 
+# This view allows an admin user to inactivate or activate a user.
+class ChangeActiveStatus(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.is_superuser: # only superusers can inactivate/activate users
+            return Response({'detail': 'Not authorized.'}, status=403)
+
+        user_id = request.data.get('id')
+
+        try:
+            user = RegistryUser.objects.get(pk=user_id)
+        except RegistryUser.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=404)
         
+        if user.is_active:
+            user.is_active = False
+            user.save()
+            return Response({'message': 'User made inactive', 'newActiveStatus': False})
+
+        else:
+            user.is_active = True
+            user.save()
+            return Response({'message': 'User made active', 'newActiveStatus': True})
 
 # These last views should be pretty self explanatory based on their names.
 class Login(knox_views.LoginView):

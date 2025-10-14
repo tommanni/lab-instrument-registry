@@ -5,6 +5,7 @@ import axios from 'axios'
 import { useDataStore } from '@/stores/data'
 import { useAlertStore } from '@/stores/alert'
 import { useMediaQuery } from '@vueuse/core'
+import { useRouter } from 'vue-router';
 
 const { t } = useI18n();
 const isMobile = useMediaQuery('(max-width: 768px');
@@ -12,6 +13,7 @@ const isMobile = useMediaQuery('(max-width: 768px');
 const showOverlay = ref(false)
 const store = useDataStore()
 const alertStore = useAlertStore()
+const router = useRouter()
 
 const openOverlay = () => {
     showOverlay.value = true
@@ -31,6 +33,7 @@ const logoutUser = async () => {
         closeOverlay();
         // Show success alert
         alertStore.showAlert(0, t('message.ulos_kirjauduttu'))
+        router.push('/')
     } catch (error) {
         // Error logging out
     }

@@ -36,8 +36,14 @@ function goToUser(id) {
   <div v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="table-container">
     <table>
       <colgroup>
-        <col v-for="(key, index) in $tm('userTableHeaders')" :key="key" />
+          <col v-for="(key, index) in $tm('userTableHeaders')"
+            :key="key"
+            :style="{
+              width: index < 2 ? '40%' : '7%'
+            }"
+          />
       </colgroup>
+      
       <thead>
         <tr>
           <th v-for="(key, index) in $tm('userTableHeaders')" :key="key">{{ key }}</th>
@@ -55,6 +61,12 @@ function goToUser(id) {
           </td>
           <td>
             {{ item.email }}
+          </td>
+          <td>
+            {{  item.is_superuser ? 'X' : '' }}
+          </td>
+          <td>
+            {{  item.is_active ? '' : 'X' }}
           </td>
         </tr>
       </tbody>

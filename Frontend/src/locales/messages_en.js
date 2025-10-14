@@ -98,6 +98,8 @@ export default {
 	userTableHeaders: [
 	  "Username",
 	  "Email",
+	  "Admin",
+	  "Inactive"
 	],
 	contractHeaders: [
 	  "Product Name",
