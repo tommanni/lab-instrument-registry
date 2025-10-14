@@ -97,7 +97,9 @@ export default {
 	],
 	userTableHeaders: [
 	  "Käyttäjätunnus",
-	  "Sähköposti"
+	  "Sähköposti",
+	  "Admin",
+	  "Inaktivoitu"
 	],
 	contractHeaders: [
 	  "Tuotenimi",
