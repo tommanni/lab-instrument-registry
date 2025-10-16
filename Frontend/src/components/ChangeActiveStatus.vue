@@ -32,15 +32,40 @@ async function changeActiveValue() {
 </script>
 
 <template>
-<div v-if="props.user && props.user?.is_active">
-  <button @click="changeActiveValue">
-    {{ props.user.is_active ? 'Make Inactive' : 'Make Active' }}
-  </button>
+<div class="deactivation-container">
+  <div class="modal-buttons" v-if="props.user && props.user?.is_active">
+    <button class="btn btn-secondary" @click="changeActiveValue">
+      {{ props.user.is_active ? t('message.deaktivoi_kayttaja') : t('message.aktivoi_kayttaja') }}
+    </button>
+  </div>
+  <div class="modal-buttons" v-else>
+    <button class="btn btn-secondary" @click="changeActiveValue">{{t('message.aktivoi_kayttaja')}}</button>
+  </div>
 </div>
-<div v-else>
-  <button @click="changeActiveValue">Make Active</button>
-</div>
+
+
+
+
 </template>
 
 <style scoped>
+
+.deactivation-container {
+  max-width: 600px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 1rem;
+  box-sizing:border-box;
+
+}
+
+.modal-buttons button {
+  margin-top: 1rem;
+  border-radius: 4px;
+  border: none;
+  padding: 5px 10px;
+}
+
+
+
 </style>

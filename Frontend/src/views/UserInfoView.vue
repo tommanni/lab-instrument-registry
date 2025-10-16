@@ -57,21 +57,26 @@ watch(
 <template>
   <!-- Nothing is rendered on screen until loading state is false -->
   <main v-if="!loading">
-    <template v-if="dataStore.isLoggedIn && userStore.user && ( userStore.user.id === user?.id ||  userStore.user.is_superuser )">
+    <template v-if="dataStore.isLoggedIn && userStore.user && 
+    ( userStore.user.id === user?.id ||  userStore.user.is_superuser )">
       <h1 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h1>
 
-      <!-- Warning for admins editing someone else's information -->
-      <div v-if="userStore.user && user &&  userStore.user.is_superuser && userStore.user.id !== user.id" class="admin-warning">
+        <!-- Warning for admins editing someone else's information -->
+        <div v-if="userStore.user && user && userStore.user.is_superuser && 
+        userStore.user.id !== user.id" class="admin-warning">
         {{ t('message.tietojen_muokkaus_varoitus') }}
-      </div>
-
-      <div class="userdata">
+        </div>
+        
+      <div class="user-info-wrapper">
         <UserInfo :user="user"/>
       </div>
+      
       <div class="change-password">
         <ChangePassword :user="user"/>
       </div>
-      <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-admin">
+
+      <div class="make-admin" v-if=" userStore.user && user &&  userStore.user.is_superuser && 
+       userStore.user.id !== user.id">
         <ChangeAdminStatus :user="user"/>
       </div>
       <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-active">
@@ -103,23 +108,23 @@ main {
   margin-bottom: 20px;
 }
 
+.make-admin {
+ 
+}
+
 .admin-warning {
-  position: absolute;
-  top: 80px;
-  left: 60%;
-  transform: translateX(-50%);
-  background-color: #ffc3c3;
-  color: #7e1b1b;
-  padding: 8px 15px;
-  border-radius: 6px;
-  font-weight: 500;
-  z-index: 10;
+  max-width: 600px;
+  width: fit-content; 
+  margin: 20px auto;
+  padding: 0.75rem;
+  box-sizing: border-box;
+  background-color: #dc3545;
+  color:#f4f4f8;
+  border-radius: 4px;
+
 }
 
 
-.change-admin {
-  margin-top: 100px;
-  margin-bottom: 20px;
-  margin-left: 250px;
-}
+
+
 </style>

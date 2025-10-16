@@ -68,12 +68,22 @@ async function submitPassword() {
     </div>
 
     <div class="modal-buttons">
-      <button @click="submitPassword">{{ t('message.vahvista_muutokset') }}</button>
+      <button class="btn btn-primary" @click="submitPassword">
+      {{ t('message.vahvista_muutokset') }}
+</button>
     </div>
   </div>
 </template>
 
 <style scoped>
+.password-container {
+  max-width: 600px;
+  width: 100%; 
+  margin: 20px auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
 .password-field label {
   display:block;
   margin-bottom: 0.5rem;
@@ -90,17 +100,14 @@ async function submitPassword() {
   box-sizing: border-box;
 }
 
-.password-container {
-  transition: margin-top 0.3s ease;
-}
+
 
 .modal-buttons button {
   margin-top: 1rem;
   border-radius: 4px;
   border: none;
   padding: 5px 10px;
-  color: white;
-  background-color: #cf286f;
+
 
 }
 

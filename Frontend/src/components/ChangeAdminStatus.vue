@@ -32,15 +32,38 @@ async function changeAdminValue() {
 </script>
 
 <template>
-<div v-if="props.user && props.user?.is_superuser">
-  <button @click="changeAdminValue">
-    {{ props.user.is_superuser ? 'Remove Admin' : 'Make Admin' }}
-  </button>
+<div class="admin-container">
+  <h3>{{t('message.adminteksti')}}</h3>
+  <div class="modal-buttons" v-if="props.user && props.user?.is_superuser">
+    <button class="btn btn-primary" @click="changeAdminValue">
+      {{ props.user.is_superuser ? t('message.poista_oikeudet') : t('message.anna_oikeudet') }}
+
+    </button>
+  </div>
+    <div class="modal-buttons" v-else>
+    <button class="btn btn-primary" @click="changeAdminValue">{{ t('message.anna_oikeudet') }}
+    </button>
+  </div>
 </div>
-<div v-else>
-  <button @click="changeAdminValue">Make Admin</button>
-</div>
+
 </template>
 
 <style scoped>
+
+.admin-container {
+  max-width: 600px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+
+.modal-buttons button {
+  margin-top: 1rem;
+  border-radius: 4px;
+  border: none;
+  padding: 5px 10px;
+}
+
 </style>
