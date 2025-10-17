@@ -104,7 +104,7 @@ export default {
 	  "Käyttäjätunnus",
 	  "Sähköposti",
 	  "Admin",
-	  "Inaktivoitu"
+	  "Deaktivoitu"
 	],
 	contractHeaders: [
 	  "Tuotenimi",

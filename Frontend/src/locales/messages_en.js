@@ -104,7 +104,7 @@ export default {
 	  "Username",
 	  "Email",
 	  "Admin",
-	  "Inactive"
+	  "Deactivated"
 	],
 	contractHeaders: [
 	  "Product Name",
