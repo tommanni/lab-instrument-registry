@@ -1,12 +1,18 @@
 <script setup>
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import ContractsData from '@/components/ContractsData.vue';
-import ContractsPagination from '@/components/ContractsPagination.vue';
+import Pagination from '@/components/Pagination.vue';
 import { useContractStore } from '@/stores/contract';
 import { useDataStore } from '@/stores/data';
+import { useUserStore } from '@/stores/user';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const store = useContractStore();
 const dataStore = useDataStore();
+const userStore = useUserStore();
+const loading = ref(false);
 
 onMounted(() => {
   store.fetchData()
@@ -14,26 +20,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <main v-if="dataStore.isLoggedIn">
+  <main>
     <div class="contracts">
-      <h2>{{$t('message.huoltoteksti')}}</h2>
-
+      <h2>{{ t('message.huoltoteksti') }}</h2>
     </div>
     <div class="contractdata">
       <ContractsData />
-      <ContractsPagination />
+      <Pagination :store="store" />
     </div>
-  </main>
-  <main v-else>
-    <h1 class="text-center"> {{ $t('message.admin_ei_oikeuksia') }} </h1>
   </main>
 </template>
 
 <style scoped>
-
 main {
-  padding-top: 70px;
-  padding-left: 25px;
+  padding-top: 30px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .contracts h2 {
@@ -41,11 +43,9 @@ main {
 }
 
 .contractdata {
-  padding-top: 25px;
+  padding-top: 20px;
   padding-bottom: 88px;
   grid-row-start: 2;
   grid-column: 1 / span 3;
-  padding-right: 25px;
 }
-
 </style>

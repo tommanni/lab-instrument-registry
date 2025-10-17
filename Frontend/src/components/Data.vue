@@ -7,7 +7,6 @@ import { useMediaQuery } from '@vueuse/core';
 
 const { t } = useI18n();
 const store = useDataStore();
-const visible = ref(false)
 const clickedObject = ref({})
 const isMobile = useMediaQuery('(max-width: 768px');
 
@@ -41,7 +40,7 @@ const columnWidths = ref([
   50,
   50,
   50,
-  25,
+  30,
   30,
   45,
   50,
@@ -133,22 +132,15 @@ const startResize = (event, column) => {
 };
 
 const openOverlay = (item) => {
-  console.log("opened: " + item["tuotenimi"]);
   clickedObject.value = { ...item }
-  visible.value = true
 }
 
-const closeOverlay = () => {
-  visible.value = false
-}
-
-const handleUpdate = (updatedItem) => {
+const handleUpdateItem = (updatedItem) => {
   store.updateObject(updatedItem);
-  // Find the updated item in the store's data and update clickedObject
-  clickedObject.value = store.data.find(item => item.id === updatedItem.id) || updatedItem;
+  clickedObject.value = updatedItem
 }
 
-const handleDelete = (itemId) => {
+const handleDeleteItem = (itemId) => {
   store.deleteObject(itemId);
 }
 
@@ -161,10 +153,8 @@ defineExpose({
   <div>
     <DetailsOverlay
       :item="clickedObject"
-      :visible="visible"
-      @close="closeOverlay"
-      @update-item="handleUpdate"
-      @delete-item="handleDelete"
+      @update-item="handleUpdateItem"
+      @delete-item="handleDeleteItem"
     />
     <div class="tuni-table-wrapper table-responsive-sm shadow-sm"> <!--class="table-container rounded shadow-sm"-->
       <table class='table table-hover border-radius-sm '>
@@ -178,7 +168,7 @@ defineExpose({
             <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
               <div class="sort-wrapper">
               <span class="header-text" @click.stop="toggleSort(key)">{{ key }}</span>
-              
+
                 <i :class="getSortClass(key)" @click.stop="toggleSort(key)"></i>
               </div>
               <span class="resizer" @mousedown="startResize($event, index)"></span>
@@ -228,7 +218,70 @@ defineExpose({
   display: flex;
   gap: 0.5rem;
   align-items: end;
-} 
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  border-radius: 8px;
+}
+
+th,
+td {
+  /*border: 1px solid #ddd;*/
+  padding: 8px;
+  position: relative;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
+}
+
+th {
+  background-color: var(--bs-secondary-bg-subtle);
+  position: sticky;
+  top: calc(var(--header-height) + 56px);
+  z-index: 1;
+}
+
+/* Round top corners of header */
+thead tr:first-child th:first-child {
+  border-top-left-radius: 8px;
+}
+
+thead tr:first-child th:last-child {
+  border-top-right-radius: 8px;
+}
+
+/* Round bottom corners of last row */
+tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f0f0f0;
+}
+
+/* Round bottom corners of the last row */
+tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
 
 .sort-wrapper i {
   font-size: small;

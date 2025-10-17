@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Search from "@/components/Search.vue";
 import { useDataStore } from "@/stores/data";
+import { createI18n } from 'vue-i18n';
 
 const searchDataMock = vi.fn();
 vi.mock("@/stores/data", () => ({
@@ -9,13 +10,21 @@ vi.mock("@/stores/data", () => ({
     searchData: searchDataMock,
   })),
 }));
-const globalMock = {
-  global: {
-    mocks: {
-      $t: (msg) => msg,
-    },
-  },
-};
+
+const i18n = createI18n({
+  legacy: false,
+  globalInjection: true,
+  locale: 'en',
+  messages: {
+    en: {
+      message: {
+        placeholder: 'Search...',
+        haku_painike: 'Search',
+        nollaa_haku: 'Clear search'
+      }
+    }
+  }
+});
 
 describe("Search.vue", () => {
   beforeEach(() => {
@@ -24,7 +33,9 @@ describe("Search.vue", () => {
   it("renders input and button correctly", () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
-      ...globalMock
+      global: {
+        plugins: [i18n]
+      }
     });
     expect(wrapper.find("input").exists()).toBe(true)
     expect(wrapper.find("button").exists()).toBe(true)
@@ -32,7 +43,9 @@ describe("Search.vue", () => {
   it("updates searchTerm when input changes", async () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
-      ...globalMock
+      global: {
+        plugins: [i18n]
+      }
     });
     const input = wrapper.find("input");
 
@@ -43,7 +56,9 @@ describe("Search.vue", () => {
   it("calls store.searchData() when button is clicked", async () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
-      ...globalMock
+      global: {
+        plugins: [i18n]
+      }
     });
 
     const input = wrapper.find("input");
@@ -57,7 +72,9 @@ describe("Search.vue", () => {
   it("calls store.searchData() when Enter key is pressed", async () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, cookieName: "TestCookie" },
-      ...globalMock
+      global: {
+        plugins: [i18n]
+      }
     });
 
     const input = wrapper.find("input");

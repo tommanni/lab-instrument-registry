@@ -11,8 +11,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 vi.mock('@/stores/user', () => ({
   useUserStore: () => ({
     currentData: [
-      { full_name: 'John Doe', email: 'john@example.com' },
-      { full_name: 'Jane Smith', email: 'jane@example.com' }
+      { id: 1, full_name: 'John Doe', email: 'john@example.com', is_superuser: true, is_active: true },
+      { id: 2, full_name: 'Jane Smith', email: 'jane@example.com', is_superuser: false, is_active: true }
     ],
     user: {
       is_superuser: true
@@ -47,7 +47,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: { template: '<div>Home</div>' } },
-    { path: '/user/:id', component: { template: '<div>User</div>' } }
+    { path: '/user/:id', name: 'UserInfoView', component: { template: '<div>User</div>' } }
   ]
 })
 
@@ -68,26 +68,37 @@ describe('UserData.vue', () => {
     expect(rows[1].text()).toContain('jane@example.com')
   })
 
-  it('opens the token overlay when openTokenOverlay is called', async () => {
+  it('sorts data when header is clicked', async () => {
     const wrapper = mount(UserData, {
       global: {
         plugins: [i18n, router]
       }
     })
-    await wrapper.vm.openTokenOverlay()
-    expect(wrapper.vm.visible).toBe(true)
+
+    const headers = wrapper.findAll('th')
+    await headers[0].trigger('click')
+
+    expect(wrapper.vm.sortKey).toBe('full_name')
+    expect(wrapper.vm.sortOrder).toBe('asc')
+
+    // Click again to reverse sort order
+    await headers[0].trigger('click')
+    expect(wrapper.vm.sortOrder).toBe('desc')
   })
 
-  it('closes the overlay when closeOverlay is called', async () => {
+  it('navigates to user detail when row is clicked', async () => {
     const wrapper = mount(UserData, {
       global: {
         plugins: [i18n, router]
       }
     })
-    await wrapper.vm.openTokenOverlay()
-    expect(wrapper.vm.visible).toBe(true)
 
-    await wrapper.vm.closeOverlay()
-    expect(wrapper.vm.visible).toBe(false)
+    const pushSpy = vi.spyOn(router, 'push')
+    const rows = wrapper.findAll('tbody tr')
+
+    // Mock user data should have an id property
+    await rows[0].trigger('click')
+
+    expect(pushSpy).toHaveBeenCalled()
   })
 })

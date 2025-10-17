@@ -59,7 +59,7 @@ watch(
   <main v-if="!loading">
     <template v-if="dataStore.isLoggedIn && userStore.user && 
     ( userStore.user.id === user?.id ||  userStore.user.is_superuser )">
-      <h1 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h1>
+      <h2 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h2>
 
         <!-- Warning for admins editing someone else's information -->
         <div v-if="userStore.user && user && userStore.user.is_superuser && 

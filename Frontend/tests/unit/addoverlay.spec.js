@@ -55,6 +55,7 @@ const i18n = createI18n({
         seuraava_huolto: 'Next Maintenance',
         tallenna: 'Save',
         lisatty: 'added',
+        ei_lisatty: 'failed to add',
         peruuta: 'Cancel',
         vaaditaan: 'required'
       }

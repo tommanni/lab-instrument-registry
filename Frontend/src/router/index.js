@@ -12,39 +12,31 @@ const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/AdminView.vue'),
-    },
-    {
-      path: '/users',
-      name: 'users',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/UsersView.vue'),
+      redirect: '/admin/users',
+      children: [
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('../views/UsersView.vue'),
+        },
+        {
+          path: 'data-transfer',
+          name: 'admin-data-transfer',
+          component: () => import('../views/DataTransferView.vue'),
+        },
+      ]
     },
     {
       path: '/contracts',
       name: 'contracts',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/ContractsView.vue'),
     },
     {
-      path: '/admin',
-      name: 'admin',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AdminView.vue'),
+      path: '/users/:id',
+      name: 'UserInfoView',
+      component: () => import('../views/UserInfoView.vue')
     },
-    { 
-      path: '/users/:id', 
-      name: 'UserInfoView', 
-      component: () => import('../views/UserInfoView.vue') },
   ],
 })
 
