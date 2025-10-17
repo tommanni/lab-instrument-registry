@@ -150,18 +150,18 @@ export default {
 </script>
 
 <template>
-  <ul class="filter-wrapper gap-3">
+  <ul class="filter-wrapper gap-3 ms-md-2">
     <li class="filter-slot" v-for="(filter, index) in filters" :key="index">
       <div class="dropdown">
-        <button class="btn border dropdown-toggle d-toggle" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
+        <button class="btn border dropdown-toggle d-toggle rounded" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
           aria-expanded="false">
-          <div class="selection-wrapper">
+          <div class="selection-wrapper" :title="filter.selected || $t('message.' + filter.field)">
             {{ filter.selected || $t('message.' + filter.field) }}
           </div>
-          <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="clearFilter(index)">
+        </button>
+        <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="(event) => {event.stopPropagation(); clearFilter(index); }">
             <i class="bi bi-x text-primary"></i>
           </a>
-        </button>
         <div class="dropdown-menu p-2" :aria-labelledby="'dropdownInputButton-'+index">
           <input v-model="filter.searchTerm" type="text" class="form-control mb-2"
             :placeholder="$t('message.placeholder')" />
@@ -177,43 +177,51 @@ export default {
 
     </li>
   </ul>
-  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
+  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary ms-md-3" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
 </template>
 
 <style scoped>
-.filter-wrapper {
-  display: flex;
-  width: fit-content;
-  flex-direction: row;
-  height: 40px;
-  gap: 0.5rem;
+
+.dropdown {
+  position: relative;
+  width: 100%;
 }
 
-.filter-wrapper .filter-slot {
-  display: flex;
+.filter-wrapper {
+  display: grid;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  grid-template-columns: repeat(4, 160px);
 }
+
+@media screen and (max-width: 768px){
+  .filter-wrapper {
+    grid-template-columns: 1fr;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+}
+
 
 .filter-wrapper .d-toggle {
-  width: 150px;
   height: 40px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 8px;
-  background-color: white;
+  background-color: var(--bs-light-bg-subtle);
+  width: 100%;
 }
 
+
 .filter-wrapper .filter-slot {
-  flex: 1;
   position: relative;
+  max-width: 100%;
 }
 
 .selection-wrapper {
   font-weight: inherit;
-  max-width: 140px;
+  max-width: 70%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -221,15 +229,21 @@ export default {
 
 .clear-button {
   padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1.5rem;
+}
+.clear-button:hover {
+  background-color: var(--bs-tertiary-bg);
 }
 
-.btn-primary {
-  margin-left: 0.5rem;
-}
 
 ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 </style>

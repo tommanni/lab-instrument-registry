@@ -4,11 +4,8 @@ import Search from '@/components/Search.vue';
 import Filter from '@/components/Filter.vue';
 import Data from '@/components/Data.vue';
 import AddOverlay from '@/components/AddOverlay.vue';
-import LoginOverlay from '@/components/LoginOverlay.vue';
-import LogoutOverlay from '@/components/LogoutOverlay.vue';
 import Pagination from '@/components/Pagination.vue';
 import { useDataStore } from '@/stores/data';
-import RegisterOverlay from '@/components/RegisterOverlay.vue';
 const store = useDataStore()
 const dataComponent = ref(null)
 
@@ -46,12 +43,13 @@ function handleNewInstrument(item) {
 </script>
 
 <template>
-    <!----<Filter @filter-change="onFilterChange" />-->
     <div class="home-root">
-      <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
+      <div class="actions-wrapper py-2 px-3 gap-2 mb-2 rounded" style="z-index: 10;">
         <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
-        <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" /></div>
-        <div class="d-flex align-items-center justify-content-end">
+        <div class="f-wrapper">
+          <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
+        </div>
+        <div class="d-flex align-items-center justify-content-end ms-auto">
           <AddOverlay @new-instrument-added="handleNewInstrument" />
         </div>
       </div>
@@ -68,27 +66,37 @@ function handleNewInstrument(item) {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-
   height: 100%;
 }
 
 
 .actions-wrapper {
-  display: grid;
+  display: flex;
   position: sticky;
   width: 100%;
   top: var(--header-height);
-  grid-template-columns: 2fr 4fr 1fr;
   background: var(--bs-secondary-bg-subtle);
-  border-radius: 8px;
-  padding-top: 0.5rem;
   z-index: 11;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
-  
 
+.f-wrapper {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
 
-.nav-item {
-  margin-right: 20px;
+@media screen and (max-width: 768px){
+  .actions-wrapper {
+    position: static;
+    flex-direction: column;
+  }
+  .f-wrapper {
+    width: 100%;
+    flex-direction: column;
+  }
 }
 
 </style>

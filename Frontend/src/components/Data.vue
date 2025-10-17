@@ -3,11 +3,13 @@ import { useDataStore } from '@/stores/data'
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
+import { useMediaQuery } from '@vueuse/core';
 
 const { t } = useI18n();
 const store = useDataStore();
 const visible = ref(false)
 const clickedObject = ref({})
+const isMobile = useMediaQuery('(max-width: 768px');
 
 // Sarakkeet:
 // Columns:
@@ -74,9 +76,9 @@ function toggleSort(columnKey) {
 // Returning of the CSS class by the state of the sorting
 function getSortClass(columnKey) {
   if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
-    return 'sort-none'
+    return 'bi bi-caret-down text-body-tertiary'
   }
-  return sortDirection.value === 'asc' ? 'sort-asc' : 'sort-desc'
+  return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
 }
 
 // Lajitellaan näytettävä data
@@ -164,18 +166,21 @@ defineExpose({
       @update-item="handleUpdate"
       @delete-item="handleDelete"
     />
-    <div class="table-container rounded shadow-sm">
-      <table>
+    <div class="tuni-table-wrapper table-responsive-sm shadow-sm"> <!--class="table-container rounded shadow-sm"-->
+      <table class='table table-hover border-radius-sm '>
         <colgroup>
           <col v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }" />
         </colgroup>
-        <thead>
+        <thead class="table-secondary">
           <tr>
             <!-- Käydään läpi sarakeotsikot ja lisätään sort-indikaattori -->
             <!-- Go through the column headers and add a sort indicator -->
-            <th v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
+            <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
+              <div class="sort-wrapper">
               <span class="header-text" @click.stop="toggleSort(key)">{{ key }}</span>
-              <span class="sort-indicator" :class="getSortClass(key)" @click.stop="toggleSort(key)"></span>
+              
+                <i :class="getSortClass(key)" @click.stop="toggleSort(key)"></i>
+              </div>
               <span class="resizer" @mousedown="startResize($event, index)"></span>
             </th>
           </tr>
@@ -216,95 +221,25 @@ defineExpose({
 </template>
 
 <style scoped>
-.table-container {
+
+
+.sort-wrapper {
   width: 100%;
-  background-color: white;
-  border-radius: 8px;
-}
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+} 
 
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-  border-radius: 8px;
-}
-
-th,
-td {
-  /*border: 1px solid #ddd;*/
-  padding: 8px;
-  position: relative;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
-}
-
-th {
-  background-color: var(--bs-secondary-bg-subtle);
-  position: sticky;
-  top: calc(var(--header-height) + 56px);
-  z-index: 10;
-}
-
-/* Round top corners of header */
-thead tr:first-child th:first-child {
-  border-top-left-radius: 8px;
-}
-
-thead tr:first-child th:last-child {
-  border-top-right-radius: 8px;
-}
-
-/* Round bottom corners of last row */
-tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 8px;
-}
-
-tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 8px;
-}
-
-tbody tr {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-tbody tr:hover {
-  background-color: #f0f0f0;
-}
-
-/* Round bottom corners of the last row */
-tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 8px;
-}
-
-tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 8px;
-}
-
-.resizer {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 5px;
-  height: 100%;
-  cursor: col-resize;
-  background: transparent;
-}
-
-.resizer:hover {
-  background: #ab9bcb;
+.sort-wrapper i {
+  font-size: small;
 }
 
 .sort-indicator {
-  display: inline-block;
   margin-left: 5px;
-  position: relative;
+  position: static;
   width: 0;
   height: 0;
+  margin-left: 10px;
 }
 
 .sort-indicator.sort-none::before,
