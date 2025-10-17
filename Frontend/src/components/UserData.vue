@@ -1,8 +1,6 @@
 <script setup>
-import axios from 'axios';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router'
-import { useAlertStore } from '@/stores/alert';
 import { useDataStore } from '@/stores/data'
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';
@@ -10,22 +8,51 @@ import { useI18n } from 'vue-i18n';
 const { t, tm } = useI18n();
 const dataStore = useDataStore();
 const userStore = useUserStore();
-const alertStore = useAlertStore();
 const router = useRouter();
 
-const visible = ref(false);
-const tokenOverlay = ref(false);
-const clickedObject = ref({});
-const showDeleteConfirmation = ref(false);
-const clickedToken = ref(false);
+const sortKey = ref(null);
+const sortOrder = ref('asc');
 
-const openTokenOverlay = () => {
-  visible.value = true
+const headerMap = {
+  [tm('userTableHeaders')[0]] : 'full_name',
+  [tm('userTableHeaders')[1]] : 'email',
+  [tm('userTableHeaders')[2]] : 'is_superuser',
+  [tm('userTableHeaders')[3]] : 'is_active'
+};
+
+function sortBy(key) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 'asc';
+  }
 }
 
-const closeOverlay = () => {
-  visible.value = false
-}
+const sortedData = computed(() => {
+  if (!sortKey.value) return userStore.currentData;
+
+  return [...userStore.currentData].sort((a, b) => {
+    let aVal = a[sortKey.value];
+    let bVal = b[sortKey.value];
+
+    if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+      // For "is_superuser", reverse logic so 'X' appears first in ascending order
+      if (sortKey.value === 'is_superuser') {
+        return sortOrder.value === 'asc' ? bVal - aVal : aVal - bVal;
+      }
+      // Normal boolean sort
+      return sortOrder.value === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+    if (aVal < bVal) return sortOrder.value === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+});
 
 function goToUser(id) {
   router.push({ name: 'UserInfoView', params: { id } })
@@ -46,28 +73,31 @@ function goToUser(id) {
       
       <thead>
         <tr>
-          <th v-for="(key, index) in $tm('userTableHeaders')" :key="key">{{ key }}</th>
+          <th
+            v-for="(key, index) in $tm('userTableHeaders')"
+            :key="key"
+            @click="sortBy(headerMap[key])"
+            style="cursor: pointer;"
+          >
+            {{ key }}
+            <span v-if="sortKey === headerMap[key]">
+              {{ sortOrder === 'asc' ? '↓' : '↑' }}
+            </span>
+          </th>
         </tr>
       </thead>
 
       <tbody>
-        <tr v-for="(item, index) in userStore.currentData" 
-        :key="index" 
-        @click="goToUser(item.id)" 
-        style="cursor: pointer;"
+        <tr
+          v-for="(item, index) in sortedData"
+          :key="index"
+          @click="goToUser(item.id)"
+          style="cursor: pointer;"
         >
-          <td>
-            {{ item.full_name }}
-          </td>
-          <td>
-            {{ item.email }}
-          </td>
-          <td>
-            {{  item.is_superuser ? 'X' : '' }}
-          </td>
-          <td>
-            {{  item.is_active ? '' : 'X' }}
-          </td>
+          <td>{{ item.full_name }}</td>
+          <td>{{ item.email }}</td>
+          <td>{{ item.is_superuser ? 'X' : '' }}</td>
+          <td>{{ item.is_active ? '' : 'X' }}</td>
         </tr>
       </tbody>
     </table>
