@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { Popover } from 'bootstrap';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -10,6 +11,8 @@ const props = defineProps({
   cookieName: String
 })
 
+const infoButtonRef = ref(null);
+
 const performSearch = () => {
    props.searchFunction(searchTerm.value);
 };
@@ -19,12 +22,39 @@ const clearSearch = () => {
     performSearch();
 };
 
-// Check for active search terms on page load
+const { locale } = useI18n();
+
+let popoverInstance = null;
+
+const initPopover = () => {
+  if (infoButtonRef.value) {
+    popoverInstance = new Popover(infoButtonRef.value, { trigger: 'hover focus', container: 'body' });
+  }
+};
+
 onMounted(() => {
   const match = document.cookie.match(new RegExp(`${props.cookieName}=([^;]+)`));
   if (match) {
     searchTerm.value = decodeURIComponent(match[1]);
   }
+
+  initPopover();
+});
+
+onBeforeUnmount(() => {
+  if (popoverInstance) {
+    popoverInstance.dispose();
+    popoverInstance = null;
+  }
+});
+
+watch(locale, async () => {
+  if (popoverInstance) {
+    popoverInstance.dispose();
+    popoverInstance = null;
+  }
+  await nextTick();
+  initPopover();
 });
 
 </script>
@@ -38,13 +68,18 @@ onMounted(() => {
             </a>
         </div>
         <button class="btn btn-primary" @click="performSearch">{{$t('message.haku_painike')}}</button>
+        <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button" aria-label="Hakuohje"
+                data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
+                :title="$t('message.haku_info_title')" :data-bs-content="$t('message.haku_info_content')">
+            <i class="bi bi-info-circle text-primary"></i>
+        </button>
     </div>
 </template>
 
 <style scoped>
 .search-container {
-    display: inline flex;
-    align-items: top;
+    display: inline-flex;
+    align-items: center;
     justify-content: space-between;
     gap: .3rem; /*Gap for input focus borders not to clip */
     max-width: 600px;
@@ -52,10 +87,13 @@ onMounted(() => {
 
 .form-control {
     height: 100%;
+    width: 300px;
+    padding-right:3.5rem;
 }
 
 .input-wrapper {
     position: relative;
+    width:100%;
     flex: 1;
 }
 
@@ -68,11 +106,10 @@ onMounted(() => {
     overflow: hidden;
 }*/
 
-.search-container .form-control {
+.search-container {
     border-top-left-radius: var(--bs-border-radius-lg);
     border-bottom-left-radius: var(--bs-border-radius-lg);
     border-collapse: collapse;
-    padding-right: 1.8rem; /*room for the clear button */
     box-sizing: border-box;
 }
 
@@ -94,5 +131,15 @@ onMounted(() => {
 
 .clear-button:hover i {
     color: #dc3545 !important;
+}
+
+.info-button {
+    width: 32px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    border: none;
+    padding: 0.5rem;
+    font-size: 1.4rem;
 }
 </style>

@@ -2,7 +2,7 @@ export default {
 	message: {
 	  suodatin: 'Suodattimet',
 	  haku_painike: 'Hae',
-	  placeholder: 'Hakusana',
+	  placeholder: 'Operaattorit AND, OR ja NOT',
 	  yksikko: 'Yksikkö',
 	  huone: 'Huone',
 	  vastuuhenkilo: 'Vastuuhenkilö',
@@ -110,7 +110,9 @@ export default {
 	  kayttajasivu_kuvaus: "Hallitse käyttäjiä ja luo käyttäjäkoodeja",
 	  tiedonsiirto_kuvaus: "Tuo tai vie instrumentteja csv-muodossa",
 	  huoltosivu_kuvaus: "Hallitse huoltosopimuksia ja huoltoa odottavia laitteita",
-	  avaa: "Avaa"
+	  avaa: "Avaa",
+	  haku_info_title: "Boolean-haku",
+	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO."
 	},
 	tableHeaders: [
 	  "Tuotenimi",

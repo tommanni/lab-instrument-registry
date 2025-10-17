@@ -2,7 +2,7 @@ export default {
 	message: {
 	  suodatin: 'Filters',
 	  haku_painike: 'Search',
-	  placeholder: 'Search term',
+	  placeholder: 'Operators AND, OR and NOT',
 	  yksikko: 'Unit',
 	  huone: 'Room',
 	  vastuuhenkilo: 'Person in charge',
@@ -109,7 +109,9 @@ export default {
 	  kayttajasivu_kuvaus: "Manage users and create user codes",
 	  tiedonsiirto_kuvaus: "Import or export instruments in CSV format",
 	  huoltosivu_kuvaus: "Manage maintenance contracts and devices awaiting maintenance",
-	  avaa: "Open"
+	  avaa: "Open",
+	  haku_info_title: "Search instructions",
+	  haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Example: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO."
 	},
 	tableHeaders: [
 	  "Product Name",
