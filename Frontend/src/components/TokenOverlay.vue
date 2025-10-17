@@ -34,16 +34,15 @@ const generateToken = async() => {
 <template>
   <div>
     <!-- Avausnappi -->
-    <button class="login-button" @click="openOverlay">{{ t('message.luo_kayttajakoodi') }}</button>
+    <button class="btn btn-primary" @click="openOverlay">{{ t('message.luo_kayttajakoodi') }}</button>
 
     <!-- Overlay näkyy vain, kun showOverlay on true -->
     <div v-if="showOverlay" class="overlay-backdrop">
       <div class="overlay-content">
         <!-- X-painike oikeassa yläkulmassa -->
-        <h3>{{ t('message.kayttajakoodin_luonti') }}</h3>
-        <button class="signin-button" @click="generateToken">{{ t('message.luo_uusi_kayttajakoodi') }}</button>
-        <p></p>
-        <button class="close-button" @click="closeOverlay">×</button>
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" @click="closeOverlay" aria-label="Close"></button>
+        <h3 class="mb-3">{{ t('message.kayttajakoodin_luonti') }}</h3>
+        <button class="btn btn-primary mb-3" @click="generateToken">{{ t('message.luo_uusi_kayttajakoodi') }}</button>
         <h4>{{ t('message.luotu_kayttajakoodi') }}</h4>
         <h5 class="code-label">{{ token }}</h5>
       </div>
@@ -76,50 +75,13 @@ const generateToken = async() => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.login-button {
-  padding: 5px 10px;
-  background-color: #cf286f;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.login-button:hover {
-  background-color: #F5A5C8;
-}
-
-.close-button {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-  background: transparent;
-  border: none;
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.close-button:hover {
-  color: #b00;
-}
-
-.signin-button {
-  padding: 5px 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+.btn-primary {
   background-color: #4E008E;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: center;
-  white-space: nowrap;
+  border-color: #4E008E;
 }
 
-.signin-button:hover {
-  background-color: #ab9bcb;
+.btn-primary:hover {
+  background-color: #3d0070;
+  border-color: #3d0070;
 }
 </style>

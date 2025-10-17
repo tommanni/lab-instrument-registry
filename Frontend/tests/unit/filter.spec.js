@@ -27,7 +27,8 @@ const i18n = createI18n({
         vastuuhenkilo: 'Responsible Person',
         tilanne: 'Status',
         suodatin: 'Filter',
-        placeholder: 'Search...'
+        placeholder: 'Search...',
+        nollaa_suodattimet: 'Clear filters'
       }
     }
   }

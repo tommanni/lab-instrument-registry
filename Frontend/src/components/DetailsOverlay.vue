@@ -12,10 +12,13 @@ const alertStore = useAlertStore()
 
 const props = defineProps({
   item: Object,
-  visible: Boolean
+  allowDelete: {
+    type: Boolean,
+    default: true
+  }
 });
 
-const emit = defineEmits(['close', 'update-item', 'delete-item']);
+const emit = defineEmits(['update-item', 'delete-item']);
 
 const view = ref('details'); // details, edit, history
 const showDeleteConfirmation = ref(false);
@@ -122,14 +125,6 @@ const cancelEdit = () => {
   view.value = 'details';
 };
 
-const closeOverlay = () => {
-  if (dataModal.value) {
-    dataModal.value.hide();
-  }
-  emit('close');
-  showDeleteConfirmation.value = false;
-}
-
 const confirmUpdate = async () => {
   // Validate required fields
   formValidated.value = true;
@@ -142,7 +137,10 @@ const confirmUpdate = async () => {
       withCredentials: true
     })
     alertStore.showAlert(0, t('message.on_paivitetty'))
-    emit('update-item', { ...updateFormData.value, id: props.item.id });
+
+    const updatedItem = { ...updateFormData.value, id: props.item.id };
+    emit('update-item', updatedItem);
+
     fetchHistory(props.item.id); // Refetch history after update
     view.value = 'details';
   } catch (error) {
@@ -309,16 +307,11 @@ const confirmDelete = async () => {
                 </div>
               </div>
             </div>
-
-
-
-
             <!--Modal footer-->
             <div class="modal-footer justify-content-between">
               <div>
-                <button v-if="store.isLoggedIn && view !== 'history'" class="btn btn-danger me-2" data-bs-toggle="modal"
-                  data-bs-target="#deleteConfirmModal">
-                  {{ t('message.poista') }}
+                <button v-if="view === 'details'" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                  {{ t('message.takaisin') }}
                 </button>
                 <button v-if="store.isLoggedIn && view === 'details'" @click="view = 'history'"
                   class="btn btn-outline-info">{{
@@ -336,6 +329,10 @@ const confirmDelete = async () => {
                 >
                   {{t('message.peruuta') }}
                 </button>
+                <button v-if="store.isLoggedIn && view === 'details' && allowDelete" class="btn btn-danger me-2" data-bs-toggle="modal"
+                  data-bs-target="#deleteConfirmModal">
+                  {{ t('message.poista') }}
+                </button>
                 <button
                   class="btn btn-primary"
                   v-if="store.isLoggedIn && view == 'details'"
@@ -347,8 +344,6 @@ const confirmDelete = async () => {
                   {{ t('message.paivita')}}
                 </button>
               </div>
-              
-
             </div>
           </div>
         </div>
@@ -383,88 +378,6 @@ const confirmDelete = async () => {
   overflow-wrap: anywhere;
 }
 
-.overlay-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.overlay-content::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 4px;
-}
-
-.close-button {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-  background: transparent;
-  border: none;
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.close-button:hover {
-  color: #b00;
-}
-
-.buttons {
-  margin-top: 15px;
-  display: flex;
-  justify-content: space-between;
-}
-
-
-.btn-delete {
-  background: #4E008E;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #ab9bcb;
-}
-
-.btn-cancel {
-  background-color: rgb(158, 158, 158);
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #cacaca;
-}
-
-.btn-update {
-  background: #cf286f;
-  color: white;
-}
-
-.btn-update:hover {
-  background-color: #F5A5C8;
-}
-
-.btn-update2 {
-  background-color: rgb(0, 150, 0);
-  color: white;
-}
-
-.btn-update2:hover {
-  background-color: rgb(0, 234, 0);
-}
-
-.modal-buttons {
-  margin-top: 15px;
-  display: flex;
-  justify-content: space-around;
-}
-
-.btn-history {
-  background-color: #0056b3;
-  color: white;
-}
-
-.btn-history:hover {
-  background-color: #4fa0f6;
-}
-
 .history-details {
   border-top: 1px solid #ccc;
   padding-top: 10px;
@@ -482,56 +395,5 @@ const confirmDelete = async () => {
 .history-record ul {
   list-style-type: none;
   padding-left: 0;
-}
-
-.history-buttons {
-  position: sticky;
-  bottom: -2em;
-  background-color: white;
-  padding: 1em 2em;
-  margin: 0 -2em;
-  justify-content: center;
-}
-
-/* Compact form styling */
-.compact-form {
-  gap: 0.5rem;
-}
-
-.compact-form label {
-  margin-bottom: 0.2rem;
-  font-size: 0.9rem;
-}
-
-/* Remove green validation styling, keep only red for errors */
-.compact-form .form-control:valid {
-  border-color: #dee2e6;
-  background-image: none;
-}
-
-.compact-form .form-control:valid:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.compact-form .form-control:invalid {
-  border-color: #dc3545;
-  background-image: none;
-}
-
-.compact-form .form-control:invalid:focus {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
-}
-
-/* Reduce form control padding */
-.compact-form .form-control {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-/* Reduce modal body padding */
-.modal-body {
-  padding: 1rem 1.5rem;
 }
 </style>

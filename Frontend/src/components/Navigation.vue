@@ -39,20 +39,21 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
     <ul class="nav flex-1  align-items-center mb-md-0 gap-1">
       <li class="nav-item">
         <RouterLink v-if="isMobile" class="bi bi-house-door btn btn-primary fs-5" to="/"/>
-        <RouterLink v-else class="nav-link" to="/">{{$t('message.kotisivu') }}</RouterLink>
-      </li>
-      <li v-if="dataStore.isLoggedIn" class="nav-item">
-        <RouterLink v-if="isMobile" class="bi bi-card-checklist btn btn-primary fs-5" to="/contracts"/>
-        <RouterLink v-else class="nav-link" to="/contracts">{{ $t('message.huoltosivu') }}</RouterLink>
+        <RouterLink v-else class="nav-link" to="/">{{ t('message.kotisivu') }}</RouterLink>
       </li>
       <li v-if="dataStore.isLoggedIn && userStore.user" class="nav-item">
-        <RouterLink class="nav-link" :to="`/users/${userStore.user.id}`">{{$t('message.omat_tiedot')}}</RouterLink>
+        <RouterLink v-if="isMobile" class="bi bi-person btn btn-primary fs-5" :to="`/users/${userStore.user.id}`"/>
+        <RouterLink v-else class="nav-link" :to="`/users/${userStore.user.id}`">{{ t('message.omat_tiedot') }}</RouterLink>
+      </li>
+      <li v-if="dataStore.isLoggedIn" class="nav-item">
+        <RouterLink v-if="isMobile" class="bi bi-wrench btn btn-primary fs-5" to="/contracts"/>
+        <RouterLink v-else class="nav-link" to="/contracts">{{ t('message.huoltosivu') }}</RouterLink>
       </li>
       <li v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="nav-item">
         <RouterLink v-if="isMobile" class="bi bi-people btn btn-primary fs-5" to="/admin"/>
-        <RouterLink v-else class="nav-link" to="/admin">{{ $t('message.kayttajasivu') }}</RouterLink>
+        <RouterLink v-else class="nav-link" to="/admin">{{ t('message.adminsivu') }}</RouterLink>
       </li>
-      
+
     </ul>
     <div class="d-flex align-items-center">
       <LangButton class="me-2"/>
@@ -64,19 +65,12 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
 </template>
 
 <style scoped>
-
 header {
   height: var(--header-height);
   box-sizing: border-box;
 }
 
-.router-link-active {
-  border-bottom: 1px solid var(--bs-primary);
-  font-weight: 600;
-}
-
 header ul {
   flex: 1;
 }
-
 </style>

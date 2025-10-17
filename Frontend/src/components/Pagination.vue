@@ -5,36 +5,45 @@ import { useI18n } from 'vue-i18n';
 
 const { t, tm } = useI18n();
 
-const store = useDataStore();
+const props = defineProps({
+  store: {
+    type: Object,
+    default: null
+  }
+});
+
+// Use provided store or default to dataStore
+const activeStore = props.store || useDataStore();
+
 const changePage = (index) => {
   if (index < 1) {
-    store.currentPage = 1
-    store.updateVisibleData()
-  } else if (index > store.numberOfPages) {
-    store.currentPage = store.numberOfPages
-    store.updateVisibleData()
+    activeStore.currentPage = 1
+    activeStore.updateVisibleData()
+  } else if (index > activeStore.numberOfPages) {
+    activeStore.currentPage = activeStore.numberOfPages
+    activeStore.updateVisibleData()
   } else {
-    store.currentPage = index
-    store.updateVisibleData()
+    activeStore.currentPage = index
+    activeStore.updateVisibleData()
   }
 }
 const pagesToShow = computed(() => {
   const maxVisiblePages = 10;
-  const pages = new Set([1, store.numberOfPages]);
+  const pages = new Set([1, activeStore.numberOfPages]);
 
-  if (store.numberOfPages <= maxVisiblePages) {
-    return Array.from({ length: store.numberOfPages }, (_, i) => i + 1);
+  if (activeStore.numberOfPages <= maxVisiblePages) {
+    return Array.from({ length: activeStore.numberOfPages }, (_, i) => i + 1);
   }
 
-  let start = Math.max(2, store.currentPage - 2);
-  let end = Math.min(store.numberOfPages - 1, store.currentPage + 6);
+  let start = Math.max(2, activeStore.currentPage - 2);
+  let end = Math.min(activeStore.numberOfPages - 1, activeStore.currentPage + 6);
 
-  if (store.currentPage < 5) {
+  if (activeStore.currentPage < 5) {
     start = 2;
     end = maxVisiblePages - 2;
-  } else if (store.currentPage > store.numberOfPages - 5) {
-    start = store.numberOfPages - (maxVisiblePages - 3);
-    end = store.numberOfPages - 1;
+  } else if (activeStore.currentPage > activeStore.numberOfPages - 5) {
+    start = activeStore.numberOfPages - (maxVisiblePages - 3);
+    end = activeStore.numberOfPages - 1;
   }
 
   for (let i = start; i <= end; i++) {
@@ -47,18 +56,18 @@ const pagesToShow = computed(() => {
 <template>
   <nav aria-label="Page navigation data" class="d-flex justify-content-center align-items-center my-3">
     <ul class="pagination mb-0">
-      <li class="page-item" :class="{ 'disabled': store.currentPage === 1 }">
-        <a class="page-link" href="#" @click.prevent="changePage(store.currentPage - 1)" aria-label="Previous">
+      <li class="page-item" :class="{ 'disabled': activeStore.currentPage === 1 }">
+        <a class="page-link" href="#" @click.prevent="changePage(activeStore.currentPage - 1)" aria-label="Previous">
           <span aria-hidden="true">&laquo;</span>
           <span class="ms-1 d-none d-sm-inline">{{t('message.edellinen')}}</span>
         </a>
       </li>
 
       <template v-for="(n, index) in pagesToShow" :key="n">
-        <li class="page-item" :class="{ 'active': store.currentPage === n }">
+        <li class="page-item" :class="{ 'active': activeStore.currentPage === n }">
           <a class="page-link" href="#" @click.prevent="changePage(n)">
             {{ n }}
-            <span v-if="store.currentPage === n" class="visually-hidden">(current)</span>
+            <span v-if="activeStore.currentPage === n" class="visually-hidden">(current)</span>
           </a>
         </li>
         <li v-if="index < pagesToShow.length - 1 && pagesToShow[index + 1] > n + 1" class="page-item disabled">
@@ -66,8 +75,8 @@ const pagesToShow = computed(() => {
         </li>
       </template>
 
-      <li class="page-item" :class="{ 'disabled': store.currentPage === store.numberOfPages }">
-        <a class="page-link" href="#" @click.prevent="changePage(store.currentPage + 1)" aria-label="Next">
+      <li class="page-item" :class="{ 'disabled': activeStore.currentPage === activeStore.numberOfPages }">
+        <a class="page-link" href="#" @click.prevent="changePage(activeStore.currentPage + 1)" aria-label="Next">
           <span class="me-1 d-none d-sm-inline">{{t('message.seuraava')}}</span>
           <span aria-hidden="true">&raquo;</span>
         </a>
