@@ -150,7 +150,7 @@ export default {
 </script>
 
 <template>
-  <ul class="filter-wrapper gap-3">
+  <ul class="filter-wrapper gap-3 ms-md-2">
     <li class="filter-slot" v-for="(filter, index) in filters" :key="index">
       <div class="dropdown">
         <button class="btn border dropdown-toggle d-toggle rounded" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
@@ -183,34 +183,41 @@ export default {
 <style scoped>
 
 .dropdown {
-
   position: relative;
-}
-.filter-wrapper {
-  display: flex;
-  width: fit-content;
-  flex-direction: row;
-  height: 40px;
-  gap: 0.5rem;
+  width: 100%;
 }
 
-.filter-wrapper .filter-slot {
-  display: flex;
+.filter-wrapper {
+  display: grid;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  flex: 1;
+  max-width: 900px;
+  min-width: fit-content;
+  grid-template-columns: repeat(4, 160px);
 }
+
+@media screen and (max-width: 768px){
+  .filter-wrapper {
+    grid-template-columns: calc(50% - .5rem) calc(50% - .5rem);
+  }
+}
+
 
 .filter-wrapper .d-toggle {
-  width: 150px;
   height: 40px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: var(--bs-light-bg-subtle);
+  width: 100%;
 }
 
+
 .filter-wrapper .filter-slot {
-  flex: 1;
   position: relative;
+  max-width: 100%;
 }
 
 .selection-wrapper {
@@ -242,4 +249,5 @@ ul {
   padding: 0;
   margin: 0;
 }
+
 </style>

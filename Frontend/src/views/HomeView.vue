@@ -4,11 +4,8 @@ import Search from '@/components/Search.vue';
 import Filter from '@/components/Filter.vue';
 import Data from '@/components/Data.vue';
 import AddOverlay from '@/components/AddOverlay.vue';
-import LoginOverlay from '@/components/LoginOverlay.vue';
-import LogoutOverlay from '@/components/LogoutOverlay.vue';
 import Pagination from '@/components/Pagination.vue';
 import { useDataStore } from '@/stores/data';
-import RegisterOverlay from '@/components/RegisterOverlay.vue';
 const store = useDataStore()
 const dataComponent = ref(null)
 
@@ -46,12 +43,13 @@ function handleNewInstrument(item) {
 </script>
 
 <template>
-    <!----<Filter @filter-change="onFilterChange" />-->
     <div class="home-root">
       <div class="actions-wrapper py-2 px-3 gap-2 mb-2 rounded" style="z-index: 10;">
-        <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
-        <div class="d-flex ms-3"><Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" /></div>
-        <div class="d-flex align-items-center justify-content-end">
+        <div class="d-flex"><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
+        <div class="f-wrapper">
+          <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
+        </div>
+        <div class="d-flex align-items-center justify-content-end ms-auto">
           <AddOverlay @new-instrument-added="handleNewInstrument" />
         </div>
       </div>
@@ -73,7 +71,7 @@ function handleNewInstrument(item) {
 
 
 .actions-wrapper {
-  display: grid;
+  display: flex;
   position: sticky;
   width: 100%;
   top: var(--header-height);
@@ -81,5 +79,22 @@ function handleNewInstrument(item) {
   background: var(--bs-secondary-bg-subtle);
   z-index: 11;
   box-sizing: border-box;
+  flex-wrap: wrap;
 }
+
+.f-wrapper {
+  display: grid;
+  grid-template-columns: 70% 30%;
+  flex: 1;
+}
+
+@media screen and (max-width: 768px){
+  .actions-wrapper {
+    position: static;
+  }
+  .f-wrapper {
+    width: 100%;
+  }
+}
+
 </style>

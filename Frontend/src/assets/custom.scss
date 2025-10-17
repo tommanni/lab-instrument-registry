@@ -1,50 +1,62 @@
-// 1️⃣ Core colors
-$primary: #4E008E;
-$secondary: #C3B9D7;
-$success: #28a745;
-$danger: #dc3545;
-$warning: #ffc107;
-$info: #17a2b8;
-$light: #f4f4f8;
-$dark: #1a1a1a;
+@use "sass:color";
 
-$body-bg: #fff;
-$body-color: $dark;
+@use "bootstrap" with (
+  // Core colors
+  $primary: #4E008E,
+  $secondary: #C3B9D7,
+  $success: #28a745,
+  $danger: #dc3545,
+  $warning: #ffc107,
+  $info: #17a2b8,
+  $light: #f4f4f8,
+  $dark: #1a1a1a,
 
-$navbar-dark-color: $primary;
+  // Body
+  $body-bg: #fff,
+  $body-color: #1a1a1a,
+
+  // Font
+  $font-weight-bold: 600,
+
+  // Buttons
+  $btn-border-radius: 0.25rem,
+  $btn-font-size: 14px,
+  $btn-font-weight: 600,
+
+  // Navbar
+  $navbar-dark-color: #f4f4f8,
+
+  // Cards
+  $card-border-radius: 0.2rem,
+  $card-box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05),
+
+  // Forms
+  $input-border-radius: 0.2rem,
+ 
+
+  // Utilities
+  $enable-gradients: true
+);
 
 
-$font-weight-bold: 600;
+$navbar-dark-hover-color: color.adjust(#4E008E, $lightness: 10%);
+$navbar-light-color: #1a1a1a;
+$navbar-light-hover-color: color.adjust(#4E008E, $lightness: -10%);
 
-
-// 2️⃣ Buttons
-$btn-border-radius: 0.25rem;
-$btn-font-size: 14px;
-$btn-font-weight: 600;
 $btn-hover-bg-shade: 10%;
-
-// 3️⃣ Navbar
-$navbar-dark-color: $light;
-$navbar-dark-hover-color: lighten($primary, 10%);
-$navbar-light-color: $dark;
-$navbar-light-hover-color: darken($primary, 10%);
 $navbar-border-radius: 0.2rem;
 
-// 4️⃣ Cards
-$card-border-radius: 0.2rem;
-$card-box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
 
-// 5️⃣ Forms
-$input-border-radius: 0.2rem;
-$form-control-focus-box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+/* -------------------------------------------------------------------------- */
+/*                               Theme overrides                              */
+/* -------------------------------------------------------------------------- */
 
-// 6️⃣ Utilities
-$enable-gradients: true;
 
 
 /* -------------------------------------------------------------------------- */
 /*                               Custom classes                               */
 /* -------------------------------------------------------------------------- */
+
 
 .dropdown-content-scrollable {
   max-height: 240px;
@@ -113,7 +125,6 @@ tbody tr:last-child td:last-child {
   }
 }
 
-// 7️⃣ Import Bootstrap
-@import "bootstrap/scss/bootstrap";
+
 
 

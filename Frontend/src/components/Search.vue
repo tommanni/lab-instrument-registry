@@ -41,11 +41,15 @@ onMounted(() => {
 
 <style scoped>
 .search-container {
-    display: flex;
+    display: inline flex;
     align-items: top;
     justify-content: space-between;
     gap: .3rem; /*Gap for input focus borders not to clip */
     max-width: 600px;
+}
+
+.form-control {
+    height: 100%;
 }
 
 .input-wrapper {
