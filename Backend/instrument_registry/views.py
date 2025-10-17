@@ -259,12 +259,12 @@ class ChangeActiveStatus(APIView):
         if user.is_active:
             user.is_active = False
             user.save()
-            return Response({'message': 'User made inactive', 'newActiveStatus': False})
+            return Response({'message': 'User deactivated', 'newActiveStatus': False})
 
         else:
             user.is_active = True
             user.save()
-            return Response({'message': 'User made active', 'newActiveStatus': True})
+            return Response({'message': 'User activated', 'newActiveStatus': True})
 
 # These last views should be pretty self explanatory based on their names.
 class Login(knox_views.LoginView):
