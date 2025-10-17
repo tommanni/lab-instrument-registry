@@ -19,7 +19,13 @@ async function changeActiveValue() {
         });
 
         props.user.is_active = res.data.newActiveStatus;
-        alertStore.showAlert(0, res.data.message);
+
+        if (res.data.newActiveStatus) {
+          alertStore.showAlert(0, t('message.käyttäjä_aktivoitu'));
+        }
+        else {
+          alertStore.showAlert(0, t('message.käyttäjä_deaktivoitu'));
+        }
     } catch (error) {
         if (error.response && error.response.data && error.response.data.detail) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);

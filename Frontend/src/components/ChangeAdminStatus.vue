@@ -19,7 +19,13 @@ async function changeAdminValue() {
         });
 
         props.user.is_superuser = res.data.newAdminStatus;
-        alertStore.showAlert(0, res.data.message);
+
+        if (res.data.newAdminStatus) {
+          alertStore.showAlert(0, t('message.admin_luotu'));
+        }
+        else {
+          alertStore.showAlert(0, t('message.admin_poistettu'));
+        }
     } catch (error) {
         if (error.response && error.response.data && error.response.data.detail) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
