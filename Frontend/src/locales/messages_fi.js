@@ -83,7 +83,12 @@ export default {
 	  muokkaa_tietoja: "Muokkaa tietoja",
       jarjestelma: "Järjestelmä",
 	  nollaa_haku: "Nollaa haku",
-	  nollaa_suodattimet: "Nollaa suodattimet"
+	  nollaa_suodattimet: "Nollaa suodattimet",
+	  tee_admin: "Tee käyttäjästä admin",
+	  anna_oikeudet: "Anna admin oikeudet",
+	  poista_oikeudet: "Poista admin oikeudet",
+	  deaktivoi_kayttaja: "Deaktivoi käyttäjä",
+	  aktivoi_kayttaja: "Aktivoi käyttäjä"
 	},
 	tableHeaders: [
 	  "Tuotenimi",
@@ -97,7 +102,9 @@ export default {
 	],
 	userTableHeaders: [
 	  "Käyttäjätunnus",
-	  "Sähköposti"
+	  "Sähköposti",
+	  "Admin",
+	  "Inaktivoitu"
 	],
 	contractHeaders: [
 	  "Tuotenimi",

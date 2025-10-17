@@ -22,6 +22,22 @@ const showDeleteConfirmation = ref(false);
 const updateFormData = ref({});
 const instrumentHistory = ref([]);
 const formValidated = ref(false);
+const updateIsDisabled = ref(true);
+
+// Watch for changes in updateFormData to enable/disable update button
+watch(updateFormData, (newData) => {
+  if (!props.item) {
+    updateIsDisabled.value = true;
+    return;
+  }
+  
+  // Compare each field in updateFormData with original item
+  updateIsDisabled.value = Object.keys(newData).every(key => {
+    const originalValue = props.item[key]?.toString() || '';
+    const newValue = newData[key]?.toString() || '';
+    return originalValue === newValue;
+  });
+}, { deep: true });
 
 const dataModal = ref(null);
 const deleteModal = ref(null);
@@ -327,7 +343,7 @@ const confirmDelete = async () => {
                 >
                   {{ t('message.muokkaa') }}
                 </button>
-                <button v-if="view === 'edit'" @click="confirmUpdate" class="btn btn-primary">
+                <button :disabled="updateIsDisabled" v-if="view === 'edit'" @click="confirmUpdate" class="btn btn-primary">
                   {{ t('message.paivita')}}
                 </button>
               </div>

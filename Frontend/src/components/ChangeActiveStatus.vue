@@ -7,10 +7,10 @@ const { t } = useI18n();
 const props = defineProps({ user: Object });
 const alertStore = useAlertStore();
 
-async function changeAdminValue() {
+async function changeActiveValue() {
         try {
             const res = await axios.post(
-            '/api/change-admin-status/',
+            '/api/change-active-status/',
             { 
                 id : props.user.id
             },
@@ -18,7 +18,7 @@ async function changeAdminValue() {
             withCredentials: true
         });
 
-        props.user.is_superuser = res.data.newAdminStatus;
+        props.user.is_active = res.data.newActiveStatus;
         alertStore.showAlert(0, res.data.message);
     } catch (error) {
         if (error.response && error.response.data && error.response.data.detail) {
@@ -32,32 +32,32 @@ async function changeAdminValue() {
 </script>
 
 <template>
-<div class="admin-container">
-  <h3>{{t('message.adminteksti')}}</h3>
-  <div class="modal-buttons" v-if="props.user && props.user?.is_superuser">
-    <button class="btn btn-primary" @click="changeAdminValue">
-      {{ props.user.is_superuser ? t('message.poista_oikeudet') : t('message.anna_oikeudet') }}
-
+<div class="deactivation-container">
+  <div class="modal-buttons" v-if="props.user && props.user?.is_active">
+    <button class="btn btn-secondary" @click="changeActiveValue">
+      {{ props.user.is_active ? t('message.deaktivoi_kayttaja') : t('message.aktivoi_kayttaja') }}
     </button>
   </div>
-    <div class="modal-buttons" v-else>
-    <button class="btn btn-primary" @click="changeAdminValue">{{ t('message.anna_oikeudet') }}
-    </button>
+  <div class="modal-buttons" v-else>
+    <button class="btn btn-secondary" @click="changeActiveValue">{{t('message.aktivoi_kayttaja')}}</button>
   </div>
 </div>
+
+
+
 
 </template>
 
 <style scoped>
 
-.admin-container {
+.deactivation-container {
   max-width: 600px;
   width: 100%;
   margin: 20px auto;
   padding: 1rem;
-  box-sizing: border-box;
-}
+  box-sizing:border-box;
 
+}
 
 .modal-buttons button {
   margin-top: 1rem;
@@ -65,5 +65,7 @@ async function changeAdminValue() {
   border: none;
   padding: 5px 10px;
 }
+
+
 
 </style>

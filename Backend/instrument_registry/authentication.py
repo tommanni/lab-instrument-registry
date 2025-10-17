@@ -9,9 +9,12 @@ class JSONAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         email = request.data.get('email', None)
         password = request.data.get('password', None)
+        
         if (not email) or (not password):
             raise exceptions.AuthenticationFailed(('Missing credentials.'))
         user = authenticate(request=request, email=email, password=password)
         if not user:
             raise exceptions.AuthenticationFailed(('Invalid credentials.'))
+        if user.is_active == False:
+            raise exceptions.AuthenticationFailed(('User is inactive.'))
         return (user, None)

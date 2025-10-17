@@ -76,14 +76,19 @@ export default {
 	  tayta_molemmat_kentat: "Please fill both fields",
 	  salasanat_eivat_tasmaa: "Passwords do not match",
 	  salasana_vaihdettu: "Password changed successfully",
-	  tietojen_muokkaus_varoitus: "You're editing someone else's user information",
+	  tietojen_muokkaus_varoitus: "Please note! You're editing someone else's user information",
 	  historia: "History",
 	  muutoshistoria: "Change History",
 	  takaisin: "Back",
 	  muokkaa_tietoja: "Edit Information",
       jarjestelma: "System",
 	  nollaa_haku: "Clear search",
-	  nollaa_suodattimet: "Clear filters"
+	  nollaa_suodattimet: "Clear filters",
+	  tee_admin: "Make user into admin",
+	  anna_oikeudet: "Give admin rights",
+	  poista_oikeudet: "Remove admin rights",
+	  deaktivoi_kayttaja: "Deactivate user",
+	  aktivoi_kayttaja: "Activate user"
 	},
 	tableHeaders: [
 	  "Product Name",
@@ -98,6 +103,8 @@ export default {
 	userTableHeaders: [
 	  "Username",
 	  "Email",
+	  "Admin",
+	  "Inactive"
 	],
 	contractHeaders: [
 	  "Product Name",
