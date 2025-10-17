@@ -177,7 +177,7 @@ export default {
 
     </li>
   </ul>
-  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
+  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary ms-md-3" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
 </template>
 
 <style scoped>
@@ -191,15 +191,14 @@ export default {
   display: grid;
   gap: 0.5rem;
   box-sizing: border-box;
-  flex: 1;
-  max-width: 900px;
-  min-width: fit-content;
   grid-template-columns: repeat(4, 160px);
 }
 
 @media screen and (max-width: 768px){
   .filter-wrapper {
-    grid-template-columns: calc(50% - .5rem) calc(50% - .5rem);
+    grid-template-columns: 1fr;
+    width: 100%;
+    margin-bottom: 1rem;
   }
 }
 
@@ -240,9 +239,6 @@ export default {
   background-color: var(--bs-tertiary-bg);
 }
 
-.btn-primary {
-  margin-left: 0.5rem;
-}
 
 ul {
   list-style: none;

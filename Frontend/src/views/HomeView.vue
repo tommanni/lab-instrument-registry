@@ -45,7 +45,7 @@ function handleNewInstrument(item) {
 <template>
     <div class="home-root">
       <div class="actions-wrapper py-2 px-3 gap-2 mb-2 rounded" style="z-index: 10;">
-        <div class="d-flex"><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
+        <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
         <div class="f-wrapper">
           <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
         </div>
@@ -75,7 +75,6 @@ function handleNewInstrument(item) {
   position: sticky;
   width: 100%;
   top: var(--header-height);
-  grid-template-columns: 2fr 4fr 1fr;
   background: var(--bs-secondary-bg-subtle);
   z-index: 11;
   box-sizing: border-box;
@@ -83,17 +82,20 @@ function handleNewInstrument(item) {
 }
 
 .f-wrapper {
-  display: grid;
-  grid-template-columns: 70% 30%;
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 @media screen and (max-width: 768px){
   .actions-wrapper {
     position: static;
+    flex-direction: column;
   }
   .f-wrapper {
     width: 100%;
+    flex-direction: column;
   }
 }
 
