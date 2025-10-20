@@ -1,19 +1,63 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useRoute, useRouter } from 'vue-router'
 import { useDataStore } from '@/stores/data';
 
 export const useUserStore = defineStore('userStore', () => {
+  const route = useRoute()
+  const router = useRouter()
   const fullData = ref([])
+  const searchedData = ref([])
   const currentData = ref([])
   const currentPage = ref(1)
   const numberOfPages = ref(1)
+  const sortColumn = ref('')
+  const sortDirection = ref('none')
   const user = ref(null)
   const dataStore = useDataStore()
   const searchTerm = ref('')
 
   const updateVisibleData = () => {
-    currentData.value = fullData.value.slice((currentPage.value-1)*15, currentPage.value*15)
+    // Make copy of searched data to sort and paginate
+    let displayData = [...(searchedData.value || [])]
+    
+    // If sorting is applied, sort the data first
+    if (sortColumn.value && sortDirection.value !== 'none') {
+      displayData.sort((a, b) => {
+        const valA = (a[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
+        const valB = (b[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
+        const comp = valA.localeCompare(valB)
+        return sortDirection.value === 'asc' ? comp : -comp
+      })
+    }
+
+    numberOfPages.value = Math.max(1, Math.ceil(displayData.length / 15))
+    // Clamp currentPage
+    if (currentPage.value < 1) currentPage.value = 1
+    if (currentPage.value > numberOfPages.value) currentPage.value = numberOfPages.value
+    // Paginate the data
+    currentData.value = displayData.slice((currentPage.value - 1) * 15, currentPage.value * 15)
+  }
+  
+  // Sync store state to URL and sessionStorage
+  function updateURL() {
+    const query = { ...route.query }
+
+    if (searchTerm.value && searchTerm.value.trim() !== '') {
+      query.search = searchTerm.value.trim()
+    } else {
+      delete query.search
+    }
+
+    if (currentPage.value && currentPage.value > 1) {
+      query.page = String(currentPage.value)
+    } else {
+      delete query.page
+    }
+
+    router.replace({ query }).catch(() => {})
+
   }
 
   const fetchData = async () => {
@@ -33,17 +77,17 @@ export const useUserStore = defineStore('userStore', () => {
   const fetchUser = async () => {
     // If not logged in, set user to null
     if (!dataStore.isLoggedIn) {
-      user.value = ref(null)
+      user.value = null
       return
     }
     // Fetch current user data
     try {
-      const res = await axios.get(`/api/users/${'me'}/`, { 
+      const res = await axios.get(`/api/users/me/`, { 
         withCredentials: true
       })
       user.value = res.data
     } catch (error) {
-      user.value = ref(null)
+      user.value = null
     }
   }
 
@@ -53,23 +97,59 @@ export const useUserStore = defineStore('userStore', () => {
     updateVisibleData()
   }
 
-  const searchData = (term) => {
-    searchTerm.value = term
+  const searchData = (clear) => {
+    if (clear) {
+      searchTerm.value = '';
+    }
     
-    // TODO Add cookie flags for live build
-    document.cookie = `UserSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
+    currentPage.value = 1
 
-    const lowerSearch = term.toLowerCase()
+    // update URL / sessionStorage
+    updateURL()
+
+    // Filter data based on search term
+    const lowerSearch = searchTerm.value.toLowerCase()
     if (lowerSearch) {
-      currentData.value = fullData.value.filter(user => 
+      searchedData.value = fullData.value.filter(user => 
         user.full_name.toLowerCase().includes(lowerSearch) || 
-        user.email.includes(lowerSearch)
+        user.email.toLowerCase().includes(lowerSearch)
       )
     } else {
-      currentData.value = fullData.value
+      searchedData.value = fullData.value
     }
+
+    updateVisibleData()
   }
 
+  // Keep URL and visible data in sync when page changes
+  watch(currentPage, (newPage) => {
+    // normalize and clamp page
+    const p = Number.isNaN(Number(newPage)) ? 1 : Number(newPage)
+    if (p < 1) {
+      currentPage.value = 1
+      return
+    }
+    if (numberOfPages.value && p > numberOfPages.value) {
+      currentPage.value = numberOfPages.value
+      return
+    }
+
+    // Use shared updater to keep behavior consistent and persist state
+    updateURL()
+    updateVisibleData()
+  })
+
+  watch(() => route.query, (newQuery) => {
+      if (route.path !== '/admin/users') return
+
+      searchTerm.value = newQuery.search ?? ''
+      const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
+      currentPage.value = Number.isNaN(p) ? 1 : p
+
+      searchData()
+      updateVisibleData()
+  }, { immediate: false })
+
   return { fullData, currentData, currentPage, numberOfPages, user,
-    fetchData, deleteUser, updateVisibleData, fetchUser, searchData }
+    fetchData, deleteUser, updateVisibleData, fetchUser, searchData, searchTerm }
 })

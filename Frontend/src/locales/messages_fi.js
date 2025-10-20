@@ -3,6 +3,7 @@ export default {
 	  suodatin: 'Suodattimet',
 	  haku_painike: 'Hae',
 	  placeholder: 'Operaattorit AND, OR ja NOT',
+	  placeholder_user: 'Hae käyttäjiä...',
 	  yksikko: 'Yksikkö',
 	  huone: 'Huone',
 	  vastuuhenkilo: 'Vastuuhenkilö',

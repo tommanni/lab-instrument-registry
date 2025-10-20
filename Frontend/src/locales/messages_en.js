@@ -3,6 +3,7 @@ export default {
 	  suodatin: 'Filters',
 	  haku_painike: 'Search',
 	  placeholder: 'Operators AND, OR and NOT',
+	  placeholder_user: 'Search users...',
 	  yksikko: 'Unit',
 	  huone: 'Room',
 	  vastuuhenkilo: 'Person in charge',

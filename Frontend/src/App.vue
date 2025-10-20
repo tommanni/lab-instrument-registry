@@ -3,7 +3,7 @@ import Navigation from './components/Navigation.vue';
 import { RouterView } from 'vue-router';
 import TuniFooter from './components/Footer.vue';
 import Alert from './components/Alert.vue';
-import { onMounted } from 'vue';
+import { onMounted, onBeforeUnmount } from 'vue';
 import { useDataStore } from '@/stores/data';
 import axios from 'axios';
 import { useI18n } from 'vue-i18n';
@@ -56,12 +56,72 @@ onMounted(async () => {
   checkLanguageStatus()
   checkLogingStatus()
   await dataStore.fetchData()
-  dataStore.initializePageFromCookies()
+  dataStore.initializePageFromURL()
   dataStore.isInitialized = true;
+
+  // --- start session monitor & intercept 401s ---
+  // BroadcastChannel so other tabs/windows get logout notifications
+  const bc = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('auth') : null;
+  if (bc) {
+    bc.onmessage = (ev) => {
+      if (ev.data?.type === 'logout') {
+        dataStore.isLoggedIn = false;
+        dataStore.user = null;
+        dataStore.loginChecked = true;
+      }
+    }
+  }
+
+  // Axios interceptor: mark logged out on 401 responses
+  const interceptor = axios.interceptors.response.use(
+    res => res,
+    err => {
+      if (err?.response?.status === 401) {
+        dataStore.isLoggedIn = false;
+        dataStore.user = null;
+        dataStore.loginChecked = true;
+        if (bc) bc.postMessage({ type: 'logout' });
+      }
+      return Promise.reject(err);
+    }
+  );
+
+  // Periodic session check
+  const intervalMs = 30_000; // 30s, adjust as needed
+  const monitorId = setInterval(async () => {
+    try {
+      const resp = await axios.get('/api/users/me/', { withCredentials: true });
+      // if previously logged out, restore user info
+      if (!dataStore.isLoggedIn) {
+        dataStore.isLoggedIn = true;
+        dataStore.user = resp.data;
+      }
+      dataStore.loginChecked = true;
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        dataStore.isLoggedIn = false;
+        dataStore.user = null;
+        dataStore.loginChecked = true;
+        if (bc) bc.postMessage({ type: 'logout' });
+      }
+    }
+  }, intervalMs);
+
+  // make cleanup info available to onBeforeUnmount via element closure
+  // store them on window to be accessible in unmount block below
+  window.__sessionMonitor = { monitorId, interceptor, bc };
 })
 
-
-
+// add cleanup so interceptor and interval are removed when App unmounts
+onBeforeUnmount(() => {
+  const s = window.__sessionMonitor;
+  if (s) {
+    if (s.monitorId) clearInterval(s.monitorId);
+    if (s.interceptor !== undefined) axios.interceptors.response.eject(s.interceptor);
+    if (s.bc) s.bc.close();
+    delete window.__sessionMonitor;
+  }
+})
 
 </script>
 

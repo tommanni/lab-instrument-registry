@@ -28,6 +28,7 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
   // Refetch user when login status changes
   userStore.fetchUser();
 });
+
 </script>
 
 <template>

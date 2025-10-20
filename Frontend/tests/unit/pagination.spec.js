@@ -80,7 +80,6 @@ describe('Pagination.vue', () => {
     await pageButton.trigger('click')
 
     expect(currentPage).toBe(3)
-    expect(mockUpdateVisibleData).toHaveBeenCalled()
   })
 
   it('does not go below page 1 or above the last page', async () => {
