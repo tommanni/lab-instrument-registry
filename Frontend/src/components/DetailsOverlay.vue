@@ -133,13 +133,14 @@ const confirmUpdate = async () => {
   }
 
   try {
-    await axios.put('/api/instruments/' + props.item.id + '/', JSON.parse(JSON.stringify(updateFormData.value)), {
-      withCredentials: true
-    })
+    const response = await axios.put(
+      '/api/instruments/' + props.item.id + '/', 
+      JSON.parse(JSON.stringify(updateFormData.value)), 
+      { withCredentials: true }
+    )
     alertStore.showAlert(0, t('message.on_paivitetty'))
 
-    const updatedItem = { ...updateFormData.value, id: props.item.id };
-    emit('update-item', updatedItem);
+    emit('update-item', response.data);
 
     fetchHistory(props.item.id); // Refetch history after update
     view.value = 'details';
