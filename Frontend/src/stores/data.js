@@ -1,10 +1,13 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useRoute, useRouter } from 'vue-router'
 
 import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
 
 export const useDataStore = defineStore('dataStore', () => {
+  const route = useRoute()
+  const router = useRouter()
   const originalData = ref([])
   const data = ref([])
   const filteredData = ref([])
@@ -153,36 +156,85 @@ export const useDataStore = defineStore('dataStore', () => {
     updateVisibleData()
   }
   const filterData = ({yksikko, huone, vastuuhenkilo, tilanne}) => {
-    // TODO Add cookie flags for live build
+    
     if (yksikko !== undefined) {
     filterValues.value.yksikko = yksikko
-    document.cookie = `YksikkoFilter=${encodeURIComponent(yksikko || '')}; Path=/` /*; Secure; SameSite=Strict*/
     }
     if (huone !== undefined) {
       filterValues.value.huone = huone
-      document.cookie = `HuoneFilter=${encodeURIComponent(huone || '')}; Path=/` /*; Secure; SameSite=Strict*/
     }
     if (vastuuhenkilo !== undefined) {
       filterValues.value.vastuuhenkilo = vastuuhenkilo
-      document.cookie = `VastuuHFilter=${encodeURIComponent(vastuuhenkilo || '')}; Path=/` /*; Secure; SameSite=Strict*/
     }
     if (tilanne !== undefined) {
       filterValues.value.tilanne = tilanne
-      document.cookie = `TilanneFilter=${encodeURIComponent(tilanne || '')}; Path=/` /*; Secure; SameSite=Strict*/
     }
 
+    currentPage.value = 1
+
+    updateURL()
     applySearchAndFilter()
   
   }
 
-  function searchData(term) {
-    // TODO Add cookie flags for live build
-    searchTerm.value = term
-    document.cookie = `InstrumentSearchTerm=${encodeURIComponent(searchTerm.value)}; path=/`; /*; Secure; SameSite=Strict*/
+  function searchData(clear) {
+    if (clear) {
+      searchTerm.value = '';
+    }
+
+    currentPage.value = 1
+
+    updateURL()
     applySearchAndFilter()
-}
+  }
+
+  function updateURL() {
+
+    const query = { ...route.query}
+
+    Object.entries(filterValues.value).forEach(([key, value]) => {
+      if (value !== null && value !== '') {
+        query[key] = value
+      } else {
+        delete query[key]
+      }
+    });
+
+    if (searchTerm.value && searchTerm.value.trim() !== '') {
+      query.search = searchTerm.value.trim()
+    } else {
+      delete query.search
+    }
+
+    if (currentPage.value && currentPage.value > 1) {
+      query.page = String(currentPage.value)
+    } else {
+      delete query.page
+    }
+
+    router.replace({ query }).catch(() => {})
+  }
+
+  // Keep URL and visible data in sync when page changes
+  watch(currentPage, (newPage) => {
+    // normalize and clamp page
+    const p = Number.isNaN(Number(newPage)) ? 1 : Number(newPage)
+    if (p < 1) {
+      currentPage.value = 1
+      return
+    }
+    if (numberOfPages.value && p > numberOfPages.value) {
+      currentPage.value = numberOfPages.value
+      return
+    }
+
+    // Update the URL and visible slice whenever page changes
+    updateURL()
+    updateVisibleData()
+  })
 
   function applySearchAndFilter() {
+
     const lowerSearch = searchTerm.value.toLowerCase()
 
     // Apply filters
@@ -228,59 +280,43 @@ export const useDataStore = defineStore('dataStore', () => {
       }
     }
     searchedData.value = results
-    currentPage.value = 1
     numberOfPages.value = Math.ceil(results.length / 15)
 
     updateVisibleData()
+
   }
 
   // Function for data initialization based on active filters
-  const initializePageFromCookies = () => {
-    
-    const cookies = Object.fromEntries(
-    document.cookie.split('; ').map(cookie => {
-      const [key, ...rest] = cookie.split('=')
-      return [key.trim(), rest.join('=')]
+  const initializePageFromURL = () => {
+
+    Object.keys(filterValues.value).forEach((key)  => {
+      filterValues.value[key] = route.query[key] ?? null
+    });
+
+    searchTerm.value = route.query.search ?? ''
+
+    const p = route.query.page ? parseInt(route.query.page, 10) : 1
+    currentPage.value = Number.isNaN(p) ? 1 : p
+
+    applySearchAndFilter()
+  }
+
+  // Watcher for filter/search/pagination changes
+  watch(() => route.query, (newQuery) => {
+    if (route.path !== '/') return
+
+    Object.keys(filterValues.value).forEach(key => {
+      filterValues.value[key] = newQuery[key] ?? null
     })
-  )
 
-  const FilterCookies = {}
+    searchTerm.value = newQuery.search ?? ''
 
-  if (cookies.YksikkoFilter) {
-    FilterCookies.yksikko = decodeURIComponent(cookies.YksikkoFilter)
-  }
-  if (cookies.HuoneFilter) {
-    FilterCookies.huone = decodeURIComponent(cookies.HuoneFilter)
-  }
-  if (cookies.VastuuHFilter) {
-    FilterCookies.vastuuhenkilo = decodeURIComponent(cookies.VastuuHFilter)
-  }
-  if (cookies.TilanneFilter) {
-    FilterCookies.tilanne = decodeURIComponent(cookies.TilanneFilter)
-  }
+    const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
+    currentPage.value = Number.isNaN(p) ? 1 : p
 
-  if (Object.keys(FilterCookies).length > 0) {
-    filterData(FilterCookies)
-  }
+    applySearchAndFilter()
 
-  if (cookies.InstrumentSearchTerm) {
-    searchData(decodeURIComponent(cookies.InstrumentSearchTerm))
-  }
-
-  if (cookies.CurrentPage) {
-    const page = parseInt(cookies.CurrentPage, 10)
-    if (!isNaN(page)) {
-      currentPage.value = page
-    }
-  }
-
-    updateVisibleData()
-  }
-  // TODO Add cookie flags for live build
-  watch(currentPage, (newPage) => {
-    document.cookie = `CurrentPage=${newPage}; Path=/` /*; Secure; SameSite=Strict*/
-  })
-  
+  }, {immediate: false})
 
   return { 
     data, 
@@ -298,6 +334,8 @@ export const useDataStore = defineStore('dataStore', () => {
     isLoggedIn,
     sortColumn, 
     sortDirection,
-    initializePageFromCookies
+    filterValues,
+    searchTerm,
+    initializePageFromURL
   }
 })

@@ -1,5 +1,6 @@
 <script>
 import axios from 'axios';
+import { useRouter, useRoute } from 'vue-router'
 
 // Define filters
 export default {
@@ -12,7 +13,7 @@ export default {
     }
   },
 
-  emits: ['filter-change'],
+  emits: ['filter-change', 'all-filters-cleared'],
 
   created() {
     this.filters = [
@@ -47,12 +48,22 @@ export default {
     ]
   },
 
+  setup() {
+    const router = useRouter()
+    const route = useRoute()
+
+    return { router, route }
+  },
+
   mounted() {
+    const params = new URLSearchParams(window.location.search);
+
     this.filters.forEach(filter => {
-      const cookieName = this.getCookieName(filter.field);
-      const savedValue = this.getCookie(cookieName);
-      if (savedValue) {
-        filter.selected = savedValue;
+      const paramValue = params.get(filter.field);
+      if (paramValue !== null) {
+        filter.selected = paramValue;
+      } else {
+        filter.selected = null;
       }
       this.fetchFilterOptions(filter)
     })
@@ -85,36 +96,6 @@ export default {
         value: option
       })
     },
-
-    getCookie(name) {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : null;
-    },
-
-    getCookieName(field) {
-      switch (field) {
-        case 'yksikko': return 'YksikkoFilter';
-        case 'huone': return 'HuoneFilter';
-        case 'vastuuhenkilo': return 'VastuuHFilter';
-        case 'tilanne': return 'TilanneFilter';
-        default: return '';
-      }
-    },
-
-    clearFilter(filterIndex) {
-      const filter = this.filters[filterIndex];
-      filter.selected = null;
-      filter.searchTerm = ''
-
-      const cookieName = this.getCookieName(filter.field);
-      // TODO Add cookie flags for live build
-      document.cookie = `${cookieName}=; Path=/; Max-Age=0` /*; Secure; SameSite=Strict*/
-
-      this.$emit('filter-change', {
-        filterName: filter.field,
-        value: null
-      })
-    },
     filteredOptions(filter) {
       if (!filter.searchTerm) {
         return filter.options
@@ -125,20 +106,35 @@ export default {
         opt.toLowerCase().includes(lowerTerm)
       )
     },
+
+    clearFilter(filterIndex) {
+      const filter = this.filters[filterIndex];
+      filter.selected = null;
+      filter.searchTerm = ''
+
+      // Refresh URL
+      const newQuery = { ...this.route.query }
+      delete newQuery[filter.field]
+      this.router.replace({ query: newQuery })
+
+      this.$emit('filter-change', {
+        filterName: filter.field,
+        value: null
+      })
+    },
     
     clearAllFilters() {
       const clearedFilters = {};
+      const newQuery = { ...this.route.query }
 
       this.filters.forEach(filter => {
-        filter.selected = null;
+        filter.selected = null
         filter.searchTerm = ''
-
-        const cookieName = this.getCookieName(filter.field);
-        // TODO Add cookie flags for live build
-        document.cookie = `${cookieName}=; Path=/; Max-Age=0` /*; Secure; SameSite=Strict*/
-
+        delete newQuery[filter.field]
         clearedFilters[filter.field] = null;
       });
+
+      this.router.replace({ query: newQuery })
 
       this.openDropdown = null;
 

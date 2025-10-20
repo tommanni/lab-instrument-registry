@@ -44,8 +44,8 @@ function handleNewInstrument(item) {
 
 <template>
     <div class="home-root">
-      <div class="actions-wrapper py-2 px-3 gap-2 mb-2 rounded" style="z-index: 10;">
-        <div><Search :searchFunction="store.searchData" cookieName="InstrumentSearchTerm" /></div>
+      <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
+        <div><Search :searchFunction="store.searchData" searchType="device" /></div>
         <div class="f-wrapper">
           <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
         </div>

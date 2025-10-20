@@ -6,9 +6,12 @@ import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';
 import Search from '@/components/Search.vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const userStore = useUserStore();
 const loading = ref(true);
+const router = useRouter();
+const route = useRoute();
 
 onMounted(async () => {
   try {
@@ -17,11 +20,11 @@ onMounted(async () => {
     loading.value = false;
   }
   // Check for active search terms on page load
-  const match = document.cookie.match(/UserSearchTerm=([^;]+)/);
-  if (match) {
-    userStore.searchData(decodeURIComponent(match[1]));
+  userStore.searchTerm = route.query.search ?? ''
+  if (userStore.searchTerm) {
+    userStore.searchData();
   } else {
-    userStore.searchData(''); // Clear search if no cookie
+    userStore.searchData(true); // Clear search if no terms
   }
 })
 </script>
@@ -35,9 +38,8 @@ onMounted(async () => {
     </ul>
     <div class="admindata">
       <Search
-        class="user-search-component"
         :searchFunction="userStore.searchData"
-        cookieName="UserSearchTerm"
+        searchType="user"
       />
       <UserData />
     </div>

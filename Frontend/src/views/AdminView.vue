@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import TokenOverlay from '@/components/TokenOverlay.vue';
+import UserData from '@/components/UserData.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';

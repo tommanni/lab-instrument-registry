@@ -1,25 +1,22 @@
 <script setup>
+import { useDataStore } from '@/stores/data';
+import { useUserStore } from '@/stores/user';
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { Popover } from 'bootstrap';
 import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
-const searchTerm = ref('');
+const dataStore = useDataStore();
+const userStore = useUserStore();
 
 const props = defineProps({
   searchFunction: Function,
-  cookieName: String
+  searchType: String
 })
 
 const infoButtonRef = ref(null);
 
-const performSearch = () => {
-   props.searchFunction(searchTerm.value);
-};
-
 const clearSearch = () => {
-    searchTerm.value = '';
-    performSearch();
+    props.searchFunction(true);
 };
 
 const { locale } = useI18n();
@@ -33,11 +30,6 @@ const initPopover = () => {
 };
 
 onMounted(() => {
-  const match = document.cookie.match(new RegExp(`${props.cookieName}=([^;]+)`));
-  if (match) {
-    searchTerm.value = decodeURIComponent(match[1]);
-  }
-
   initPopover();
 });
 
@@ -60,19 +52,28 @@ watch(locale, async () => {
 </script>
 
 <template>
-    <div class="search-container">
+    <div v-if="searchType==='device'" class="search-container">
         <div class="input-wrapper">
-            <input class="form-control" v-model="searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="performSearch" />
-            <a v-if="searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
+            <input class="form-control" v-model="dataStore.searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="searchFunction(false)" />
+            <a v-if="dataStore.searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
                 <i class="bi bi-x text-primary"></i>
             </a>
         </div>
-        <button class="btn btn-primary" @click="performSearch">{{$t('message.haku_painike')}}</button>
+        <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
         <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button" aria-label="Hakuohje"
                 data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
                 :title="$t('message.haku_info_title')" :data-bs-content="$t('message.haku_info_content')">
             <i class="bi bi-info-circle text-primary"></i>
         </button>
+    </div>
+    <div v-else-if="searchType==='user'" class="search-container">
+        <div class="input-wrapper">
+            <input class="form-control" v-model="userStore.searchTerm" :placeholder="$t('message.placeholder_user')" @keyup.enter="searchFunction(false)" />
+            <a v-if="userStore.searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
+                <i class="bi bi-x text-primary"></i>
+            </a>
+        </div>
+        <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
     </div>
 </template>
 

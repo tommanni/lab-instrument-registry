@@ -18,13 +18,10 @@ const activeStore = props.store || useDataStore();
 const changePage = (index) => {
   if (index < 1) {
     activeStore.currentPage = 1
-    activeStore.updateVisibleData()
   } else if (index > activeStore.numberOfPages) {
     activeStore.currentPage = activeStore.numberOfPages
-    activeStore.updateVisibleData()
   } else {
     activeStore.currentPage = index
-    activeStore.updateVisibleData()
   }
 }
 const pagesToShow = computed(() => {

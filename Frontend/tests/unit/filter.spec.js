@@ -2,6 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Filter from '@/components/Filter.vue'
 import { createI18n } from 'vue-i18n'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import axios from 'axios'
 
 // Mock axios response
@@ -14,6 +15,14 @@ const mockFilterData = {
 }
 
 axios.get.mockResolvedValue(mockFilterData)
+
+// Create a real router instance for testing
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/', component: { template: '<div>Home</div>' } }
+  ]
+})
 
 const i18n = createI18n({
   legacy: false,
@@ -38,9 +47,12 @@ describe('Filter.vue', () => {
   let wrapper
 
   beforeEach(async () => {
+    // Reset router to initial state
+    await router.push('/')
+
     wrapper = mount(Filter, {
       global: {
-        plugins: [i18n]
+        plugins: [i18n, router]
       }
     })
     await flushPromises()
@@ -90,10 +102,18 @@ describe('Filter.vue', () => {
     await flushPromises()
     const option = filter.findAll('.dropdown-item')[0]
     await option.trigger('click')
+    await flushPromises()
+
+    // Verify selection was made
+    expect(wrapper.vm.filters[0].selected).toBe('Option 1')
 
     // Clear it
     const clearBtn = filter.find('.clear-button')
     await clearBtn.trigger('click')
+    await flushPromises()
+
+    // Check that selection is cleared
+    expect(wrapper.vm.filters[0].selected).toBe(null)
 
     const lastEmit = wrapper.emitted()['filter-change'].pop()[0]
     expect(lastEmit.filterName).toBe('yksikko')
