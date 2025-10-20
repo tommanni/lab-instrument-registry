@@ -44,8 +44,43 @@ export const useDataStore = defineStore('dataStore', () => {
 
   const matchesBooleanQuery = (item, query) => {
 
+    const fieldAliases = {
+      id: 'id',
+      tay_number: 'tay_numero',
+      tay_numero: 'tay_numero',
+      serial_number: 'sarjanumero',
+      sarjanumero: 'sarjanumero',
+      product_name: 'tuotenimi',
+      tuotenimi: 'tuotenimi',
+      brand_and_model: 'merkki_ja_malli',
+      merkki_ja_malli: 'merkki_ja_malli',
+      unit: 'yksikko',
+      yksikko: 'yksikko',
+      campus: 'kampus',
+      kampus: 'kampus',
+      building: 'rakennus',
+      rakennus: 'rakennus',
+      room: 'huone',
+      huone: 'huone',
+      responsible_person: 'vastuuhenkilo',
+      vastuuhenkilo: 'vastuuhenkilo',
+      status: 'tilanne',
+      tilanne: 'tilanne',
+      supplier: 'toimittaja',
+      toimittaja: 'toimittaja',
+      extra_information: 'lisatieto',
+      extra_info: 'lisatieto',
+      details: 'lisatieto',
+      lisatieto: 'lisatieto',
+      old_location: 'vanha_sijainti',
+      vanha_sijainti: 'vanha_sijainti',
+      delivery_date: 'toimituspvm',
+      toimituspvm: 'toimituspvm'
+    }
+
     const getFieldValue = (obj, field) => {
-      const v = obj[field]
+      const canonical = fieldAliases[field] || field
+      const v = obj[canonical]
       return v === undefined || v === null ? '' : String(v).toLowerCase()
     }
 
@@ -70,11 +105,9 @@ export const useDataStore = defineStore('dataStore', () => {
     const itemMatchesSingleTerm = (symbol) => {
       const lower = String(symbol.value || '').toLowerCase()
       if (symbol.fieldName) {
-        // Field targeted search
-        const fieldLower = getFieldValue(item, symbol.fieldName)
+        const fieldLower = getFieldValue(item, symbol.fieldName.toLowerCase())
         return fieldLower.includes(lower)
       }
-      // Fallback: any field
       return anyFieldIncludes(lower)
     }
 
