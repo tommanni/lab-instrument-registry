@@ -160,7 +160,7 @@ export default {
           </a>
         <div class="dropdown-menu p-2" :aria-labelledby="'dropdownInputButton-'+index">
           <input v-model="filter.searchTerm" type="text" class="form-control mb-2"
-            :placeholder="$t('message.placeholder')" />
+            :placeholder="$t('message.' + filter.field)" />
           <div class="dropdown-content-scrollable">
             <button v-for="(option, optionIndex) in filteredOptions(filter)" :key="optionIndex"
               class="dropdown-item tuni-dropdown-item" @click="applyFilter(index, option)">
