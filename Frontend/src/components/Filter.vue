@@ -187,7 +187,7 @@ export default {
   display: grid;
   gap: 0.5rem;
   box-sizing: border-box;
-  grid-template-columns: repeat(4, 160px);
+  grid-template-columns: repeat(4, 200px);
 }
 
 @media screen and (max-width: 768px){
