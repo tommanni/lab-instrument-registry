@@ -1,9 +1,22 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  RewriteRule ^index\.html$ - [L]
+
+  # Don't rewrite Shibboleth endpoints
+  RewriteCond %{REQUEST_URI} !^/Shibboleth\.sso
+  RewriteCond %{REQUEST_URI} !^/shibboleth-sp
+
+  # Don't rewrite API calls
+  RewriteCond %{REQUEST_URI} !^/api
+
+  # Don't rewrite static files
+  RewriteCond %{REQUEST_URI} !^/static
+
+  # Don't rewrite actual files or directories
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Rewrite everything else to index.html for Vue Router
   RewriteRule . /index.html [L]
 </IfModule>
 
