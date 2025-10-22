@@ -155,20 +155,7 @@ export const useDataStore = defineStore('dataStore', () => {
     originalData.value.push(object)
     updateVisibleData()
   }
-  const filterData = ({yksikko, huone, vastuuhenkilo, tilanne}) => {
-    
-    if (yksikko !== undefined) {
-    filterValues.value.yksikko = yksikko
-    }
-    if (huone !== undefined) {
-      filterValues.value.huone = huone
-    }
-    if (vastuuhenkilo !== undefined) {
-      filterValues.value.vastuuhenkilo = vastuuhenkilo
-    }
-    if (tilanne !== undefined) {
-      filterValues.value.tilanne = tilanne
-    }
+  const filterData = () => {
 
     currentPage.value = 1
 

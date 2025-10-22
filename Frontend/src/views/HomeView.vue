@@ -9,30 +9,15 @@ import { useDataStore } from '@/stores/data';
 const store = useDataStore()
 const dataComponent = ref(null)
 
-const activateFilters = ref({
-  yksikko : null,
-  huone: null,
-  vastuuhenkilo: null,
-  tilanne: null
-})
+
 function onFilterChange({ filterName, value }) {
-  activateFilters.value[filterName] = value
-  store.filterData({
-    yksikko: activateFilters.value.yksikko,
-    huone: activateFilters.value.huone,
-    vastuuhenkilo: activateFilters.value.vastuuhenkilo,
-    tilanne: activateFilters.value.tilanne,
-  })
+  store.filterValues[filterName] = value
+  store.filterData()
 }
 // This only filters once after setting all filters to null
 function onAllFiltersCleared(clearedFilters) {
-  activateFilters.value = clearedFilters;
-  store.filterData({
-    yksikko: activateFilters.value.yksikko,
-    huone: activateFilters.value.huone,
-    vastuuhenkilo: activateFilters.value.vastuuhenkilo,
-    tilanne: activateFilters.value.tilanne,
-  })
+  store.filterValues = clearedFilters;
+  store.filterData();
 }
 
 function handleNewInstrument(item) {

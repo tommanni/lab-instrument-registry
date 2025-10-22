@@ -112,11 +112,6 @@ export default {
       filter.selected = null;
       filter.searchTerm = ''
 
-      // Refresh URL
-      const newQuery = { ...this.route.query }
-      delete newQuery[filter.field]
-      this.router.replace({ query: newQuery })
-
       this.$emit('filter-change', {
         filterName: filter.field,
         value: null
