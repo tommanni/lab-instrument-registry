@@ -61,7 +61,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
         # Add first record as creation event
         changes.append({
             'history_date': first_record.history_date,
-            'history_user': first_record.history_user.full_name if first_record.history_user else None,
+            'history_user': first_record.history_user.full_name if first_record.history_user else first_record.history_username,
             'history_type': first_record.get_history_type_display(),
             'changes': [
                 {'field': f.name, 'old': None, 'new': getattr(first_record, f.name)}
@@ -78,7 +78,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
             delta = next_record.diff_against(current)
             changes.append({
                 'history_date': next_record.history_date,
-                'history_user': next_record.history_user.full_name if next_record.history_user else None,
+                'history_user': next_record.history_user.full_name if next_record.history_user else next_record.history_username,
                 'history_type': next_record.get_history_type_display(),
                 'changes': [
                     {
