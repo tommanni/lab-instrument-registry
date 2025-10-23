@@ -6,6 +6,14 @@ from django.conf import settings
 import string
 import secrets
 
+# Abstract model for tracking the username
+class UsernameHistoricalModel(models.Model):
+    history_username = models.CharField(max_length=150, null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
 """
 The main model of the project. Corresponds to instruments that the customer is using.
 The fields are based on the csv file that was used as the foundation of the project.
@@ -30,7 +38,8 @@ class Instrument(models.Model):
     edellinen_huolto = models.DateField(null=True, blank=True)
     seuraava_huolto = models.DateField(null=True, blank=True)
     tilanne = models.CharField(max_length=100)
-    history = HistoricalRecords()
+    history = HistoricalRecords(bases=[UsernameHistoricalModel])
+
 
 # Manager model used for creating users
 class RegistryUserManager(BaseUserManager):
