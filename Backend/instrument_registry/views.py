@@ -30,21 +30,21 @@ Instrument related views
 """
 # This view returns all of the instruments in the database.
 class InstrumentList(generics.ListCreateAPIView):
-    queryset = Instrument.objects.all()
+    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns a single instrument.
 class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Instrument.objects.all()
+    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns the history of a single instrument.
 class InstrumentHistory(generics.RetrieveAPIView):
-    queryset = Instrument.objects.all()
+    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -66,7 +66,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
             'changes': [
                 {'field': f.name, 'old': None, 'new': getattr(first_record, f.name)}
                 for f in first_record.instance._meta.get_fields()
-                if f.concrete and not f.many_to_many and not f.auto_created
+                if f.concrete and not f.many_to_many and not f.auto_created and f.name != 'embedding_fi' and f.name != 'embedding_en'
             ]
         })
         
@@ -101,7 +101,7 @@ class InstrumentValueSet(APIView):
         if field_name not in field_names:
             return Response({'message': 'no such field'}, status=400)
         unique_values = set()
-        instruments = Instrument.objects.all()
+        instruments = Instrument.objects.defer('embedding_fi', 'embedding_en')
         for i in instruments:
             unique_values.add(getattr(i, field_name))
         return Response({'data': list(unique_values)})
@@ -114,7 +114,7 @@ class InstrumentCSV(APIView):
     def get(self, request):
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
-        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.all())
+        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_fi', 'embedding_en'))
         response = HttpResponse(content_type='text/csv', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         copyfileobj(source, response)
         return response
@@ -128,7 +128,7 @@ class ServiceValueSet(APIView):
             Q(huoltosopimus_loppuu__isnull=False) | 
             Q(seuraava_huolto__isnull=False) | 
             Q(edellinen_huolto__isnull=False)
-        )
+        ).defer('embedding_fi', 'embedding_en')
         serializer = InstrumentSerializer(queryset, many=True)
         return Response(serializer.data)
 

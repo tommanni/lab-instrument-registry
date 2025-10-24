@@ -1,4 +1,5 @@
 from django.db import models
+from pgvector.django import VectorField
 from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ class Instrument(models.Model):
     # allow blank because not all fields have data
     tay_numero = models.CharField(max_length=100, default="", blank=True)
     tuotenimi = models.CharField(max_length=100, default="", blank=True)
+    tuotenimi_en = models.CharField(max_length=100, default="", blank=True)
     merkki_ja_malli = models.CharField(max_length=100, default="", blank=True)
     sarjanumero = models.CharField(max_length=100, default="", blank=True)
     yksikko = models.CharField(max_length=100, default="", blank=True)
@@ -38,8 +40,12 @@ class Instrument(models.Model):
     edellinen_huolto = models.DateField(null=True, blank=True)
     seuraava_huolto = models.DateField(null=True, blank=True)
     tilanne = models.CharField(max_length=100)
-    history = HistoricalRecords(bases=[UsernameHistoricalModel])
-
+    embedding_fi = VectorField(blank=True, null=True, dimensions=768)
+    embedding_en = VectorField(blank=True, null=True, dimensions=384)
+    history = HistoricalRecords(
+        bases=[UsernameHistoricalModel],
+        excluded_fields=['embedding_fi', 'embedding_en'],
+    )
 
 # Manager model used for creating users
 class RegistryUserManager(BaseUserManager):

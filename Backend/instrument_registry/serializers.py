@@ -5,13 +5,13 @@ from .models import Instrument, RegistryUser
 class InstrumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instrument
-        fields = '__all__'
+        exclude = ['embedding_fi', 'embedding_en']
 
 # Instrument serializer for CSV import/export.
 class InstrumentCSVSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instrument
-        exclude = ['id']
+        exclude = ['id', 'embedding_fi', 'embedding_en']
 
 # User serializer
 class RegistryUserSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class RegistryUserSerializer(serializers.ModelSerializer):
         model = RegistryUser
         fields = '__all__'
         extra_kwargs = {
-        'password': {'write_only': True},
+            'password': {'write_only': True},
         }
 
     def update(self, instance, validated_data):
