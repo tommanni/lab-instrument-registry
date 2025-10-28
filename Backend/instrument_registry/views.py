@@ -188,7 +188,6 @@ class InstrumentSearch(APIView):
             print("Semantic search service returned invalid JSON")
             return Response({'message': 'invalid response from semantic search service'}, status=500)
 
-
 class ServiceValueSet(APIView):
     authentication_classes = [CookieTokenAuthentication]  # Add your authentication if needed
     permission_classes = [permissions.IsAuthenticated]
