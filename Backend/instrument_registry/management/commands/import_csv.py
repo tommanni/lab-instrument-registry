@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from instrument_registry.util import csv_to_model
 from instrument_registry.models import Instrument
 from instrument_registry.serializers import InstrumentCSVSerializer
+from pgvector.django import VectorField
 from datetime import date
 import csv
 import re
@@ -101,6 +102,9 @@ def _to_Instrument(row: dict) -> Instrument:
 	instance = Instrument()
 	for f in Instrument._meta.get_fields():
 		if f.name == "id": # skip id since it's automatically assigned
+			continue
+		if isinstance(f, VectorField):
+			# Skip vector fields; they are filled after embeddings are computed
 			continue
 
 		# Find the Excel column name that maps to this Django field

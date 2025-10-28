@@ -81,6 +81,9 @@ import-csv: ## Import CSV to database (usage: make import-csv FILE=filename.csv)
 	fi
 	@echo "📥 Importing $(FILE) to database..."
 	@docker-compose exec web python manage.py import_csv $(FILE)
+	@echo "🧠 Precomputing embeddings and translations..."
+	@docker-compose exec web python manage.py precompute_embeddings || \
+		(echo "❌ Failed to precompute embeddings. Make sure containers are running."; exit 1)
 
 import-csv-old: ## Import "janky" CSV with old mode (usage: make import-csv-old FILE=filename.csv)
 	@if [ -z "$(FILE)" ]; then \
@@ -89,6 +92,14 @@ import-csv-old: ## Import "janky" CSV with old mode (usage: make import-csv-old 
 	fi
 	@echo "📥 Importing $(FILE) to database using old mode (for Excel exports)..."
 	@docker-compose exec web python manage.py import_csv $(FILE) --mode old
+	@echo "🧠 Precomputing embeddings and translations..."
+	@docker-compose exec web python manage.py precompute_embeddings || \
+		(echo "❌ Failed to precompute embeddings. Make sure containers are running."; exit 1)
+
+preprocess-instruments:
+	@echo "🧠 Precomputing embeddings and translations..."
+	@docker-compose exec web python manage.py precompute_embeddings || \
+		(echo "❌ Failed to precompute embeddings. Make sure containers are running."; exit 1)
 
 # Testing
 test: ## Run Django tests
