@@ -243,26 +243,27 @@ export const useDataStore = defineStore('dataStore', () => {
     // Apply search term
     let results = filtered
     if (lowerSearch) {
-      const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm.value) || /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTerm.value)
+      const searchTermSanitized = searchTerm.value.trim().replace(/\s+/g, " ").toLowerCase(); //Trims whitespaces from beginning and end and replace identifies additinal whitespaces between words
+      const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTermSanitized) || /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTermSanitized)
       if (hasBooleanOperator) {
-        results = filtered.filter((item) => matchesBooleanQuery(item, searchTerm.value))
+        results = filtered.filter((item) => matchesBooleanQuery(item, searchTermSanitized))
       } else { 
         results = filtered.filter((item) =>
-          (item.id.toString().includes(lowerSearch)) ||
-          (item.tay_numero && item.tay_numero.toLowerCase().includes(lowerSearch)) ||
-          (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lowerSearch)) ||
-          (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lowerSearch)) ||
-          (item.toimittaja && item.toimittaja.toLowerCase().includes(lowerSearch)) ||
-          (item.lisatieto && item.lisatieto.toLowerCase().includes(lowerSearch)) ||
-          (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lowerSearch)) ||
-          (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lowerSearch)) ||
-          (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lowerSearch)) ||
-          (item.yksikko && item.yksikko.toLowerCase().includes(lowerSearch)) ||
-          (item.kampus && item.kampus.toLowerCase().includes(lowerSearch)) ||
-          (item.rakennus && item.rakennus.toLowerCase().includes(lowerSearch)) ||
-          (item.huone && item.huone.toLowerCase().includes(lowerSearch)) ||
-          (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lowerSearch)) ||
-          (item.tilanne && item.tilanne.toLowerCase().includes(lowerSearch))
+          (item.id.toString().includes(searchTermSanitized)) ||
+          (item.tay_numero && item.tay_numero.toLowerCase().includes(searchTermSanitized)) ||
+          (item.sarjanumero && item.sarjanumero.toLowerCase().includes(searchTermSanitized)) ||
+          (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(searchTermSanitized)) ||
+          (item.toimittaja && item.toimittaja.toLowerCase().includes(searchTermSanitized)) ||
+          (item.lisatieto && item.lisatieto.toLowerCase().includes(searchTermSanitized)) ||
+          (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(searchTermSanitized)) ||
+          (item.tuotenimi && item.tuotenimi.toLowerCase().includes(searchTermSanitized)) ||
+          (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(searchTermSanitized)) ||
+          (item.yksikko && item.yksikko.toLowerCase().includes(searchTermSanitized)) ||
+          (item.kampus && item.kampus.toLowerCase().includes(searchTermSanitized)) ||
+          (item.rakennus && item.rakennus.toLowerCase().includes(searchTermSanitized)) ||
+          (item.huone && item.huone.toLowerCase().includes(searchTermSanitized)) ||
+          (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(searchTermSanitized)) ||
+          (item.tilanne && item.tilanne.toLowerCase().includes(searchTermSanitized))
         )
       }
     }
