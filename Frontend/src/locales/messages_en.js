@@ -51,7 +51,8 @@ export default {
 	  sahkoposti: "Email address",
 	  salasana: "Password",
 	  admin_ei_oikeuksia: "You do not have permission to view this page",
-	  admin_luotu: "Admin user created",
+	  admin_luotu: "Admin rights given to user",
+	  superadmin_luotu: "Superadmin rights given to user",
 	  admin_poistettu: "Admin rights removed from user",
 	  käyttäjä_aktivoitu: "User activated",
 	  käyttäjä_deaktivoitu: "User deactivated",
@@ -89,7 +90,8 @@ export default {
       jarjestelma: "System",
 	  nollaa_haku: "Clear search",
 	  nollaa_suodattimet: "Clear filters",
-	  tee_admin: "Make user into admin",
+	  tee_admin: "Make user admin",
+	  tee_superadmin: "Make user superadmin",
 	  anna_oikeudet: "Give admin rights",
 	  poista_oikeudet: "Remove admin rights",
 	  deaktivoi_kayttaja: "Deactivate user",
@@ -128,7 +130,7 @@ export default {
 	  "Username",
 	  "Email",
 	  "Admin",
-	  "Deactivated"
+	  "Superadmin"
 	],
 	contractHeaders: [
 	  "Product Name",

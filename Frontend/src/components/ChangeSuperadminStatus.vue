@@ -7,10 +7,10 @@ const { t } = useI18n();
 const props = defineProps({ user: Object });
 const alertStore = useAlertStore();
 
-async function changeAdminValue() {
+async function changeSuperadminValue() {
         try {
             const res = await axios.post(
-            '/api/change-admin-status/',
+            '/api/change-superadmin-status/',
             { 
                 id : props.user.id
             },
@@ -18,14 +18,14 @@ async function changeAdminValue() {
             withCredentials: true
         });
 
-        props.user.is_staff = res.data.newAdminStatus;
+        props.user.is_superuser = res.data.newSuperadminStatus;
 
-        if (res.data.newAdminStatus) {
-          alertStore.showAlert(0, t('message.admin_luotu'));
+        if (res.data.newSuperadminStatus) {
+          alertStore.showAlert(0, t('message.superadmin_luotu'));
         }
         else {
           // api call removes all admin rights
-          props.user.is_superuser = res.data.newAdminStatus; 
+          props.user.is_staff = res.data.newSuperadminStatus; 
           alertStore.showAlert(0, t('message.admin_poistettu'));
         }
     } catch (error) {
@@ -41,13 +41,13 @@ async function changeAdminValue() {
 
 <template>
 <div class="admin-container">
-  <div class="modal-buttons" v-if="props.user && props.user?.is_staff">
-    <button class="btn btn-primary" @click="changeAdminValue">
-      {{ props.user.is_staff ? t('message.poista_oikeudet') : t('message.tee_admin') }}
+  <div class="modal-buttons" v-if="props.user && props.user?.is_superuser">
+    <button class="btn btn-primary" @click="changeSuperadminValue">
+      {{ props.user.is_superuser ? t('message.poista_oikeudet') : t('message.tee_superadmin') }}
     </button>
   </div>
     <div class="modal-buttons" v-else>
-    <button class="btn btn-primary" @click="changeAdminValue">{{ t('message.tee_admin') }}
+    <button class="btn btn-primary" @click="changeSuperadminValue">{{ t('message.tee_superadmin') }}
     </button>
   </div>
 </div>
@@ -63,6 +63,7 @@ async function changeAdminValue() {
   padding: 1rem;
   box-sizing: border-box;
 }
+
 
 .modal-buttons button {
   margin-top: 1rem;
