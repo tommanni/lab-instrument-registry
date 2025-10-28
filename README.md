@@ -72,9 +72,11 @@ make test        # Run tests
 
 ### Data Management
 ```bash
+# Import commands compute translations and embeddings for instruments automatically
 make import-csv-old FILE=data.csv    # Import Excel CSV
 make import-csv FILE=data.csv        # Import normal CSV (already in correct format)
 make export-csv                      # Export to CSV
+make preprocess-instruments          # Compute translations and embeddings for instruments manually 
 ```
 
 ### Frontend (Vue.js)
