@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+torch
+transformers
+sentence-transformers
+sentencepiece
+sacremoses
+watchdog==4.0.0

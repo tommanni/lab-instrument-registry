@@ -41,7 +41,7 @@ class Instrument(models.Model):
     seuraava_huolto = models.DateField(null=True, blank=True)
     tilanne = models.CharField(max_length=100)
     embedding_fi = VectorField(blank=True, null=True, dimensions=768)
-    embedding_en = VectorField(blank=True, null=True, dimensions=384)
+    embedding_en = VectorField(blank=True, null=True, dimensions=768)
     history = HistoricalRecords(
         bases=[UsernameHistoricalModel],
         excluded_fields=['embedding_fi', 'embedding_en'],
