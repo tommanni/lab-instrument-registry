@@ -2,7 +2,7 @@ from instrument_registry.models import Instrument, RegistryUser, InviteCode
 from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
-from instrument_registry.util import model_to_csv
+from instrument_registry.util import model_to_csv, csv_to_model
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
@@ -15,6 +15,8 @@ from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+import csv
+import io
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -115,8 +117,12 @@ class InstrumentCSV(APIView):
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
         source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_fi', 'embedding_en'))
-        response = HttpResponse(content_type='text/csv', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
-        copyfileobj(source, response)
+
+        # Read the CSV content and add UTF-8 BOM for Excel compatibility
+        csv_content = source.read()
+        csv_bytes = '\ufeff' + csv_content  # Add UTF-8 BOM
+
+        response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
 
 class ServiceValueSet(APIView):
