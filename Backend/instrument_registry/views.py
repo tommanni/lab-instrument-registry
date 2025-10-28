@@ -208,6 +208,11 @@ class ChangePasswordView(APIView):
         except RegistryUser.DoesNotExist:
             return Response({'detail': 'User not found.'}, status=404)
 
+         # only superadmins can change superadmin passwords
+        if (not (request.user != user or request.user.is_staff or request.user.is_superuser)
+            or (user.is_superuser and not request.user.is_superuser)):
+            return Response({'detail': 'Not authorized.'}, status=403)
+
         #try:
         #    validate_password(new_password, user=user)
         #except ValidationError as e:
@@ -218,13 +223,40 @@ class ChangePasswordView(APIView):
 
         return Response({'detail': 'Password updated successfully.'})
 
-# This view allows an admin user to add or remove admin rights to a user.
+# This view allows an superadmin user to add or remove admin rights to a user.
 class ChangeAdminStatus(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superusers can create new admins
+        if not request.user.is_superuser: # only superadmins can create new admins
+            return Response({'detail': 'Not authorized.'}, status=403)
+
+        user_id = request.data.get('id')
+
+        try:
+            user = RegistryUser.objects.get(pk=user_id)
+        except RegistryUser.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=404)
+        
+        if user.is_staff:
+            user.is_staff = False
+            user.is_superuser = False
+            user.save()
+            return Response({'message': 'Admin rights removed', 'newAdminStatus': False})
+
+        else:
+            user.is_staff = True
+            user.save()
+            return Response({'message': 'Admin user created', 'newAdminStatus': True})
+
+# This view allows a superadmin user to add or remove superadmin rights to a user.
+class ChangeSuperadminStatus(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.is_superuser: # only superadmins can create new superadmin
             return Response({'detail': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -238,13 +270,13 @@ class ChangeAdminStatus(APIView):
             user.is_staff = False
             user.is_superuser = False
             user.save()
-            return Response({'message': 'Admin rights removed', 'newAdminStatus': False})
+            return Response({'message': 'Admin rights removed', 'newSuperadminStatus': False})
 
         else:
             user.is_staff = True
             user.is_superuser = True
             user.save()
-            return Response({'message': 'Admin user created', 'newAdminStatus': True})
+            return Response({'message': 'Superadmin user created', 'newSuperadminStatus': True})
 
 # This view allows an admin user to inactivate or activate a user.
 class ChangeActiveStatus(APIView):

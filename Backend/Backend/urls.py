@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/invite/', api_views.GenerateInviteCode.as_view()),
     path('api/change-password/', api_views.ChangePasswordView.as_view()),
     path('api/change-admin-status/', api_views.ChangeAdminStatus.as_view()),
+    path('api/change-superadmin-status/', api_views.ChangeSuperadminStatus.as_view()),
     path('api/change-active-status/', api_views.ChangeActiveStatus.as_view()),
     # services
     path('api/service/', api_views.ServiceValueSet.as_view()),

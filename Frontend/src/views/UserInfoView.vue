@@ -2,6 +2,7 @@
 import axios from 'axios';
 import UserInfo from '@/components/UserInfo.vue';
 import ChangeAdminStatus from '@/components/ChangeAdminStatus.vue';
+import ChangeSuperadminStatus from '@/components/ChangeSuperadminStatus.vue';
 import ChangeActiveStatus from '@/components/ChangeActiveStatus.vue';
 import ChangePassword from '@/components/ChangePassword.vue';
 import { useDataStore } from '@/stores/data';
@@ -58,11 +59,11 @@ watch(
   <!-- Nothing is rendered on screen until loading state is false -->
   <main v-if="!loading">
     <template v-if="dataStore.isLoggedIn && userStore.user && 
-    ( userStore.user.id === user?.id ||  userStore.user.is_superuser )">
+    ( userStore.user.id === user?.id || userStore.user.is_staff || userStore.user.is_superuser )">
       <h2 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h2>
 
         <!-- Warning for admins editing someone else's information -->
-        <div v-if="userStore.user && user && userStore.user.is_superuser && 
+        <div v-if="userStore.user && user && 
         userStore.user.id !== user.id" class="admin-warning">
         {{ t('message.tietojen_muokkaus_varoitus') }}
         </div>
@@ -71,13 +72,21 @@ watch(
         <UserInfo :user="user"/>
       </div>
       
-      <div class="change-password">
+      <div class="change-password" v-if="userStore.user && user &&  
+       ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )">
         <ChangePassword :user="user"/>
       </div>
 
-      <div class="make-admin" v-if=" userStore.user && user &&  userStore.user.is_superuser && 
-       userStore.user.id !== user.id">
+      <h3 class="control-text" v-if="userStore.user && user &&  userStore.user.is_superuser && userStore.user.id !== user.id">
+        {{t('message.adminteksti')}}
+      </h3>
+      <div class="make-admin" v-if="userStore.user && user &&  userStore.user.is_superuser && 
+       userStore.user.id !== user.id && !user.is_superuser">
         <ChangeAdminStatus :user="user"/>
+      </div>
+      <div class="make-superadmin" v-if=" userStore.user && user &&  userStore.user.is_superuser && 
+       userStore.user.id !== user.id">
+        <ChangeSuperadminStatus :user="user"/>
       </div>
       <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-active">
         <ChangeActiveStatus :user="user"/>
@@ -108,8 +117,8 @@ main {
   margin-bottom: 20px;
 }
 
-.make-admin {
- 
+.control-text {
+  margin-left: 30%;
 }
 
 .admin-warning {

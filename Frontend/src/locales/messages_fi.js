@@ -51,7 +51,8 @@ export default {
 	  omat_tiedot: "Omat tiedot",
 	  adminteksti: "Käyttöoikeuksien hallinta",
 	  admin_ei_oikeuksia: "Sinulla ei ole oikeuksia tähän näkymään",
-	  admin_luotu: "Admin-käyttäjä luotu",
+	  admin_luotu: "Admin-oikeudet annettu käyttäjälle",
+	  superadmin_luotu: "Superadmin-oikeudet annettu käyttäjälle",
 	  admin_poistettu: "Admin-oikeudet poistettu käyttäjältä",
 	  käyttäjä_aktivoitu: "Käyttäjä aktivoitu",
 	  käyttäjä_deaktivoitu: "Käyttäjä deaktivoitu",
@@ -90,6 +91,7 @@ export default {
 	  nollaa_haku: "Nollaa haku",
 	  nollaa_suodattimet: "Nollaa suodattimet",
 	  tee_admin: "Tee käyttäjästä admin",
+	  tee_superadmin: "Tee käyttäjästä superadmin",
 	  anna_oikeudet: "Anna admin oikeudet",
 	  poista_oikeudet: "Poista admin oikeudet",
 	  deaktivoi_kayttaja: "Deaktivoi käyttäjä",
@@ -125,7 +127,7 @@ export default {
 	  "Käyttäjätunnus",
 	  "Sähköposti",
 	  "Admin",
-	  "Deaktivoitu"
+	  "Superadmin"
 	],
 	contractHeaders: [
 	  "Tuotenimi",

@@ -16,8 +16,8 @@ const sortOrder = ref('asc');
 const headerMap = {
   [tm('userTableHeaders')[0]] : 'full_name',
   [tm('userTableHeaders')[1]] : 'email',
-  [tm('userTableHeaders')[2]] : 'is_superuser',
-  [tm('userTableHeaders')[3]] : 'is_active'
+  [tm('userTableHeaders')[2]] : 'is_staff',
+  [tm('userTableHeaders')[3]] : 'is_superuser',
 };
 
 function sortBy(key) {
@@ -37,12 +37,8 @@ const sortedData = computed(() => {
     let bVal = b[sortKey.value];
 
     if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-      // For "is_superuser", reverse logic so 'X' appears first in ascending order
-      if (sortKey.value === 'is_superuser') {
-        return sortOrder.value === 'asc' ? bVal - aVal : aVal - bVal;
-      }
-      // Normal boolean sort
-      return sortOrder.value === 'asc' ? aVal - bVal : bVal - aVal;
+      // For admin values, reverse logic so 'X' appears first in ascending order
+      return sortOrder.value === 'asc' ? bVal - aVal : aVal - bVal;
     }
 
     if (typeof aVal === 'string') aVal = aVal.toLowerCase();
@@ -60,7 +56,9 @@ function goToUser(id) {
 </script>
 
 <template>
-  <div v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="table-container">
+  <div v-if="dataStore.isLoggedIn && userStore.user && 
+  (userStore.user.is_staff || userStore.user.is_superuser)" 
+  class="table-container">
     <table>
       <colgroup>
           <col v-for="(key, index) in $tm('userTableHeaders')"
@@ -96,8 +94,8 @@ function goToUser(id) {
         >
           <td>{{ item.full_name }}</td>
           <td>{{ item.email }}</td>
+          <td>{{ item.is_staff ? 'X' : '' }}</td>
           <td>{{ item.is_superuser ? 'X' : '' }}</td>
-          <td>{{ item.is_active ? '' : 'X' }}</td>
         </tr>
       </tbody>
     </table>

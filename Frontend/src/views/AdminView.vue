@@ -40,7 +40,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser">
+  <main v-if="dataStore.isLoggedIn && userStore.user && (userStore.user.is_staff || userStore.user.is_superuser)">
     <div class="admin-header">
       <h2>{{ t('message.adminsivu') }}</h2>
     </div>

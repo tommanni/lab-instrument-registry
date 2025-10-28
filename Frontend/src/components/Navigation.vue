@@ -50,7 +50,7 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
         <RouterLink v-if="isMobile" class="bi bi-wrench btn btn-primary fs-5" to="/contracts"/>
         <RouterLink v-else class="nav-link" to="/contracts">{{ t('message.huoltosivu') }}</RouterLink>
       </li>
-      <li v-if="dataStore.isLoggedIn && userStore.user && userStore.user.is_superuser" class="nav-item">
+      <li v-if="dataStore.isLoggedIn && userStore.user && (userStore.user.is_staff || userStore.user.is_superuser)" class="nav-item">
         <RouterLink v-if="isMobile" class="bi bi-people btn btn-primary fs-5" to="/admin"/>
         <RouterLink v-else class="nav-link" to="/admin">{{ t('message.adminsivu') }}</RouterLink>
       </li>
