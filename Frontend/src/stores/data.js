@@ -1,11 +1,14 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
 
 export const useDataStore = defineStore('dataStore', () => {
+  const { locale } = useI18n() 
+
   const route = useRoute()
   const router = useRouter()
   const originalData = ref([])
@@ -324,6 +327,7 @@ export const useDataStore = defineStore('dataStore', () => {
     sortDirection,
     filterValues,
     searchTerm,
-    initializePageFromURL
+    initializePageFromURL,
+    locale
   }
 })
