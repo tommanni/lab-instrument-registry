@@ -154,10 +154,28 @@ export const useDataStore = defineStore('dataStore', () => {
     )
     updateVisibleData()
   }
+  
+  const updateDuplicateTuotenimiEN = (fiName, newEn) => {
+    const normalized = (fiName || '').trim().toLowerCase()
+    const updateList = (list) =>
+      list.map(obj =>
+        (obj.tuotenimi || '').trim().toLowerCase() === normalized
+          ? { ...obj, tuotenimi_en: newEn }
+          : obj
+      )
+
+    originalData.value = updateList(originalData.value)
+    filteredData.value = updateList(filteredData.value)
+    searchedData.value = updateList(searchedData.value)
+    data.value = updateList(data.value)
+  }
+
+
   const addObject = (object) => {
     originalData.value.push(object)
     updateVisibleData()
   }
+
   const filterData = () => {
 
     currentPage.value = 1
@@ -251,15 +269,25 @@ export const useDataStore = defineStore('dataStore', () => {
       if (hasBooleanOperator) {
         results = filtered.filter((item) => matchesBooleanQuery(item, searchTermSanitized))
       } else { 
-        results = filtered.filter((item) =>
-          (item.id.toString().includes(searchTermSanitized)) ||
+        // Match product names while respecting active locale and providing a fallback
+        const nameMatches = (item, term) => {
+          const primary = locale.value === 'fi' ? item.tuotenimi : item.tuotenimi_en
+          const secondary = locale.value === 'fi' ? item.tuotenimi_en : item.tuotenimi
+          return (
+            (primary && primary.toLowerCase().includes(term)) ||
+            (secondary && secondary.toLowerCase().includes(term))
+          )
+        }
+
+        results = filtered.filter(item =>
+          (item.id && item.id.toString().includes(searchTermSanitized)) ||
           (item.tay_numero && item.tay_numero.toLowerCase().includes(searchTermSanitized)) ||
           (item.sarjanumero && item.sarjanumero.toLowerCase().includes(searchTermSanitized)) ||
           (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(searchTermSanitized)) ||
           (item.toimittaja && item.toimittaja.toLowerCase().includes(searchTermSanitized)) ||
           (item.lisatieto && item.lisatieto.toLowerCase().includes(searchTermSanitized)) ||
           (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(searchTermSanitized)) ||
-          (item.tuotenimi && item.tuotenimi.toLowerCase().includes(searchTermSanitized)) ||
+          nameMatches(item, searchTermSanitized) ||
           (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(searchTermSanitized)) ||
           (item.yksikko && item.yksikko.toLowerCase().includes(searchTermSanitized)) ||
           (item.kampus && item.kampus.toLowerCase().includes(searchTermSanitized)) ||
@@ -268,6 +296,7 @@ export const useDataStore = defineStore('dataStore', () => {
           (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(searchTermSanitized)) ||
           (item.tilanne && item.tilanne.toLowerCase().includes(searchTermSanitized))
         )
+
       }
     }
     searchedData.value = results
@@ -310,13 +339,14 @@ export const useDataStore = defineStore('dataStore', () => {
   }, {immediate: false})
 
   return { 
-    data, 
+    data,
+    originalData,
     numberOfPages, 
     currentPage, 
     fetchData, 
     filterData, 
     updateVisibleData, 
-    searchData, 
+    searchData,
     deleteObject, 
     updateObject, 
     addObject, 
@@ -328,6 +358,7 @@ export const useDataStore = defineStore('dataStore', () => {
     filterValues,
     searchTerm,
     initializePageFromURL,
-    locale
+    locale,
+    updateDuplicateTuotenimiEN
   }
 })
