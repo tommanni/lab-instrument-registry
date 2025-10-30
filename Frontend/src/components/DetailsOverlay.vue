@@ -86,6 +86,7 @@ const fieldToIndexMap = {
   edellinen_huolto: 16,
   seuraava_huolto: 17,
   tilanne: 18,
+  tuotenimi_en: 19,
 };
 
 watch(() => props.item, (newItem) => {
@@ -213,6 +214,12 @@ const confirmDelete = async () => {
                       <input id="product-name" class="form-control" :disabled="view != 'edit'"
                         v-model="updateFormData['tuotenimi']" type="text" :required="view === 'edit'">
                     </div>
+                    <div class="form-field-wrapper">
+                      <label for="product-name-en">{{ tm('fullHeaders')[19] }}</label>
+                      <input id="product-name-en" class="form-control" :disabled="view != 'edit'"
+                        v-model="updateFormData['tuotenimi_en']" type="text">
+                    </div>
+
                     <div class="form-field-wrapper">
                       <label for="product-model">{{ tm('fullHeaders')[3] }}</label>
                       <input id="product-model" class="form-control" :disabled="view != 'edit'"

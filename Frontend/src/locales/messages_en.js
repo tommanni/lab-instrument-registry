@@ -153,6 +153,7 @@ export default {
 	  "Maintenance contract ends",
 	  "Previous maintenance",
 	  "Next maintenance",
-	  "Status"
+	  "Status",
+	  "Product name in English"
 	]
 }

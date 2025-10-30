@@ -152,6 +152,7 @@ export default {
 	  "Huoltosopimus loppuu",
 	  "Edellinen huolto",
 	  "Seuraava huolto",
-	  "Tilanne"
+	  "Tilanne",
+	  "Tuotenimi Englanniksi"
 	]
 }
