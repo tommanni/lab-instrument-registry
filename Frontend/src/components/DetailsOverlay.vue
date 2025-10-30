@@ -175,11 +175,7 @@ const confirmUpdate = async () => {
 }
 
 const proceedDuplicateUpdate = async () => {
-  if (isUpdating.value) {
-    return
-  }
-
-  if (!pendingUpdatePayload.value) {
+  if (isUpdating.value || !pendingUpdatePayload.value) {
     return
   }
 

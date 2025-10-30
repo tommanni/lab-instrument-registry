@@ -159,6 +159,6 @@ export default {
 	  "Edellinen huolto",
 	  "Seuraava huolto",
 	  "Tilanne",
-	  "Tuotenimi Englanniksi"
+	  "Tuotenimi englanniksi"
 	]
 }
