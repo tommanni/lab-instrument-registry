@@ -116,9 +116,7 @@ export default {
 	tableHeaders: [
 	  "Tuotenimi",
 	  "Merkki ja malli",
-	  "Yksikkö",
 	  "Kampus",
-	  "Rakennus",
 	  "Huone",
 	  "Vastuuhenkilö",
 	  "Tilanne"

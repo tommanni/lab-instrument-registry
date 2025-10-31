@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import TokenOverlay from '@/components/TokenOverlay.vue';
 import UserData from '@/components/UserData.vue';
+import Pagination from '@/components/Pagination.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';
@@ -42,6 +43,7 @@ onMounted(async () => {
         searchType="user"
       />
       <UserData />
+      <Pagination :store="userStore" />
     </div>
   </div>
 </template>
