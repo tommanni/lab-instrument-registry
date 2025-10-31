@@ -120,9 +120,7 @@ export default {
 	tableHeaders: [
 	  "Product Name",
 	  "Brand and Model",
-	  "Unit",
 	  "Campus",
-	  "Building",
 	  "Room",
 	  "Person in charge",
 	  "Status"

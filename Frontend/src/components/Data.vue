@@ -19,26 +19,22 @@ onMounted(() => {
   }
 });
 
-// Sarakkeet:
-// Columns:
-const headerToKey = {
-  "Tuotenimi": "tuotenimi",
-  "Merkki ja malli": "merkki_ja_malli",
-  "Yksikkö": "yksikko",
-  "Kampus": "kampus",
-  "Rakennus": "rakennus",
-  "Huone": "huone",
-  "Vastuuhenkilö": "vastuuhenkilo",
-  "Tilanne": "tilanne",
-  "Product Name": "tuotenimi",
-  "Brand and Model": "merkki_ja_malli",
-  "Unit": "yksikko",
-  "Campus": "kampus",
-  "Building": "rakennus",
-  "Room": "huone",
-  "Person in charge": "vastuuhenkilo",
-  "Status": "tilanne"
-}
+  // Sarakkeet:
+ // Columns:
+ const headerToKey = {
+   "Tuotenimi": "tuotenimi",
+   "Merkki ja malli": "merkki_ja_malli",
+   "Kampus": "kampus",
+   "Huone": "huone",
+   "Vastuuhenkilö": "vastuuhenkilo",
+   "Tilanne": "tilanne",
+   "Product Name": "tuotenimi",
+   "Brand and Model": "merkki_ja_malli",
+   "Campus": "kampus",
+   "Room": "huone",
+   "Person in charge": "vastuuhenkilo",
+   "Status": "tilanne"
+ }
 
 // Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
 // Sorting: which column and which direction (asc, desc, none)
@@ -46,15 +42,14 @@ const sortColumn = ref('')
 const sortDirection = ref('none')
 // DEMO
 const columnWidths = ref([
-  50,
-  50,
-  50,
-  30,
-  30,
-  45,
-  50,
-  30
-  ]);
+   100, // Tuotenimi
+   100, // Merkki ja malli
+   60, // Kampus
+   60, // Huone
+   100, // Vastuuhenkilö
+   100  // Tilanne
+   ]);
+ 
 
 // Lajittelun hallinta klikkaamalla
 // Toggling sorting by clicking
