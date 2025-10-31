@@ -1,152 +1,195 @@
 <script setup>
-import { useDataStore } from '@/stores/data'
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import DetailsOverlay from './DetailsOverlay.vue';
-import { useMediaQuery } from '@vueuse/core';
-
-const { t } = useI18n();
-const store = useDataStore();
-const clickedObject = ref({})
-const isMobile = useMediaQuery('(max-width: 768px');
-
-// Sarakkeet:
-// Columns:
-const headerToKey = {
-  "Tuotenimi": "tuotenimi",
-  "Merkki ja malli": "merkki_ja_malli",
-  "Yksikkö": "yksikko",
-  "Kampus": "kampus",
-  "Rakennus": "rakennus",
-  "Huone": "huone",
-  "Vastuuhenkilö": "vastuuhenkilo",
-  "Tilanne": "tilanne",
-  "Product Name": "tuotenimi",
-  "Brand and Model": "merkki_ja_malli",
-  "Unit": "yksikko",
-  "Campus": "kampus",
-  "Building": "rakennus",
-  "Room": "huone",
-  "Person in charge": "vastuuhenkilo",
-  "Status": "tilanne"
-}
-
-// Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
-// Sorting: which column and which direction (asc, desc, none)
-const sortColumn = ref('')
-const sortDirection = ref('none')
-// DEMO
-const columnWidths = ref([
-  50,
-  50,
-  50,
-  30,
-  30,
-  45,
-  50,
-  30
-  ]);
-
-// Lajittelun hallinta klikkaamalla
-// Toggling sorting by clicking
-function toggleSort(columnKey) {
-  if (sortColumn.value !== columnKey) {
-    // Uusi sarake: aloitetaan lajittelu nousevaksi
-    // New column: start with ascending sorting
-    sortColumn.value = columnKey
-    sortDirection.value = 'asc'
-  }
-  else {
-    // Sama sarake: järjestyksen suunta vaihtuu
-    // Same column: switch the direction of sorting
-    if (sortDirection.value === 'asc') {
-      sortDirection.value = 'desc'
-    }
-    else if (sortDirection.value === 'desc') {
-      // Kolmannella klikkauksella palautuu 'none'
-      // On the third click return to 'none'
-      sortColumn.value = ''
-      sortDirection.value = 'none'
-    }
-  }
-}
-
-// CSS-luokan palautus lajittelun tilan perusteella
-// Returning of the CSS class by the state of the sorting
-function getSortClass(columnKey) {
-  if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
-    return 'bi bi-caret-down text-body-tertiary'
-  }
-  return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
-}
-
-// Lajitellaan näytettävä data
-// Aktiivinen lajittelutila lajittelee datan ennen sivutusta
-// Sort visible data
-// Active sorting mode sorts data before paging
-const displayedData = computed(() => {
-  // Perusaineiston haku
-  // Retrieve base data
-  let baseData = store.searchedData || []
-  if (!sortColumn.value || sortDirection.value === 'none') {
-    // Ilman lajittelua sivutetaan normaalisti
-    // Without sorting page normally
-    return store.data
-  }
-  else {
-    // Tehdään kopio kokonaisdatasta
-    // Make a copy of all data
-    let sorted = [...baseData]
-    const key = headerToKey[sortColumn.value] || sortColumn.value
-    sorted.sort((a, b) => {
-      const valA = (a[key] || '').toString().toLowerCase()
-      const valB = (b[key] || '').toString().toLowerCase()
-      const comp = valA.localeCompare(valB)
-      return sortDirection.value === 'asc' ? comp : -comp
-    })
-    // Käytetään normaalia sivutusta
-    // Use normal paging
-    const start = (store.currentPage - 1) * 15
-    const end = store.currentPage * 15
-    return sorted.slice(start, end)
-  }
-})
-
-// Handle column resizing
+ import { useDataStore } from '@/stores/data'
+ import { computed, ref } from 'vue';
+ import { useI18n } from 'vue-i18n';
+ import DetailsOverlay from './DetailsOverlay.vue';
+ import { useMediaQuery } from '@vueuse/core';
+ 
+ const { t } = useI18n();
+ const store = useDataStore();
+ const clickedObject = ref({})
+ const isMobile = useMediaQuery('(max-width: 768px');
+ 
+ // Sarakkeet:
+ // Columns:
+ const headerToKey = {
+   "Tuotenimi": "tuotenimi",
+   "Merkki ja malli": "merkki_ja_malli",
+   "Kampus": "kampus",
+   "Huone": "huone",
+   "Vastuuhenkilö": "vastuuhenkilo",
+   "Tilanne": "tilanne",
+   "Product Name": "tuotenimi",
+   "Brand and Model": "merkki_ja_malli",
+   "Campus": "kampus",
+   "Room": "huone",
+   "Person in charge": "vastuuhenkilo",
+   "Status": "tilanne"
+ }
+ 
+ // Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
+ // Sorting: which column and which direction (asc, desc, none)
+ const sortColumn = ref('')
+ const sortDirection = ref('none')
+ // DEMO
+ const columnWidths = ref([
+   100, // Tuotenimi
+   100, // Merkki ja malli
+   60, // Kampus
+   60, // Huone
+   100, // Vastuuhenkilö
+   100  // Tilanne
+   ]);
+ 
+ // Lajittelun hallinta klikkaamalla
+ // Toggling sorting by clicking
+ function toggleSort(columnKey) {
+   if (sortColumn.value !== columnKey) {
+     // Uusi sarake: aloitetaan lajittelu nousevaksi
+     // New column: start with ascending sorting
+     sortColumn.value = columnKey
+     sortDirection.value = 'asc'
+   }
+   else {
+     // Sama sarake: järjestyksen suunta vaihtuu
+     // Same column: switch the direction of sorting
+     if (sortDirection.value === 'asc') {
+       sortDirection.value = 'desc'
+     }
+     else if (sortDirection.value === 'desc') {
+       // Kolmannella klikkauksella palautuu 'none'
+       // On the third click return to 'none'
+       sortColumn.value = ''
+       sortDirection.value = 'none'
+     }
+   }
+ }
+ 
+ // CSS-luokan palautus lajittelun tilan perusteella
+ // Returning of the CSS class by the state of the sorting
+ function getSortClass(columnKey) {
+   if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
+     return 'bi bi-caret-down text-body-tertiary'
+   }
+   return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
+ }
+ 
+ // Lajitellaan näytettävä data
+ // Aktiivinen lajittelutila lajittelee datan ennen sivutusta
+ // Sort visible data
+ // Active sorting mode sorts data before paging
+ const displayedData = computed(() => {
+   // Perusaineiston haku
+   // Retrieve base data
+   let baseData = store.searchedData || []
+   if (!sortColumn.value || sortDirection.value === 'none') {
+     // Ilman lajittelua sivutetaan normaalisti
+     // Without sorting page normally
+     return store.data
+   }
+   else {
+     // Tehdään kopio kokonaisdatasta
+     // Make a copy of all data
+     let sorted = [...baseData]
+     const key = headerToKey[sortColumn.value] || sortColumn.value
+     sorted.sort((a, b) => {
+       const valA = (a[key] || '').toString().toLowerCase()
+       const valB = (b[key] || '').toString().toLowerCase()
+       const comp = valA.localeCompare(valB)
+       return sortDirection.value === 'asc' ? comp : -comp
+     })
+     // Käytetään normaalia sivutusta
+     // Use normal paging
+     const start = (store.currentPage - 1) * 15
+     const end = store.currentPage * 15
+     return sorted.slice(start, end)
+   }
+ })
+ 
+// Handle column resizing (pointer events). Incremental delta, min/max clamp and table-based max cap.
 const startResize = (event, column) => {
-  const startX = event.clientX;
-  const startWidth = columnWidths.value[column];
+  event.preventDefault();
 
-  const onMouseMove = (moveEvent) => {
-    const newWidth = startWidth + (moveEvent.clientX - startX);
-    columnWidths.value[column] = Math.max(newWidth, 25);
+  const tableEl = event.target.closest('table');
+  const minWidth = 40; // px
+  // total columns and current widths
+  const totalCols = columnWidths.value.length;
+  const totalCurrent = columnWidths.value.reduce((s, w) => s + (Number(w) || 0), 0);
+  const initialWidth = Number(columnWidths.value[column]) || 120;
+  const tableWidth = tableEl ? tableEl.clientWidth : window.innerWidth;
+
+  // compute a conservative max width so other columns won't shrink below minWidth
+  const minOtherTotal = Math.max(0, (totalCols - 1) * minWidth);
+  const maxWidthCap = Math.max(minWidth + 50, Math.min(800, tableWidth - minOtherTotal));
+
+  let currentWidth = initialWidth;
+  let lastClientX = event.clientX;
+
+  // disable text selection while dragging
+  const prevUserSelect = document.body.style.userSelect;
+  const prevCursor = document.body.style.cursor;
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+
+  // pointer capture if available keeps events consistent
+  try {
+    if (event.pointerId && event.target && event.target.setPointerCapture) {
+      event.target.setPointerCapture(event.pointerId);
+    }
+  } catch (e) { /* ignore */ }
+
+  const onMove = (moveEvent) => {
+    // prefer movementX, fallback to delta of clientX
+    const clientX = moveEvent.clientX;
+    const dx = typeof moveEvent.movementX === 'number' ? moveEvent.movementX : (clientX - lastClientX);
+    lastClientX = clientX;
+
+    currentWidth = Math.round(currentWidth + dx);
+    if (currentWidth < minWidth) currentWidth = minWidth;
+    if (currentWidth > maxWidthCap) currentWidth = maxWidthCap;
+
+    // update reactive widths
+    columnWidths.value.splice(column, 1, currentWidth);
   };
 
-  const onMouseUp = () => {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+
+    try {
+      if (event.pointerId && event.target && event.target.releasePointerCapture) {
+        event.target.releasePointerCapture(event.pointerId);
+      }
+    } catch (e) { /* ignore */ }
+
+    // restore styles
+    document.body.style.userSelect = prevUserSelect;
+    document.body.style.cursor = prevCursor;
+
+    // persist widths
+    try { sessionStorage.setItem('dataColumnWidths', JSON.stringify(columnWidths.value)); } catch (e) {}
   };
 
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
+  document.addEventListener('pointermove', onMove, { passive: false });
+  document.addEventListener('pointerup', onUp);
 };
-
-const openOverlay = (item) => {
-  clickedObject.value = { ...item }
-}
-
-const handleUpdateItem = (updatedItem) => {
-  store.updateObject(updatedItem);
-  clickedObject.value = updatedItem
-}
-
-const handleDeleteItem = (itemId) => {
-  store.deleteObject(itemId);
-}
-
-defineExpose({
-  openOverlay
-});
+ 
+ const openOverlay = (item) => {
+   clickedObject.value = { ...item }
+ }
+ 
+ const handleUpdateItem = (updatedItem) => {
+   store.updateObject(updatedItem);
+   clickedObject.value = updatedItem
+ }
+ 
+ const handleDeleteItem = (itemId) => {
+   store.deleteObject(itemId);
+ }
+ 
+ defineExpose({
+   openOverlay
+ });
 </script>
 
 <template>
@@ -171,7 +214,7 @@ defineExpose({
 
                 <i :class="getSortClass(key)" @click.stop="toggleSort(key)"></i>
               </div>
-              <span class="resizer" @mousedown="startResize($event, index)"></span>
+              <span class="resizer" @pointerdown="startResize($event, index)"></span>
             </th>
           </tr>
         </thead>
@@ -186,13 +229,7 @@ defineExpose({
               {{ item.merkki_ja_malli }}
             </td>
             <td>
-              {{ item.yksikko }}
-            </td>
-            <td>
               {{ item.kampus }}
-            </td>
-            <td>
-              {{ item.rakennus }}
             </td>
             <td>
               {{ item.huone }}
@@ -211,8 +248,6 @@ defineExpose({
 </template>
 
 <style scoped>
-
-
 .sort-wrapper {
   width: 100%;
   display: flex;
@@ -338,5 +373,16 @@ tbody tr:last-child td:last-child {
 
 .header-text {
   cursor: pointer;
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1000;
 }
 </style>
