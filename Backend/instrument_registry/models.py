@@ -14,7 +14,6 @@ class UsernameHistoricalModel(models.Model):
     class Meta:
         abstract = True
 
-
 """
 The main model of the project. Corresponds to instruments that the customer is using.
 The fields are based on the csv file that was used as the foundation of the project.
@@ -46,7 +45,7 @@ class Instrument(models.Model):
         bases=[UsernameHistoricalModel],
         excluded_fields=['embedding_fi', 'embedding_en'],
     )
-
+    
 # Manager model used for creating users
 class RegistryUserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None, **other_fields):

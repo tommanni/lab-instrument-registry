@@ -17,6 +17,8 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 import csv
 import io
+from pgvector.django import CosineDistance
+import requests
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -124,6 +126,68 @@ class InstrumentCSV(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
+
+# This view returns semantic search results
+class InstrumentSearch(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        search_term = request.query_params.get('q', None)
+        search_lang = request.query_params.get('lang')
+
+        # Strip quotes if present
+        if isinstance(search_lang, str):
+            search_lang = search_lang.strip('"\'')
+
+        if not search_term:
+            return Response({'message': 'search term not provided'}, status=400)
+
+        # Thresholds for search term - search result similarity
+        FINNISH_SIMILARITY_THRESHOLD = 0.20
+        ENGLISH_SIMILARITY_THRESHOLD = 0.30
+
+        try:
+            if search_lang == 'fi':
+                embedding_field = 'embedding_fi'
+                service_url = "http://semantic-search-service:8001/embed_fi"
+                threshold = FINNISH_SIMILARITY_THRESHOLD
+            else:
+                embedding_field = 'embedding_en'
+                service_url = "http://semantic-search-service:8001/embed_en"
+                threshold = ENGLISH_SIMILARITY_THRESHOLD
+
+            response = requests.post(
+                service_url,
+                json={"text": search_term},
+                timeout=5.0
+            )
+            response.raise_for_status()
+
+            search_embedding = response.json().get('embedding')
+            if not search_embedding:
+                return Response({'message': 'could not generate embedding for search term'}, status=500)
+            
+            # Start with base queryset
+            instruments = Instrument.objects.annotate(
+                distance=CosineDistance(embedding_field, search_embedding)
+            ).filter(distance__lt=threshold).defer('embedding_fi', 'embedding_en')
+
+            instruments = instruments.order_by('distance')[:60]
+
+            serializer = InstrumentSerializer(instruments, many=True)
+            return Response(serializer.data)
+
+        except requests.Timeout:
+            print("Semantic search service request timed out")
+            return Response({'message': 'semantic search service request timed out'}, status=504)
+        except requests.RequestException as e:
+            print(f"Error connecting to semantic search service: {e}")
+            return Response({'message': 'could not connect to semantic search service'}, status=500)
+        except ValueError:
+            print("Semantic search service returned invalid JSON")
+            return Response({'message': 'invalid response from semantic search service'}, status=500)
+
 
 class ServiceValueSet(APIView):
     authentication_classes = [CookieTokenAuthentication]  # Add your authentication if needed
