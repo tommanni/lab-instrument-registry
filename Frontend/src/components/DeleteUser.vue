@@ -2,30 +2,28 @@
 import axios from 'axios';
 import { useAlertStore } from '@/stores/alert';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 const { t } = useI18n();
 const props = defineProps({ user: Object });
 const alertStore = useAlertStore();
+const router = useRouter()
 
-async function changeActiveValue() {
+async function deleteUser() {
         try {
             const res = await axios.post(
-            '/api/change-active-status/',
+            '/api/delete-user/',
             { 
                 id : props.user.id
             },
             {
             withCredentials: true
-        });
+            });
 
-        props.user.is_active = res.data.newActiveStatus;
+            alertStore.showAlert(0, t('message.kayttaja_poistettu'));
+            
+            router.push('/admin/users'); // navigate back to user list after deletion
 
-        if (res.data.newActiveStatus) {
-          alertStore.showAlert(0, t('message.käyttäjä_aktivoitu'));
-        }
-        else {
-          alertStore.showAlert(0, t('message.käyttäjä_deaktivoitu'));
-        }
     } catch (error) {
         if (error.response && error.response.data && error.response.data.detail) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
@@ -38,25 +36,18 @@ async function changeActiveValue() {
 </script>
 
 <template>
-<div class="deactivation-container">
-  <div class="modal-buttons" v-if="props.user && props.user?.is_active">
-    <button class="btn btn-secondary" @click="changeActiveValue">
-      {{ props.user.is_active ? t('message.deaktivoi_kayttaja') : t('message.aktivoi_kayttaja') }}
+<div class="deletion-container">
+  <div class="modal-buttons" v-if="props.user">
+    <button class="btn btn-secondary" @click="deleteUser">
+      {{t('message.poista_kayttaja')}}
     </button>
   </div>
-  <div class="modal-buttons" v-else>
-    <button class="btn btn-secondary" @click="changeActiveValue">{{t('message.aktivoi_kayttaja')}}</button>
-  </div>
 </div>
-
-
-
-
 </template>
 
 <style scoped>
 
-.deactivation-container {
+.deletion-container {
   max-width: 600px;
   width: 100%;
   margin: 20px auto;
@@ -70,6 +61,8 @@ async function changeActiveValue() {
   border-radius: 4px;
   border: none;
   padding: 5px 10px;
+  background-color: #dc3545;
+  color:#f4f4f8;
 }
 
 

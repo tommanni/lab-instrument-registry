@@ -39,7 +39,7 @@ urlpatterns = [
     path('api/change-password/', api_views.ChangePasswordView.as_view()),
     path('api/change-admin-status/', api_views.ChangeAdminStatus.as_view()),
     path('api/change-superadmin-status/', api_views.ChangeSuperadminStatus.as_view()),
-    path('api/change-active-status/', api_views.ChangeActiveStatus.as_view()),
+    path('api/delete-user/', api_views.DeleteUser.as_view()),
     # services
     path('api/service/', api_views.ServiceValueSet.as_view()),
 ]
