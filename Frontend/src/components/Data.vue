@@ -1,112 +1,127 @@
 <script setup>
- import { useDataStore } from '@/stores/data'
- import { computed, ref } from 'vue';
- import { useI18n } from 'vue-i18n';
- import DetailsOverlay from './DetailsOverlay.vue';
- import { useMediaQuery } from '@vueuse/core';
- 
- const { t } = useI18n();
- const store = useDataStore();
- const clickedObject = ref({})
- const isMobile = useMediaQuery('(max-width: 768px');
- 
- // Sarakkeet:
- // Columns:
- const headerToKey = {
-   "Tuotenimi": "tuotenimi",
-   "Merkki ja malli": "merkki_ja_malli",
-   "Kampus": "kampus",
-   "Huone": "huone",
-   "Vastuuhenkilö": "vastuuhenkilo",
-   "Tilanne": "tilanne",
-   "Product Name": "tuotenimi",
-   "Brand and Model": "merkki_ja_malli",
-   "Campus": "kampus",
-   "Room": "huone",
-   "Person in charge": "vastuuhenkilo",
-   "Status": "tilanne"
- }
- 
- // Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
- // Sorting: which column and which direction (asc, desc, none)
- const sortColumn = ref('')
- const sortDirection = ref('none')
- // DEMO
- const columnWidths = ref([
-   100, // Tuotenimi
-   100, // Merkki ja malli
-   60, // Kampus
-   60, // Huone
-   100, // Vastuuhenkilö
-   100  // Tilanne
-   ]);
- 
- // Lajittelun hallinta klikkaamalla
- // Toggling sorting by clicking
- function toggleSort(columnKey) {
-   if (sortColumn.value !== columnKey) {
-     // Uusi sarake: aloitetaan lajittelu nousevaksi
-     // New column: start with ascending sorting
-     sortColumn.value = columnKey
-     sortDirection.value = 'asc'
-   }
-   else {
-     // Sama sarake: järjestyksen suunta vaihtuu
-     // Same column: switch the direction of sorting
-     if (sortDirection.value === 'asc') {
-       sortDirection.value = 'desc'
-     }
-     else if (sortDirection.value === 'desc') {
-       // Kolmannella klikkauksella palautuu 'none'
-       // On the third click return to 'none'
-       sortColumn.value = ''
-       sortDirection.value = 'none'
-     }
-   }
- }
- 
- // CSS-luokan palautus lajittelun tilan perusteella
- // Returning of the CSS class by the state of the sorting
- function getSortClass(columnKey) {
-   if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
-     return 'bi bi-caret-down text-body-tertiary'
-   }
-   return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
- }
- 
- // Lajitellaan näytettävä data
- // Aktiivinen lajittelutila lajittelee datan ennen sivutusta
- // Sort visible data
- // Active sorting mode sorts data before paging
- const displayedData = computed(() => {
-   // Perusaineiston haku
-   // Retrieve base data
-   let baseData = store.searchedData || []
-   if (!sortColumn.value || sortDirection.value === 'none') {
-     // Ilman lajittelua sivutetaan normaalisti
-     // Without sorting page normally
-     return store.data
-   }
-   else {
-     // Tehdään kopio kokonaisdatasta
-     // Make a copy of all data
-     let sorted = [...baseData]
-     const key = headerToKey[sortColumn.value] || sortColumn.value
-     sorted.sort((a, b) => {
-       const valA = (a[key] || '').toString().toLowerCase()
-       const valB = (b[key] || '').toString().toLowerCase()
-       const comp = valA.localeCompare(valB)
-       return sortDirection.value === 'asc' ? comp : -comp
-     })
-     // Käytetään normaalia sivutusta
-     // Use normal paging
-     const start = (store.currentPage - 1) * 15
-     const end = store.currentPage * 15
-     return sorted.slice(start, end)
-   }
- })
- 
-// Handle column resizing (pointer events). Incremental delta, min/max clamp and table-based max cap.
+import { useDataStore } from '@/stores/data'
+import { computed, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import DetailsOverlay from './DetailsOverlay.vue';
+import { useMediaQuery } from '@vueuse/core';
+import { Modal } from 'bootstrap';
+
+const { t } = useI18n();
+const store = useDataStore();
+const clickedObject = ref({})
+const isMobile = useMediaQuery('(max-width: 768px');
+let modalInstance = null;
+
+onMounted(() => {
+  const modalElement = document.getElementById('dataModal');
+  if (modalElement) {
+    modalInstance = new Modal(modalElement);
+  }
+});
+
+// Sarakkeet:
+// Columns:
+const headerToKey = {
+  "Tuotenimi": "tuotenimi",
+  "Merkki ja malli": "merkki_ja_malli",
+  "Yksikkö": "yksikko",
+  "Kampus": "kampus",
+  "Rakennus": "rakennus",
+  "Huone": "huone",
+  "Vastuuhenkilö": "vastuuhenkilo",
+  "Tilanne": "tilanne",
+  "Product Name": "tuotenimi",
+  "Brand and Model": "merkki_ja_malli",
+  "Unit": "yksikko",
+  "Campus": "kampus",
+  "Building": "rakennus",
+  "Room": "huone",
+  "Person in charge": "vastuuhenkilo",
+  "Status": "tilanne"
+}
+
+// Lajittelu: mikä sarake ja mikä suunta (asc, desc, none)
+// Sorting: which column and which direction (asc, desc, none)
+const sortColumn = ref('')
+const sortDirection = ref('none')
+// DEMO
+const columnWidths = ref([
+  50,
+  50,
+  50,
+  30,
+  30,
+  45,
+  50,
+  30
+  ]);
+
+// Lajittelun hallinta klikkaamalla
+// Toggling sorting by clicking
+function toggleSort(columnKey) {
+  if (sortColumn.value !== columnKey) {
+    // Uusi sarake: aloitetaan lajittelu nousevaksi
+    // New column: start with ascending sorting
+    sortColumn.value = columnKey
+    sortDirection.value = 'asc'
+  }
+  else {
+    // Sama sarake: järjestyksen suunta vaihtuu
+    // Same column: switch the direction of sorting
+    if (sortDirection.value === 'asc') {
+      sortDirection.value = 'desc'
+    }
+    else if (sortDirection.value === 'desc') {
+      // Kolmannella klikkauksella palautuu 'none'
+      // On the third click return to 'none'
+      sortColumn.value = ''
+      sortDirection.value = 'none'
+    }
+  }
+}
+
+// CSS-luokan palautus lajittelun tilan perusteella
+// Returning of the CSS class by the state of the sorting
+function getSortClass(columnKey) {
+  if (sortColumn.value !== columnKey || sortDirection.value === 'none') {
+    return 'bi bi-caret-down text-body-tertiary'
+  }
+  return sortDirection.value === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
+}
+
+// Lajitellaan näytettävä data
+// Aktiivinen lajittelutila lajittelee datan ennen sivutusta
+// Sort visible data
+// Active sorting mode sorts data before paging
+const displayedData = computed(() => {
+  // Perusaineiston haku
+  // Retrieve base data
+  let baseData = store.searchedData || []
+  if (!sortColumn.value || sortDirection.value === 'none') {
+    // Ilman lajittelua sivutetaan normaalisti
+    // Without sorting page normally
+    return store.data
+  }
+  else {
+    // Tehdään kopio kokonaisdatasta
+    // Make a copy of all data
+    let sorted = [...baseData]
+    const key = headerToKey[sortColumn.value] || sortColumn.value
+    sorted.sort((a, b) => {
+      const valA = (a[key] || '').toString().toLowerCase()
+      const valB = (b[key] || '').toString().toLowerCase()
+      const comp = valA.localeCompare(valB)
+      return sortDirection.value === 'asc' ? comp : -comp
+    })
+    // Käytetään normaalia sivutusta
+    // Use normal paging
+    const start = (store.currentPage - 1) * 15
+    const end = store.currentPage * 15
+    return sorted.slice(start, end)
+  }
+})
+
+// Handle column resizing
 const startResize = (event, column) => {
   event.preventDefault();
 
@@ -223,7 +238,7 @@ const startResize = (event, column) => {
           <tr v-for="(item, index) in displayedData" @click="openOverlay(item)" data-bs-toggle="modal"
             data-bs-target="#dataModal" :key="index">
             <td>
-              {{ item.tuotenimi }}
+              {{ store.locale === 'fi' ? item.tuotenimi : item.tuotenimi_en }}
             </td>
             <td>
               {{ item.merkki_ja_malli }}

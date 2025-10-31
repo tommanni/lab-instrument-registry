@@ -2,7 +2,7 @@
 import { useAlertStore } from '@/stores/alert';
 import { useDataStore } from '@/stores/data'
 import axios from 'axios';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal } from 'bootstrap';
 
@@ -26,6 +26,21 @@ const updateFormData = ref({});
 const instrumentHistory = ref([]);
 const formValidated = ref(false);
 const updateIsDisabled = ref(true);
+const isUpdating = ref(false);
+const pendingUpdatePayload = ref(null);
+const pendingDuplicateCount = ref(0);
+const showDuplicateConfirm = computed(() => Boolean(pendingUpdatePayload.value));
+
+const duplicateCount = computed(() => {
+  if (!store.isInitialized || !props.item) return 0
+  const targetName = (updateFormData.value.tuotenimi || '').trim().toLowerCase()
+  const newTranslation = updateFormData.value.tuotenimi_en
+  return (store.originalData || []).filter(inst => {
+    return inst.id !== props.item.id &&
+           (inst.tuotenimi || '').trim().toLowerCase() === targetName &&
+           inst.tuotenimi_en !== newTranslation
+  }).length
+})
 
 // Watch for changes in updateFormData to enable/disable update button
 watch(updateFormData, (newData) => {
@@ -62,6 +77,8 @@ onMounted(() => {
   // Reset validation state when modal is closed
   dataModalElement.addEventListener('hidden.bs.modal', () => {
     formValidated.value = false;
+    pendingUpdatePayload.value = null;
+    pendingDuplicateCount.value = 0;
   });
 });
 
@@ -86,6 +103,7 @@ const fieldToIndexMap = {
   edellinen_huolto: 16,
   seuraava_huolto: 17,
   tilanne: 18,
+  tuotenimi_en: 19,
 };
 
 watch(() => props.item, (newItem) => {
@@ -132,24 +150,93 @@ const confirmUpdate = async () => {
     return; // Don't save if validation fails
   }
 
+  if (isUpdating.value) {
+    return
+  }
+
+  if (!store.isInitialized) {
+  console.warn("Store not initialized yet.")
+  return
+}
+
+  const originalName = ((props.item && props.item.tuotenimi) ? props.item.tuotenimi : '').trim().toLowerCase()
+  const currentName = (updateFormData.value.tuotenimi || '').trim().toLowerCase()
+  const tuotenimiUnchanged = originalName === currentName
+  const englishChanged = props.item ? updateFormData.value.tuotenimi_en !== props.item.tuotenimi_en : false
+
+  const payload = JSON.parse(JSON.stringify(updateFormData.value))
+  if (tuotenimiUnchanged && englishChanged && duplicateCount.value > 0) {
+    pendingUpdatePayload.value = payload
+    pendingDuplicateCount.value = duplicateCount.value
+    return
+  }
+
+  await performUpdate(payload)
+}
+
+const proceedDuplicateUpdate = async () => {
+  if (isUpdating.value || !pendingUpdatePayload.value) {
+    return
+  }
+
+  const payload = {
+    ...pendingUpdatePayload.value,
+    update_duplicates: true
+  }
+  pendingUpdatePayload.value = null
+  await performUpdate(payload)
+}
+
+const cancelDuplicateUpdate = async () => {
+  if (isUpdating.value) {
+    return
+  }
+
+  if (!pendingUpdatePayload.value) {
+    pendingDuplicateCount.value = 0
+    return
+  }
+
+  const payload = { ...pendingUpdatePayload.value }
+  pendingUpdatePayload.value = null
+  await performUpdate(payload)
+}
+
+const performUpdate = async (payload) => {
+  if (isUpdating.value) {
+    return
+  }
+
+  isUpdating.value = true
   try {
     const response = await axios.put(
       '/api/instruments/' + props.item.id + '/', 
-      JSON.parse(JSON.stringify(updateFormData.value)), 
+      payload, 
       { withCredentials: true }
     )
     alertStore.showAlert(0, t('message.on_paivitetty'))
 
     emit('update-item', response.data);
 
+    if (payload.update_duplicates) {
+      store.updateDuplicateTuotenimiEN(
+        updateFormData.value.tuotenimi,
+        response.data.tuotenimi_en
+      )
+    }
+
     fetchHistory(props.item.id); // Refetch history after update
     view.value = 'details';
+    pendingDuplicateCount.value = 0
   } catch (error) {
     if (error.response && error.response.data && error.response.data.detail) {
       alertStore.showAlert(1, `${t('message.ei_paivitetty')} ${t('message.virhe')}: ${error.response.data.detail}`)
     } else {
       alertStore.showAlert(1, `${t('message.ei_paivitetty')}: ${t('message.tuntematon_virhe')}`)
     }
+  }
+  finally {
+    isUpdating.value = false
   }
 }
 
@@ -195,9 +282,15 @@ const confirmDelete = async () => {
             <div class="modal-header">
               <h5 class="modal-title" id="dataModalLabel">{{ view !== 'history' ?
                 t('message.tiedot_nykyinen') : t('message.muutoshistoria') }}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+                :disabled="showDuplicateConfirm || isUpdating"
+              ></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body position-relative">
               <form @submit.prevent="confirmUpdate" :class="{'was-validated': formValidated}" class="container compact-form" novalidate
                 v-if="view !== 'history'">
                 <div class="row row-cols-2">
@@ -213,6 +306,12 @@ const confirmDelete = async () => {
                       <input id="product-name" class="form-control" :disabled="view != 'edit'"
                         v-model="updateFormData['tuotenimi']" type="text" :required="view === 'edit'">
                     </div>
+                    <div class="form-field-wrapper">
+                      <label for="product-name-en">{{ tm('fullHeaders')[19] }}</label>
+                      <input id="product-name-en" class="form-control" :disabled="view != 'edit'"
+                        v-model="updateFormData['tuotenimi_en']" type="text">
+                    </div>
+
                     <div class="form-field-wrapper">
                       <label for="product-model">{{ tm('fullHeaders')[3] }}</label>
                       <input id="product-model" class="form-control" :disabled="view != 'edit'"
@@ -294,30 +393,97 @@ const confirmDelete = async () => {
               <!--Change history-->
               <div v-if="view === 'history'" class="container">
                 <div class="history-details">
-                  <div v-for="record in instrumentHistory" :key="record.history_date" class="history-record">
-                    <p><strong>🗓️ {{ formatDate(record.history_date) }} — {{ record.history_type }}</strong></p>
-                    <p>👤 {{ record.history_user || t('message.jarjestelma') }}</p>
-                    <hr>
-                    <ul>
-                      <li v-for="change in record.changes" :key="change.field">
-                        • <strong>{{ tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{
-                          change.old }} <strong>{{ change.old ? "→" : "" }}</strong> {{ change.new ? change.new : "-" }}
+                  <div
+                    v-for="record in instrumentHistory"
+                    :key="record.history_date"
+                    class="card history-card border border-secondary-subtle bg-body-tertiary mb-3"
+                  >
+                    <div class="card-body">
+                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                          <span class="fw-semibold">{{ formatDate(record.history_date) }}</span>
+                          <span class="text-muted small">
+                            {{ record.history_user || t('message.jarjestelma') }}
+                          </span>
+                        </div>
+                        <span class="badge bg-secondary text-uppercase">{{ record.history_type }}</span>
+                      </div>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                      <li
+                        v-for="change in record.changes"
+                        :key="change.field"
+                        class="list-group-item small bg-body"
+                      >
+                        <span class="fw-semibold">
+                          {{ tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}:
+                        </span>
+                        <template v-if="record.history_type !== 'Created'">
+                          <span class="text-muted">
+                            {{ change.old || '-' }}
+                          </span>
+                          <span class="mx-1 text-muted" v-if="change.old || change.new">→</span>
+                        </template>
+                        <span>{{ change.new || '-' }}</span>
                       </li>
                     </ul>
                   </div>
                 </div>
               </div>
+
+              <transition name="fade">
+                <div
+                  v-if="showDuplicateConfirm"
+                  class="duplicate-confirm-overlay d-flex align-items-center justify-content-center"
+                  role="dialog"
+                  aria-modal="true"
+                >
+                  <div class="duplicate-confirm-card bg-white p-4 w-100">
+                    <h5 class="mb-3">{{ t('message.muutosvahvistus') }}</h5>
+                    <p class="mb-2">{{ t('message.loytyi_duplikaatteja', { count: pendingDuplicateCount }) }}</p>
+                    <p class="text-muted small mb-4">{{ t('message.paivita_duplikaatit_kysymys') }}</p>
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="button" class="btn btn-light border" @click="cancelDuplicateUpdate" :disabled="isUpdating">
+                        {{ t('message.ei_kiitos') }}
+                      </button>
+                      <button type="button" class="btn btn-primary" @click="proceedDuplicateUpdate" :disabled="isUpdating">
+                        <span
+                          v-if="isUpdating"
+                          class="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        {{ isUpdating ? t('message.paivitetaan') : t('message.kylla_paivita') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </transition>
             </div>
             <!--Modal footer-->
             <div class="modal-footer justify-content-between">
               <div>
-                <button v-if="view === 'details'" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                <button
+                  v-if="view === 'details'"
+                  class="btn btn-secondary me-2"
+                  data-bs-dismiss="modal"
+                  :disabled="showDuplicateConfirm || isUpdating"
+                >
                   {{ t('message.takaisin') }}
                 </button>
-                <button v-if="store.isLoggedIn && view === 'details'" @click="view = 'history'"
-                  class="btn btn-outline-info">{{
+                <button
+                  v-if="store.isLoggedIn && view === 'details'"
+                  @click="view = 'history'"
+                  class="btn btn-outline-info"
+                  :disabled="showDuplicateConfirm || isUpdating"
+                >{{
                     t('message.historia') }}</button>
-                <button v-if="view === 'history'" @click="view = 'details'" class="btn btn-secondary">
+                <button
+                  v-if="view === 'history'"
+                  @click="view = 'details'"
+                  class="btn btn-secondary"
+                  :disabled="showDuplicateConfirm || isUpdating"
+                >
                   {{ t('message.takaisin') }}
                 </button>
               </div>
@@ -327,49 +493,67 @@ const confirmDelete = async () => {
                   v-if="store.isLoggedIn && view == 'edit'"
                   @click="cancelEdit"
                   class="btn btn-secondary me-2"
+                  :disabled="showDuplicateConfirm || isUpdating"
                 >
                   {{t('message.peruuta') }}
                 </button>
-                <button v-if="store.isLoggedIn && view === 'details' && allowDelete" class="btn btn-danger me-2" data-bs-toggle="modal"
-                  data-bs-target="#deleteConfirmModal">
+                <button
+                  v-if="store.isLoggedIn && view === 'details' && allowDelete"
+                  class="btn btn-danger me-2"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteConfirmModal"
+                  :disabled="showDuplicateConfirm || isUpdating"
+                >
                   {{ t('message.poista') }}
                 </button>
                 <button
                   class="btn btn-primary"
                   v-if="store.isLoggedIn && view == 'details'"
                   @click="view = 'edit'"
+                  :disabled="showDuplicateConfirm || isUpdating"
                 >
                   {{ t('message.muokkaa') }}
                 </button>
-                <button :disabled="updateIsDisabled" v-if="view === 'edit'" @click="confirmUpdate" class="btn btn-primary">
-                  {{ t('message.paivita')}}
+                <button
+                  class="btn btn-primary"
+                  v-if="view === 'edit'"
+                  :disabled="updateIsDisabled || isUpdating"
+                  @click="confirmUpdate"
+                >
+                  <span
+                    v-if="isUpdating"
+                    class="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+                  {{ isUpdating ? t('message.paivitetaan') : t('message.paivita')}}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+    </div>
 
-      <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-body">
-              <p>{{ t('message.poisto_teksti') }}</p>
-            </div>
-            <div class="modal-footer">
-              <button @click="confirmDelete" data-bs-dismiss="modal" class="btn btn-danger">{{
-                t('message.kylla_poisto') }}</button>
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-bs-toggle="modal"
-                data-bs-target="#dataModal">{{
-                  t('message.peruuta')
-                }}</button>
-            </div>
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body">
+            <p>{{ t('message.poisto_teksti') }}</p>
+          </div>
+          <div class="modal-footer">
+            <button @click="confirmDelete" data-bs-dismiss="modal" class="btn btn-danger">{{
+              t('message.kylla_poisto') }}</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-bs-toggle="modal"
+              data-bs-target="#dataModal">{{
+                t('message.peruuta')
+              }}</button>
           </div>
         </div>
       </div>
-    </teleport>
-  </div>
+    </div>
+  </teleport>
+</div>
 </template>
 
 <style scoped>
@@ -380,21 +564,51 @@ const confirmDelete = async () => {
 }
 
 .history-details {
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
-  min-height: 710px;
-  max-height: 710px;
+  max-height: 60vh;
   overflow-y: auto;
+  padding-top: 0.5rem;
 }
 
-.history-record {
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+.history-card {
+  border-radius: 0.35rem;
+  overflow: hidden;
 }
 
-.history-record ul {
-  list-style-type: none;
-  padding-left: 0;
+.history-card .card-body {
+  padding: 0.75rem 1rem;
 }
+
+.history-card .list-group-item {
+  border-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bs-body-bg);
+  padding: 0.5rem 1rem;
+}
+
+.duplicate-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 1.5rem;
+  z-index: 1050;
+  pointer-events: auto;
+}
+
+.duplicate-confirm-card {
+  max-width: 420px;
+  margin: 0 auto;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 </style>

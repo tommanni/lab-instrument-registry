@@ -103,6 +103,12 @@ export default {
 	  vie_instrumenttirekisteri: "Export instrument records (.csv)",
 	  tiedot_vienti_epaonnistui: "Data export failed. Please try again.",
 	  viedaan: "Exporting",
+	  muutosvahvistus: "Confirm update",
+	  loytyi_duplikaatteja: "Found {count} other instruments with the same Finnish name but a different English name.",
+	  paivita_duplikaatit_kysymys: "Do you want to update their English translations as well?",
+	  ei_kiitos: "No, keep only this one",
+	  kylla_paivita: "Yes, update all",
+	  paivitetaan: "Updating...",
 	  adminsivu_kuvaus: "Select an area to manage",
 	  kayttajasivu_kuvaus: "Manage users and create user codes",
 	  tiedonsiirto_kuvaus: "Import or export instruments in CSV format",
@@ -153,6 +159,7 @@ export default {
 	  "Maintenance contract ends",
 	  "Previous maintenance",
 	  "Next maintenance",
-	  "Status"
+	  "Status",
+	  "Product name in English"
 	]
 }

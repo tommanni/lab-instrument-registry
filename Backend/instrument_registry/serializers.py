@@ -29,7 +29,7 @@ class InstrumentSerializer(serializers.ModelSerializer):
             self._translate_and_update_embeddings(instrument)
             instrument.save()
             return instrument
-    
+
     def update(self, instance, validated_data):
         # Pop the update_duplicates flag from the validated_data so it's not set on the instance
         update_duplicates_flag = validated_data.pop('update_duplicates', False)
@@ -65,17 +65,19 @@ class InstrumentSerializer(serializers.ModelSerializer):
         
         instance.save()
 
-        if update_duplicates_flag and tuotenimi_en_changed:
+        if update_duplicates_flag and tuotenimi_en_changed and not tuotenimi_changed:
             # Find all other instruments with the same 'tuotenimi'
             duplicate_instruments = Instrument.objects.filter(
                 tuotenimi__iexact=instance.tuotenimi
             ).exclude(pk=instance.pk)
 
             # Update each duplicate
+            cached_embedding = instance.embedding_en
             for instrument in duplicate_instruments:
                 instrument.tuotenimi_en = instance.tuotenimi_en
-                self._update_embedding_en(instrument) # Regenerate the English embedding
-                instrument.save()
+                instrument.embedding_en = cached_embedding
+                instrument.save(update_fields=["tuotenimi_en", "embedding_en"])
+
 
         return instance
 
@@ -122,7 +124,6 @@ class InstrumentSerializer(serializers.ModelSerializer):
         instrument.embedding_en = embedding_en
 
     def _find_existing_translation(self, tuotenimi):
-        """Check if translation already exists for this name"""
         return Instrument.objects.filter(
             tuotenimi__iexact=tuotenimi
         ).exclude(
