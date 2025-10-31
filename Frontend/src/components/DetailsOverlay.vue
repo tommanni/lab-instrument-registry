@@ -393,14 +393,38 @@ const confirmDelete = async () => {
               <!--Change history-->
               <div v-if="view === 'history'" class="container">
                 <div class="history-details">
-                  <div v-for="record in instrumentHistory" :key="record.history_date" class="history-record">
-                    <p><strong>🗓️ {{ formatDate(record.history_date) }} — {{ record.history_type }}</strong></p>
-                    <p>👤 {{ record.history_user || t('message.jarjestelma') }}</p>
-                    <hr>
-                    <ul>
-                      <li v-for="change in record.changes" :key="change.field">
-                        • <strong>{{ tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}: </strong>{{
-                          change.old }} <strong>{{ change.old ? "→" : "" }}</strong> {{ change.new ? change.new : "-" }}
+                  <div
+                    v-for="record in instrumentHistory"
+                    :key="record.history_date"
+                    class="card history-card border border-secondary-subtle bg-body-tertiary mb-3"
+                  >
+                    <div class="card-body">
+                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                          <span class="fw-semibold">{{ formatDate(record.history_date) }}</span>
+                          <span class="text-muted small">
+                            {{ record.history_user || t('message.jarjestelma') }}
+                          </span>
+                        </div>
+                        <span class="badge bg-secondary text-uppercase">{{ record.history_type }}</span>
+                      </div>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                      <li
+                        v-for="change in record.changes"
+                        :key="change.field"
+                        class="list-group-item small bg-body"
+                      >
+                        <span class="fw-semibold">
+                          {{ tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}:
+                        </span>
+                        <template v-if="record.history_type !== 'Created'">
+                          <span class="text-muted">
+                            {{ change.old || '-' }}
+                          </span>
+                          <span class="mx-1 text-muted" v-if="change.old || change.new">→</span>
+                        </template>
+                        <span>{{ change.new || '-' }}</span>
                       </li>
                     </ul>
                   </div>
@@ -540,17 +564,24 @@ const confirmDelete = async () => {
 }
 
 .history-details {
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
-  min-height: 710px;
-  max-height: 710px;
+  max-height: 60vh;
   overflow-y: auto;
+  padding-top: 0.5rem;
 }
 
-.history-record {
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+.history-card {
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+
+.history-card .card-body {
+  padding: 0.75rem 1rem;
+}
+
+.history-card .list-group-item {
+  border-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bs-body-bg);
+  padding: 0.5rem 1rem;
 }
 
 .duplicate-confirm-overlay {
@@ -580,8 +611,4 @@ const confirmDelete = async () => {
   opacity: 0;
 }
 
-.history-record ul {
-  list-style-type: none;
-  padding-left: 0;
-}
 </style>
