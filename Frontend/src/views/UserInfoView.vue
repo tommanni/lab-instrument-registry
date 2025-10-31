@@ -3,7 +3,7 @@ import axios from 'axios';
 import UserInfo from '@/components/UserInfo.vue';
 import ChangeAdminStatus from '@/components/ChangeAdminStatus.vue';
 import ChangeSuperadminStatus from '@/components/ChangeSuperadminStatus.vue';
-import ChangeActiveStatus from '@/components/ChangeActiveStatus.vue';
+import DeleteUser from '@/components/DeleteUser.vue';
 import ChangePassword from '@/components/ChangePassword.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
@@ -30,6 +30,9 @@ async function fetchUser(id) {
     })
     user.value = res.data;
   } catch (error) {
+        if (!dataStore.user.is_staff) {
+          return; // non-admins should not see error if user not found
+        }
         if (error.response && error.response.data && error.response.data.detail) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
         }
@@ -58,8 +61,8 @@ watch(
 <template>
   <!-- Nothing is rendered on screen until loading state is false -->
   <main v-if="!loading">
-    <template v-if="dataStore.isLoggedIn && userStore.user && 
-    ( userStore.user.id === user?.id || userStore.user.is_staff || userStore.user.is_superuser )">
+    <template v-if="dataStore.isLoggedIn && userStore.user && user &&
+    ( userStore.user.id === user.id || userStore.user.is_staff || userStore.user.is_superuser )">
       <h2 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h2>
 
         <!-- Warning for admins editing someone else's information -->
@@ -88,9 +91,12 @@ watch(
        userStore.user.id !== user.id">
         <ChangeSuperadminStatus :user="user"/>
       </div>
-      <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="change-active">
-        <ChangeActiveStatus :user="user"/>
+      <div v-if=" userStore.user && user &&  userStore.user.is_superuser &&  userStore.user.id !== user.id" class="delete-user">
+        <DeleteUser :user="user"/>
       </div>
+    </template>
+    <template v-else-if="userStore.user && !user &&  userStore.user.is_superuser">
+      <h1 class="text-center"> {{ t('message.kayttajaa_ei_olemassa') }} </h1>
     </template>
     <template v-else>
       <h1 class="text-center"> {{ t('message.admin_ei_oikeuksia') }} </h1>
@@ -130,7 +136,6 @@ main {
   background-color: #dc3545;
   color:#f4f4f8;
   border-radius: 4px;
-
 }
 
 

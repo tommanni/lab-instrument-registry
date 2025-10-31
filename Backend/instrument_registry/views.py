@@ -243,12 +243,12 @@ class ChangeAdminStatus(APIView):
             user.is_staff = False
             user.is_superuser = False
             user.save()
-            return Response({'message': 'Admin rights removed', 'newAdminStatus': False})
+            return Response({'message': 'Admin rights removed.', 'newAdminStatus': False})
 
         else:
             user.is_staff = True
             user.save()
-            return Response({'message': 'Admin user created', 'newAdminStatus': True})
+            return Response({'message': 'Admin user created.', 'newAdminStatus': True})
 
 # This view allows a superadmin user to add or remove superadmin rights to a user.
 class ChangeSuperadminStatus(APIView):
@@ -278,13 +278,13 @@ class ChangeSuperadminStatus(APIView):
             user.save()
             return Response({'message': 'Superadmin user created', 'newSuperadminStatus': True})
 
-# This view allows an admin user to inactivate or activate a user.
-class ChangeActiveStatus(APIView):
+# This view allows a superadmin user to delete a user.
+class DeleteUser(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superusers can inactivate/activate users
+        if not request.user.is_superuser: # only superadmins can delete users
             return Response({'detail': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -293,16 +293,13 @@ class ChangeActiveStatus(APIView):
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
             return Response({'detail': 'User not found.'}, status=404)
-        
-        if user.is_active:
-            user.is_active = False
-            user.save()
-            return Response({'message': 'User deactivated', 'newActiveStatus': False})
 
-        else:
-            user.is_active = True
-            user.save()
-            return Response({'message': 'User activated', 'newActiveStatus': True})
+        if user == request.user: # prevent self-deletion
+            return Response({'detail': 'You cannot delete your own account.'}, status=400)
+        
+        user.delete()
+
+        return Response({'message': 'User deleted successfully.'})
 
 # These last views should be pretty self explanatory based on their names.
 class Login(knox_views.LoginView):
