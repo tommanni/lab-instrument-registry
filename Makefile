@@ -100,7 +100,6 @@ preprocess-instruments:
 	@echo "Precomputing embeddings and translations..."
 	@docker-compose exec web python manage.py precompute_embeddings || \
 		(echo "Failed to precompute embeddings. Make sure containers are running."; exit 1)
-	@echo "CSV exported to Backend/ directory"
 
 # Testing
 test: ## Run Django tests
