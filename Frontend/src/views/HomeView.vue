@@ -30,12 +30,14 @@ function handleNewInstrument(item) {
 <template>
     <div class="home-root">
       <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
-        <div><Search :searchFunction="store.searchData" searchType="device" /></div>
-        <div class="f-wrapper">
-          <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
-        </div>
-        <div class="d-flex align-items-center justify-content-end ms-auto">
+        <div class="actions-add">
           <AddOverlay @new-instrument-added="handleNewInstrument" />
+        </div>
+        <div class="actions-line actions-line--search">
+          <Search :searchFunction="store.searchData" searchType="device" />
+        </div>
+        <div class="actions-line actions-line--filters">
+          <Filter @filter-change="onFilterChange" @all-filters-cleared="onAllFiltersCleared" />
         </div>
       </div>
       <div class="data">
@@ -56,31 +58,72 @@ function handleNewInstrument(item) {
 
 
 .actions-wrapper {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "search"
+    "filters"
+    "add";
   position: sticky;
   width: 100%;
   top: var(--header-height);
   background: var(--bs-secondary-bg-subtle);
   z-index: 11;
   box-sizing: border-box;
-  flex-wrap: wrap;
+  justify-items: stretch;
 }
 
-.f-wrapper {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
+.actions-line {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.actions-line--search {
+  grid-area: search;
+  box-sizing: border-box;
+}
+
+.actions-line--filters {
+  grid-area: filters;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.actions-add {
+  grid-area: add;
+  justify-self: center;
+}
+
+@media screen and (min-width: 992px){
+  .actions-wrapper {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "search add"
+      "filters add";
+    align-items: start;
+  }
+  .actions-add {
+    justify-self: flex-end;
+    align-self: start;
+  }
 }
 
 @media screen and (max-width: 768px){
   .actions-wrapper {
     position: static;
-    flex-direction: column;
+    justify-items: stretch;
   }
-  .f-wrapper {
-    width: 100%;
+  .actions-line--filters {
     flex-direction: column;
+    align-items: center;
+  }
+  .actions-add {
+    margin-top: 0;
+    width: 100%;
+    display: block;
+    justify-self: stretch;
   }
 }
 

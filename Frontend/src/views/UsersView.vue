@@ -41,6 +41,7 @@ onMounted(async () => {
       <Search
         :searchFunction="userStore.searchData"
         searchType="user"
+        class="search"
       />
       <UserData />
       <Pagination :store="userStore" />
@@ -63,5 +64,9 @@ onMounted(async () => {
 .user-search-component {
   margin-bottom: 5px;
   margin-left: -10px;
+}
+
+.search {
+  max-width: 600px;
 }
 </style>

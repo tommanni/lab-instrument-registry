@@ -8,7 +8,7 @@ export default {
 	  huone: 'Room',
 	  vastuuhenkilo: 'Person in charge',
 	  tilanne: 'Status',
-	  uusi_laite: 'Add a new instrument',
+	  uusi_laite: 'New instrument',
 	  tiedot_uusi: 'Add new instrument information',
 	  omat_tiedot: "My information",
 	  tay: 'TAY-number',
@@ -115,7 +115,10 @@ export default {
 	  huoltosivu_kuvaus: "Manage maintenance contracts and devices awaiting maintenance",
 	  avaa: "Open",
 	  haku_info_title: "Search instructions",
-      haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_number, serial_number, product_name, brand_and_model, unit, campus, building, room, responsible_person, status, supplier, extra_information, old_location, delivery_date. Example: product_name:kuumasaumaaja AND (building:TAYS OR building:Arvo) AND NOT room:TULO."
+      haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_number, serial_number, product_name, brand_and_model, unit, campus, building, room, responsible_person, status, supplier, extra_information, old_location, delivery_date. Example: product_name:kuumasaumaaja AND (building:TAYS OR building:Arvo) AND NOT room:TULO.",
+	  tarkka_haku: "Direct Search",
+	  älykäs_haku: "Smart Search",
+	  smart_search_info_content: "Smart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings."
 	},
 	tableHeaders: [
 	  "Product Name",

@@ -49,6 +49,15 @@ watch(locale, async () => {
   initPopover();
 });
 
+watch(() => dataStore.searchMode, async () => {
+  if (popoverInstance) {
+    popoverInstance.dispose();
+    popoverInstance = null;
+  }
+  await nextTick();
+  initPopover();
+});
+
 </script>
 
 <template>
@@ -59,10 +68,19 @@ watch(locale, async () => {
                 <i class="bi bi-x text-primary"></i>
             </a>
         </div>
+        <div class="btn-group search-mode-selector" role="group" aria-label="Search mode">
+          <input type="radio" class="btn-check" name="searchModeDevice" id="direct-search-device" autocomplete="off" value="direct" v-model="dataStore.searchMode">
+          <label class="btn btn-outline-primary" for="direct-search-device">{{$t('message.tarkka_haku')}}</label>
+
+          <input type="radio" class="btn-check" name="searchModeDevice" id="smart-search-device" autocomplete="off" value="smart" v-model="dataStore.searchMode">
+          <label class="btn btn-outline-primary" for="smart-search-device">{{$t('message.älykäs_haku')}}</label>
+        </div>
         <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
         <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button" aria-label="Hakuohje"
                 data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
-                :title="$t('message.haku_info_title')" :data-bs-content="$t('message.haku_info_content')">
+                :title="$t('message.haku_info_title')" 
+                :data-bs-content="dataStore.searchMode === 'direct' ? $t('message.haku_info_content') : $t('message.smart_search_info_content')"
+        >
             <i class="bi bi-info-circle text-primary"></i>
         </button>
     </div>
@@ -83,18 +101,25 @@ watch(locale, async () => {
     align-items: center;
     justify-content: space-between;
     gap: .3rem; /*Gap for input focus borders not to clip */
-    max-width: 600px;
+    width: 80%;
+}
+
+.search-mode-selector .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .form-control {
     height: 100%;
-    width: 300px;
+    width: 100%;
     padding-right:3.5rem;
+
+    padding: 7px;
 }
 
 .input-wrapper {
     position: relative;
-    width:100%;
     flex: 1;
 }
 
@@ -114,10 +139,7 @@ watch(locale, async () => {
     box-sizing: border-box;
 }
 
-.search-container .btn {
-    border-top-right-radius: var(--bs-border-radius-lg);
-    border-bottom-right-radius: var(--bs-border-radius-lg);
-}
+
 
 .clear-button {
     display: flex;
@@ -142,5 +164,17 @@ watch(locale, async () => {
     border: none;
     padding: 0.5rem;
     font-size: 1.4rem;
+}
+
+@media screen and (max-width: 768px){
+    .search-container {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .search-mode-selector {
+      width: 100%;
+      justify-content: center;
+    }
 }
 </style>

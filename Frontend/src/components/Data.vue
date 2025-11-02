@@ -1,6 +1,6 @@
 <script setup>
 import { useDataStore } from '@/stores/data'
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
 import { useMediaQuery } from '@vueuse/core';
@@ -184,8 +184,14 @@ const startResize = (event, column) => {
   document.addEventListener('pointerup', onUp);
 };
  
- const openOverlay = (item) => {
+ const openOverlay = async (item) => {
    clickedObject.value = { ...item }
+   await nextTick()
+   const modalElement = document.getElementById('dataModal');
+   const isAlreadyOpen = modalElement?.classList.contains('show');
+   if (!isAlreadyOpen && modalInstance) {
+     modalInstance.show();
+   }
  }
  
  const handleUpdateItem = (updatedItem) => {

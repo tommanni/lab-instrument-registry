@@ -118,7 +118,8 @@ const saveData = async () => {
 
 <template>
   <div>
-    <button v-if="store.isLoggedIn" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+    <button v-if="store.isLoggedIn" type="button" class="btn btn-primary add-button" data-bs-toggle="modal" data-bs-target="#addModal">
+      <i class="bi bi-plus-lg add-button-icon" aria-hidden="true"></i>
       {{ t('message.uusi_laite') }}
     </button>
     <teleport to="body">
@@ -215,4 +216,26 @@ const saveData = async () => {
 </template>
 
 <style scoped>
+  .add-button-icon {
+    padding-right: 4px;
+  }
+  .add-button {
+    margin-top: 2px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  @media screen and (max-width: 768px){
+    .add-button {
+      width: 100%;
+      display: flex;
+    }
+  }
 </style>
