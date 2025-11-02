@@ -168,7 +168,14 @@ export default {
 
     </li>
   </ul>
-  <button v-if="filters.some(f => f.selected)" type="button" class="btn btn-primary ms-md-3" @click="clearAllFilters">{{$t('message.nollaa_suodattimet')}}</button>
+  <button
+    v-if="filters.some(f => f.selected)"
+    type="button"
+    class="btn btn-primary ms-md-3 clear-filters-button"
+    @click="clearAllFilters"
+  >
+    {{$t('message.nollaa_suodattimet')}}
+  </button>
 </template>
 
 <style scoped>
@@ -183,13 +190,18 @@ export default {
   gap: 0.5rem;
   box-sizing: border-box;
   grid-template-columns: repeat(4, 200px);
+  padding-bottom: 4px;
 }
 
 @media screen and (max-width: 768px){
   .filter-wrapper {
     grid-template-columns: 1fr;
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
+  }
+  .clear-filters-button {
+    width: 100%;
+    margin-top: 8px;
   }
 }
 
@@ -228,6 +240,18 @@ export default {
 }
 .clear-button:hover {
   background-color: var(--bs-tertiary-bg);
+}
+
+.clear-filters-button {
+  align-self: flex-start;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 

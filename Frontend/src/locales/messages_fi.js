@@ -115,8 +115,11 @@ export default {
 	  tiedonsiirto_kuvaus: "Tuo tai vie instrumentteja csv-muodossa",
 	  huoltosivu_kuvaus: "Hallitse huoltosopimuksia ja huoltoa odottavia laitteita",
 	  avaa: "Avaa",
-	  haku_info_title: "Boolean-haku",
-	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO."
+	  haku_info_title: "Hakuohjeet",
+	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO.",
+	  tarkka_haku: "Tarkka haku",
+	  älykäs_haku: "Älykäs haku",
+	  smart_search_info_content: "Älykäs haku ymmärtää hakusanojen merkityksen ja löytää käsitteellisesti samankaltaisia tuloksia, vaikka ne eivät sisältäisikään täsmälleen samoja sanoja. Se sietää myös kirjoitusvirheitä."
 	},
 	tableHeaders: [
 	  "Tuotenimi",

@@ -23,6 +23,9 @@ export const useDataStore = defineStore('dataStore', () => {
   const sortColumn = ref('')
   const sortDirection = ref('none')
   const searchTerm = ref('')
+  const DEFAULT_SEARCH_MODE = 'direct'
+  const SUPPORTED_SEARCH_MODES = ['direct', 'smart']
+  const searchMode = ref(DEFAULT_SEARCH_MODE)
   const filterValues = ref({
   yksikko: null,
   huone: null,
@@ -220,6 +223,12 @@ export const useDataStore = defineStore('dataStore', () => {
       delete query.page
     }
 
+    if (searchMode.value && searchMode.value !== DEFAULT_SEARCH_MODE) {
+      query.search_mode = searchMode.value
+    } else {
+      delete query.search_mode
+    }
+
     router.replace({ query }).catch(() => {})
   }
 
@@ -314,6 +323,8 @@ export const useDataStore = defineStore('dataStore', () => {
     });
 
     searchTerm.value = route.query.search ?? ''
+    const queryMode = String(route.query.search_mode || '').toLowerCase()
+    searchMode.value = SUPPORTED_SEARCH_MODES.includes(queryMode) ? queryMode : DEFAULT_SEARCH_MODE
 
     const p = route.query.page ? parseInt(route.query.page, 10) : 1
     currentPage.value = Number.isNaN(p) ? 1 : p
@@ -330,6 +341,8 @@ export const useDataStore = defineStore('dataStore', () => {
     })
 
     searchTerm.value = newQuery.search ?? ''
+    const queryMode = String(newQuery.search_mode || '').toLowerCase()
+    searchMode.value = SUPPORTED_SEARCH_MODES.includes(queryMode) ? queryMode : DEFAULT_SEARCH_MODE
 
     const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
     currentPage.value = Number.isNaN(p) ? 1 : p
@@ -337,6 +350,14 @@ export const useDataStore = defineStore('dataStore', () => {
     applySearchAndFilter()
 
   }, {immediate: false})
+  
+  watch(searchMode, (mode) => {
+    if (!SUPPORTED_SEARCH_MODES.includes(mode)) {
+      searchMode.value = DEFAULT_SEARCH_MODE
+      return
+    }
+    updateURL()
+  })
 
   return { 
     data,
@@ -357,6 +378,7 @@ export const useDataStore = defineStore('dataStore', () => {
     sortDirection,
     filterValues,
     searchTerm,
+    searchMode,
     initializePageFromURL,
     locale,
     updateDuplicateTuotenimiEN
