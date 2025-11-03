@@ -25,7 +25,9 @@ urlpatterns = [
     path('api/instruments/', api_views.InstrumentList.as_view()),
     path('api/instruments/search/', api_views.InstrumentSearch.as_view()),
     path('api/instruments/valueset/<field_name>/', api_views.InstrumentValueSet.as_view()),
-    path('api/instruments/csv/', api_views.InstrumentCSV.as_view()),
+    path('api/instruments/csv/export/', api_views.InstrumentCSVExport.as_view()),
+    path('api/instruments/csv/preview/', api_views.InstrumentCSVPreview.as_view()),
+    path('api/instruments/csv/import/', api_views.InstrumentCSVImport.as_view()),
     path('api/instruments/<pk>/', api_views.InstrumentDetail.as_view()),
     path('api/instruments/<pk>/history/', api_views.InstrumentHistory.as_view()),
     # user

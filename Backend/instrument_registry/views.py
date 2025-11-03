@@ -10,7 +10,6 @@ from knox import views as knox_views
 from knox.auth import TokenAuthentication
 from django.http import HttpResponse
 from datetime import datetime
-from shutil import copyfileobj
 from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -19,6 +18,59 @@ import csv
 import io
 from pgvector.django import CosineDistance
 import requests
+
+# Helper function to check for duplicate instruments
+def check_csv_duplicates(rows):
+    """
+    Check which CSV rows are duplicates and which are new.
+
+    A duplicate is defined as having the same combination of:
+    - tay_numero
+    - tuotenimi
+    - merkki_ja_malli
+
+    Args:
+        rows: List of dictionaries from CSV DictReader
+
+    Returns:
+        tuple: (new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count)
+    """
+    new_rows = []
+    duplicates = []
+    invalid_rows = []
+
+    for row in rows:
+        tay_numero = row.get('tay_numero', '').strip()
+        tuotenimi = row.get('tuotenimi', '').strip()
+        merkki_ja_malli = row.get('merkki_ja_malli', '').strip()
+
+        # Skip rows that don't have tuotenimi OR merkki_ja_malli
+        if not tuotenimi and not merkki_ja_malli:
+            invalid_rows.append({
+                'tay_numero': tay_numero or '-',
+                'tuotenimi': tuotenimi or '-',
+                'merkki_ja_malli': merkki_ja_malli or '-'
+            })
+            continue
+
+        # Check if this exact combination already exists
+        query = Q(
+            tay_numero=tay_numero,
+            tuotenimi=tuotenimi,
+            merkki_ja_malli=merkki_ja_malli
+        )
+        is_duplicate = Instrument.objects.filter(query).exists()
+
+        if is_duplicate:
+            duplicates.append({
+                'tay_numero': tay_numero or '-',
+                'tuotenimi': tuotenimi or '-',
+                'merkki_ja_malli': merkki_ja_malli or '-'
+            })
+        else:
+            new_rows.append(row)
+
+    return new_rows, duplicates, invalid_rows, len(new_rows), len(duplicates), len(invalid_rows)
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -110,8 +162,9 @@ class InstrumentValueSet(APIView):
             unique_values.add(getattr(i, field_name))
         return Response({'data': list(unique_values)})
 
+
 # This view returns all the data in Instrument table as a csv file.
-class InstrumentCSV(APIView):
+class InstrumentCSVExport(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -126,6 +179,97 @@ class InstrumentCSV(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
+
+# This view validates and previews CSV import before actually importing
+class InstrumentCSVPreview(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file provided'}, status=400)
+
+        csv_file = request.FILES['file']
+
+        try:
+            # Read and parse CSV
+            content = csv_file.read().decode('utf-8-sig')
+            csv_reader = csv.DictReader(io.StringIO(content), delimiter=';')
+            rows = list(csv_reader)
+
+            if not rows:
+                return Response({'error': 'CSV file is empty'}, status=400)
+
+            # Check for duplicates using shared helper function
+            new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count = check_csv_duplicates(rows)
+
+            return Response({
+                'total_rows': len(rows),
+                'new_count': new_count,
+                'duplicate_count': duplicate_count,
+                'invalid_count': invalid_count,
+                'duplicates': duplicates[:10],  # Show first 10 duplicates
+                'has_more_duplicates': len(duplicates) > 10,
+                'invalid_rows': invalid_rows[:10],  # Show first 10 invalid rows
+                'has_more_invalid': len(invalid_rows) > 10
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+
+# This view actually imports the CSV after user confirmation
+class InstrumentCSVImport(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file provided'}, status=400)
+
+        csv_file = request.FILES['file']
+
+        try:
+            # Read and parse CSV
+            content = csv_file.read().decode('utf-8-sig')
+            csv_reader = csv.DictReader(io.StringIO(content), delimiter=';')
+            rows = list(csv_reader)
+
+            if not rows:
+                return Response({'error': 'CSV file is empty'}, status=400)
+
+            # Filter out duplicates and invalid rows using shared helper function
+            new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count = check_csv_duplicates(rows)
+
+            # Only import if there's new data
+            if not new_rows:
+                return Response({
+                    'success': True,
+                    'imported_count': 0,
+                    'skipped_count': duplicate_count + invalid_count,
+                    'message': 'No new instruments to import (all were duplicates or invalid)'
+                })
+
+            # Clean the data (remove empty values)
+            data = []
+            for row in new_rows:
+                cleaned_row = {k: v for k, v in row.items() if v.strip()}
+                data.append(cleaned_row)
+
+            serializer = InstrumentCSVSerializer(data=data, many=True)
+            if not serializer.is_valid():
+                return Response({'error': serializer.errors}, status=400)
+
+            serializer.save()
+
+            return Response({
+                'success': True,
+                'imported_count': new_count,
+                'skipped_count': duplicate_count,
+                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)'
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
 # This view returns semantic search results
 class InstrumentSearch(APIView):
