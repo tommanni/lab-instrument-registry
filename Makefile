@@ -76,18 +76,18 @@ export-csv: ## Export database to CSV
 
 import-csv: ## Import CSV to database (usage: make import-csv FILE=filename.csv)
 	@if [ -z "$(FILE)" ]; then \
-		echo "Please specify a file: make import-csv FILE=filename.csv"; \
+		echo "ERROR: Please specify a file: make import-csv FILE=filename.csv"; \
 		exit 1; \
 	fi
 	@echo "Importing $(FILE) to database..."
 	@docker-compose exec web python manage.py import_csv $(FILE)
-	@echo "Precomputing embeddings and translations..."
+	@echo "🧠 Precomputing embeddings and translations..."
 	@docker-compose exec web python manage.py precompute_embeddings || \
-		(echo "Failed to precompute embeddings. Make sure containers are running."; exit 1)
+		(echo "❌ Failed to precompute embeddings. Make sure containers are running."; exit 1)
 
 import-csv-old: ## Import "janky" CSV with old mode (usage: make import-csv-old FILE=filename.csv)
 	@if [ -z "$(FILE)" ]; then \
-		echo "Please specify a file: make import-csv-old FILE=filename.csv"; \
+		echo "ERROR: Please specify a file: make import-csv-old FILE=filename.csv"; \
 		exit 1; \
 	fi
 	@echo "Importing $(FILE) to database using old mode (for Excel exports)..."
