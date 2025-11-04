@@ -205,7 +205,7 @@ export default {
 .filter-wrapper {
   display: grid;
   box-sizing: border-box;
-  grid-template-columns: repeat(4, 265px);
+  grid-template-columns: repeat(4, 200px);
 }
 
 @media screen and (max-width: 768px){
