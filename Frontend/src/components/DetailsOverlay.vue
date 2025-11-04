@@ -299,7 +299,7 @@ const cancelDuplicateUpdate = () => {
               <form @submit.prevent="confirmUpdate" :class="{'was-validated': formValidated}" class="container compact-form" novalidate
                 v-if="view !== 'history'">
                 <div class="row row-cols-2">
-                  <div class="col d-flex flex-column gap-3">
+                  <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <!-- First column fields -->
                     <div class="form-field-wrapper">
                       <label for="tay-no">{{ tm('fullHeaders')[1] }}</label>
@@ -347,8 +347,13 @@ const cancelDuplicateUpdate = () => {
                       <input id="prev-maintenance" class="form-control" :disabled="view != 'edit'" type="date"
                         v-model="updateFormData['edellinen_huolto']">
                     </div>
+                    <div class="form-field-wrapper">
+                      <label for="next-maintenance">{{ tm('fullHeaders')[17] }}</label>
+                      <input id="next-maintenance" class="form-control" :disabled="view != 'edit'" type="date"
+                        v-model="updateFormData['seuraava_huolto']">
+                    </div>
                   </div>
-                  <div class="col d-flex flex-column gap-3">
+                  <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <!-- Second column fields -->
                     <div class="form-field-wrapper">
                       <label for="product-serialno">{{ tm('fullHeaders')[4] }}</label>
@@ -376,17 +381,10 @@ const cancelDuplicateUpdate = () => {
                         v-model="updateFormData['huoltosopimus_loppuu']">
                     </div>
                     <div class="form-field-wrapper">
-                      <label for="next-maintenance">{{ tm('fullHeaders')[17] }}</label>
-                      <input id="next-maintenance" class="form-control" :disabled="view != 'edit'" type="date"
-                        v-model="updateFormData['seuraava_huolto']">
-                    </div>
-                    <div class="form-field-wrapper">
                       <label for="status">{{ tm('fullHeaders')[18] }}</label>
                       <input id="status" class="form-control" :disabled="view != 'edit'"
                         v-model="updateFormData['tilanne']">
                     </div>
-                  </div>
-                  <div class="mt-3">
                     <div class="form-field-wrapper">
                       <label for="footnote">{{ tm('fullHeaders')[12] }}</label>
                       <textarea id="footnote" class="form-control" :disabled="view != 'edit'"

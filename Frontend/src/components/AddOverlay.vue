@@ -133,7 +133,7 @@ const saveData = async () => {
             <div class="modal-body">
               <form @submit.prevent="saveData" :class="{'was-validated': formValidated}" class="container compact-form" novalidate>
                 <div class="row row-cols-2">
-                  <div class="col d-flex flex-column gap-2">
+                  <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <div>
                       <label for="tuotenimi">{{ t('message.tuotenimi') }} <span class="text-danger">*</span></label>
                       <input class="form-control" id="tuotenimi" v-model="formData.tuotenimi" required />
@@ -164,7 +164,7 @@ const saveData = async () => {
                         type="date" />
                     </div>
                   </div>
-                  <div class="col d-flex flex-column gap-2">
+                  <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <div>
                       <label for="sarjanumero">{{ t('message.sarjanumero') }}</label>
                       <input id="sarjanumero" class="form-control" v-model="formData.sarjanumero" />
