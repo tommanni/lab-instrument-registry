@@ -66,9 +66,6 @@ async function changeAdminValue() {
 
 .modal-buttons button {
   margin-top: 1rem;
-  border-radius: 4px;
-  border: none;
-  padding: 5px 10px;
 }
 
 </style>
