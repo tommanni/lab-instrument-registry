@@ -391,9 +391,17 @@ class Register(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        password = request.data.get('password')
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            return Response({'message': e.messages}, status=400)
+
         invite_code = request.data.get('invite_code', None)
         validated = InviteCode.objects.validate_and_remove(invite_code)
         if validated:
+
+
             serializer = RegistryUserSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -402,7 +410,7 @@ class Register(APIView):
             return Response({'message': 'invite code invalid or missing'}, status=400)
 
 # This view allows a logged in user to change their password.
-class ChangePasswordView(APIView):
+class ChangePassword(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
@@ -413,22 +421,22 @@ class ChangePasswordView(APIView):
         try:
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
-            return Response({'detail': 'User not found.'}, status=404)
+            return Response({'message': 'User not found.'}, status=404)
 
          # only superadmins can change superadmin passwords
         if (not (request.user != user or request.user.is_staff or request.user.is_superuser)
             or (user.is_superuser and not request.user.is_superuser)):
-            return Response({'detail': 'Not authorized.'}, status=403)
+            return Response({'message': 'Not authorized.'}, status=403)
 
-        #try:
-        #    validate_password(new_password, user=user)
-        #except ValidationError as e:
-        #    return Response({'errors': e.messages}, status=400)
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            return Response({'message': e.messages}, status=400)
 
         user.set_password(new_password)
         user.save()
 
-        return Response({'detail': 'Password updated successfully.'})
+        return Response({'message': 'Password updated successfully.'})
 
 # This view allows an superadmin user to add or remove admin rights to a user.
 class ChangeAdminStatus(APIView):
@@ -437,14 +445,14 @@ class ChangeAdminStatus(APIView):
 
     def post(self, request):
         if not request.user.is_superuser: # only superadmins can create new admins
-            return Response({'detail': 'Not authorized.'}, status=403)
+            return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
 
         try:
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
-            return Response({'detail': 'User not found.'}, status=404)
+            return Response({'message': 'User not found.'}, status=404)
         
         if user.is_staff:
             user.is_staff = False
@@ -464,14 +472,14 @@ class ChangeSuperadminStatus(APIView):
 
     def post(self, request):
         if not request.user.is_superuser: # only superadmins can create new superadmin
-            return Response({'detail': 'Not authorized.'}, status=403)
+            return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
 
         try:
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
-            return Response({'detail': 'User not found.'}, status=404)
+            return Response({'message': 'User not found.'}, status=404)
         
         if user.is_superuser:
             user.is_staff = False
@@ -492,17 +500,17 @@ class DeleteUser(APIView):
 
     def post(self, request):
         if not request.user.is_superuser: # only superadmins can delete users
-            return Response({'detail': 'Not authorized.'}, status=403)
+            return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
 
         try:
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
-            return Response({'detail': 'User not found.'}, status=404)
+            return Response({'message': 'User not found.'}, status=404)
 
         if user == request.user: # prevent self-deletion
-            return Response({'detail': 'You cannot delete your own account.'}, status=400)
+            return Response({'message': 'You cannot delete your own account.'}, status=400)
         
         user.delete()
 

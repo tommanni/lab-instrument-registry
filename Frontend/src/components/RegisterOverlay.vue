@@ -34,7 +34,12 @@ const registerUser = async () => {
     alertStore.showAlert(0, `${t('message.rekisteroity')}`)
     closeOverlay()
   } catch (error) {
-    alertStore.showAlert(1, t('message.rekisteroimisvirhe'))
+        if (error.response && error.response.data && error.response.data.message) {
+            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+        }
+        else {
+            alertStore.showAlert(1, t('message.rekisteroimisvirhe'));
+        }
   }
 }
 

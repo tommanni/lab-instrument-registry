@@ -33,8 +33,8 @@ async function fetchUser(id) {
         if (!dataStore.user.is_staff) {
           return; // non-admins should not see error if user not found
         }
-        if (error.response && error.response.data && error.response.data.detail) {
-            alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
+        if (error.response && error.response.data && error.response.data.message) {
+            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
         }
         else {
             alertStore.showAlert(1, t('message.tuntematon_virhe'));

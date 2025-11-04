@@ -37,7 +37,12 @@ async function submitPassword() {
     });
     alertStore.showAlert(0, t('message.salasana_vaihdettu'));
   } catch (error) {
-    alertStore.showAlert(1, t('message.virhe'));
+        if (error.response && error.response.data && error.response.data.message) {
+            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+        }
+        else {
+            alertStore.showAlert(1, t('message.tuntematon_virhe'));
+        }
   }
   new_password.value = '';
   confirm_new_password.value = '';
