@@ -143,7 +143,7 @@ export default {
 	  tiedonsiirto_kuvaus: "Tuo tai vie instrumentteja csv-muodossa",
 	  huoltosivu_kuvaus: "Hallitse huoltosopimuksia ja huoltoa odottavia laitteita",
 	  avaa: "Avaa",
-	  haku_info_title: "Boolean-haku",
+	  haku_info_title: "Hakuohjeet",
 	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO.",
 	  haluatko_deaktivoida_kayttajan: "Oletko varma, että haluat poistaa tämän käyttäjän?",
 	  kayttajan_hallinta: "Käyttäjän hallinta",
