@@ -5,7 +5,7 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 ## Stack
 
 - **FastAPI + Uvicorn** for the HTTP API  
-- **SentenceTransformers** (`sbert-uncased-finnish-paraphrase`, `all-mpnet-base-v2`) for embeddings  
+- **SentenceTransformer** (`all-mpnet-base-v2`) for embeddings  
 - **Helsinki-NLP/opus-mt-fi-en** (fine-tuned) for Finnish→English translation  
 - **PyTorch (CPU)** with dynamic quantization for smaller memory footprint and faster inference
 
@@ -13,9 +13,8 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/process` | Translate a single Finnish string and generate embeddings (`embedding_fi`, `embedding_en`). |
+| `POST` | `/process` | Translate a single Finnish string and generate embeddings (`embedding_en`). |
 | `POST` | `/process_batch` | Batch version of `/process` (up to `MAX_BATCH_SIZE` = 256). |
-| `POST` | `/embed_fi` | Finnish embedding only. |
 | `POST` | `/embed_en` | English embedding only. |
 | `GET` | `/healthz` | Returns `{"status": "ok"}` once all models are loaded (used by Docker healthcheck). |
 

@@ -63,7 +63,7 @@ watch(() => dataStore.searchMode, async () => {
 <template>
     <div v-if="searchType==='device'" class="search-container">
         <div class="input-wrapper">
-            <input class="form-control" v-model="dataStore.searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="searchFunction(false)" />
+            <input class="form-control" v-model="dataStore.searchTerm" :placeholder="dataStore.searchMode === 'direct' ? $t('message.placeholder') : $t('message.placeholder_smart_search')" @keyup.enter="searchFunction(false)" />
             <a v-if="dataStore.searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
                 <i class="bi bi-x text-primary"></i>
             </a>

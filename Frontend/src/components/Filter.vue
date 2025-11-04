@@ -205,7 +205,6 @@ export default {
   }
 }
 
-
 .filter-wrapper .d-toggle {
   height: 40px;
   overflow: hidden;

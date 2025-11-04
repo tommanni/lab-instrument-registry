@@ -3,6 +3,7 @@ export default {
 	  suodatin: 'Filters',
 	  haku_painike: 'Search',
 	  placeholder: 'Operators AND, OR and NOT',
+	  placeholder_smart_search: "Search by meaning or synonyms...",
 	  placeholder_user: 'Search users...',
 	  yksikko: 'Unit',
 	  huone: 'Room',
@@ -144,7 +145,7 @@ export default {
       haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_number, serial_number, product_name, brand_and_model, unit, campus, building, room, responsible_person, status, supplier, extra_information, old_location, delivery_date. Example: product_name:kuumasaumaaja AND (building:TAYS OR building:Arvo) AND NOT room:TULO.",
 	  tarkka_haku: "Direct Search",
 	  älykäs_haku: "Smart Search",
-	  smart_search_info_content: "Smart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings."
+	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings."
 	},
 	tableHeaders: [
 	  "Product Name",

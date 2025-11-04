@@ -18,6 +18,7 @@ import csv
 import io
 from pgvector.django import CosineDistance
 import requests
+from lingua import Language, LanguageDetectorBuilder
 
 # Helper function to check for duplicate instruments
 def check_csv_duplicates(rows):
@@ -86,21 +87,21 @@ Instrument related views
 """
 # This view returns all of the instruments in the database.
 class InstrumentList(generics.ListCreateAPIView):
-    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
+    queryset = Instrument.objects.defer('embedding_en')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns a single instrument.
 class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
+    queryset = Instrument.objects.defer('embedding_en')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns the history of a single instrument.
 class InstrumentHistory(generics.RetrieveAPIView):
-    queryset = Instrument.objects.defer('embedding_fi', 'embedding_en')
+    queryset = Instrument.objects.defer('embedding_en')
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -157,7 +158,7 @@ class InstrumentValueSet(APIView):
         if field_name not in field_names:
             return Response({'message': 'no such field'}, status=400)
         unique_values = set()
-        instruments = Instrument.objects.defer('embedding_fi', 'embedding_en')
+        instruments = Instrument.objects.defer('embedding_en')
         for i in instruments:
             unique_values.add(getattr(i, field_name))
         return Response({'data': list(unique_values)})
@@ -171,7 +172,7 @@ class InstrumentCSVExport(APIView):
     def get(self, request):
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
-        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_fi', 'embedding_en'))
+        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en'))
 
         # Read the CSV content and add UTF-8 BOM for Excel compatibility
         csv_content = source.read()
@@ -179,6 +180,38 @@ class InstrumentCSVExport(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
+    
+LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
+    Language.ENGLISH,
+    Language.FINNISH
+).build()
+
+ENGLISH_CONFIDENCE_MIN = 0.60
+CONFIDENCE_MARGIN = 0.10
+    
+def should_translate_to_english(text: str) -> bool:
+    """
+    Decide whether to route the query through the Finnish->English translation step.
+    We translate unless the detector is clearly confident the text is already English.
+    """
+    if not text:
+        return True
+
+    confidence_map = {
+        confidence.language: confidence.value
+        for confidence in LANGUAGE_DETECTOR.compute_language_confidence_values(text)
+    }
+
+    english_conf = confidence_map.get(Language.ENGLISH, 0.0)
+    finnish_conf = confidence_map.get(Language.FINNISH, 0.0)
+
+    is_confident_english = (
+        english_conf >= ENGLISH_CONFIDENCE_MIN and
+        english_conf - finnish_conf >= CONFIDENCE_MARGIN
+    )
+
+    return not is_confident_english
+
 
 # This view validates and previews CSV import before actually importing
 class InstrumentCSVPreview(APIView):
@@ -278,44 +311,42 @@ class InstrumentSearch(APIView):
 
     def get(self, request):
         search_term = request.query_params.get('q', None)
-        search_lang = request.query_params.get('lang')
-
-        # Strip quotes if present
-        if isinstance(search_lang, str):
-            search_lang = search_lang.strip('"\'')
 
         if not search_term:
             return Response({'message': 'search term not provided'}, status=400)
 
-        # Thresholds for search term - search result similarity
-        FINNISH_SIMILARITY_THRESHOLD = 0.20
-        ENGLISH_SIMILARITY_THRESHOLD = 0.30
+        # Threshold for search term - search result similarity
+        SIMILARITY_THRESHOLD = 0.30
 
         try:
-            if search_lang == 'fi':
-                embedding_field = 'embedding_fi'
-                service_url = "http://semantic-search-service:8001/embed_fi"
-                threshold = FINNISH_SIMILARITY_THRESHOLD
+            if should_translate_to_english(search_term): # If Finnish language detected, translate to English
+                response = requests.post(
+                    "http://semantic-search-service:8001/process",
+                    json={"text": search_term},
+                    timeout=5.0
+                )
+                if response.status_code != 200:
+                    return Response({'message': 'error from semantic search service'}, status=500)
+                service_payload = response.json()
+                search_embedding = service_payload.get('embedding_en')
             else:
-                embedding_field = 'embedding_en'
-                service_url = "http://semantic-search-service:8001/embed_en"
-                threshold = ENGLISH_SIMILARITY_THRESHOLD
+                response = requests.post(
+                    "http://semantic-search-service:8001/embed_en",
+                    json={"text": search_term},
+                    timeout=5.0
+                )
+                if response.status_code != 200:
+                    return Response({'message': 'error from semantic search service'}, status=500)
+                service_payload = response.json()
+                search_embedding = service_payload.get('embedding')
 
-            response = requests.post(
-                service_url,
-                json={"text": search_term},
-                timeout=5.0
-            )
-            response.raise_for_status()
-
-            search_embedding = response.json().get('embedding')
             if not search_embedding:
                 return Response({'message': 'could not generate embedding for search term'}, status=500)
             
             # Start with base queryset
             instruments = Instrument.objects.annotate(
-                distance=CosineDistance(embedding_field, search_embedding)
-            ).filter(distance__lt=threshold).defer('embedding_fi', 'embedding_en')
+                distance=CosineDistance('embedding_en', search_embedding)
+            ).filter(distance__lt=SIMILARITY_THRESHOLD).defer('embedding_en')
 
             instruments = instruments.order_by('distance')[:60]
 
@@ -341,7 +372,7 @@ class ServiceValueSet(APIView):
             Q(huoltosopimus_loppuu__isnull=False) | 
             Q(seuraava_huolto__isnull=False) | 
             Q(edellinen_huolto__isnull=False)
-        ).defer('embedding_fi', 'embedding_en')
+        ).defer('embedding_en')
         serializer = InstrumentSerializer(queryset, many=True)
         return Response(serializer.data)
 

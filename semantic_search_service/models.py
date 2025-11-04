@@ -23,7 +23,6 @@ sanitized_model_name = opus_mt_model_name.replace("/", "_")
 
 # Model paths
 TRANSLATION_MODEL_PATH = f"/app/models/{sanitized_model_name}"
-EMBEDDING_MODEL_FI_PATH = "/app/models/sbert-uncased-finnish-paraphrase"
 EMBEDDING_MODEL_EN_PATH = "/app/models/all-mpnet-base-v2"
 
 # ==========================================================
@@ -56,7 +55,6 @@ os.environ["MKL_NUM_THREADS"] = "3"
 
 _translation_tokenizer = None
 _translation_model = None
-_embedding_model_fi = None
 _embedding_model_en = None
 _models_loaded = False
 _models_lock = threading.Lock()
@@ -89,15 +87,7 @@ def _load_translation_components():
 
 
 def _load_embedding_models():
-    global _embedding_model_fi, _embedding_model_en
-
-    logger.info("Loading Finnish embedding model from %s", EMBEDDING_MODEL_FI_PATH)
-    _embedding_model_fi = SentenceTransformer(
-        EMBEDDING_MODEL_FI_PATH,
-        local_files_only=True,
-        device='cpu'
-    )
-    _embedding_model_fi.eval()
+    global  _embedding_model_en
 
     logger.info("Loading English embedding model from %s", EMBEDDING_MODEL_EN_PATH)
     _embedding_model_en = SentenceTransformer(
@@ -130,12 +120,6 @@ def get_translation_components():
     ensure_models_loaded()
     return _translation_tokenizer, _translation_model
 
-
-def get_embedding_model_fi():
-    ensure_models_loaded()
-    return _embedding_model_fi
-
-
 def get_embedding_model_en():
     ensure_models_loaded()
     return _embedding_model_en
@@ -153,7 +137,6 @@ def warm_up_models():
         logger.warning("Translation warm-up failed: %s", exc)
 
     try:
-        get_embedding_model_fi().encode(["testi"], show_progress_bar=False)
         get_embedding_model_en().encode(["device"], show_progress_bar=False)
     except Exception as exc:
         logger.warning("Embedding warm-up failed: %s", exc)
@@ -167,7 +150,6 @@ __all__ = [
     "ensure_models_loaded",
     "warm_up_models",
     "get_translation_components",
-    "get_embedding_model_fi",
     "get_embedding_model_en",
     "logger",
 ]

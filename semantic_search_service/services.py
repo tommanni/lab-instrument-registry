@@ -3,10 +3,19 @@ import gc
 import torch
 from models import (
     get_translation_components,
-    get_embedding_model_fi,
     get_embedding_model_en,
     logger,
 )
+
+PREFIX = "scientific instrument: "
+
+def _strip_context_prefix(text: str) -> str:
+    """Remove the known translation prefix if it appears at the beginning."""
+    normalized = text.lower()
+    if normalized.startswith(PREFIX):
+        return text[len(PREFIX):].lstrip()
+    return text
+
 
 # ==========================================================
 # Translation Functions
@@ -19,8 +28,7 @@ def translate_fi_to_en(text: str) -> str:
         result = tokenizer.decode(translated[0], skip_special_tokens=True).strip()
         if len(result) > 3 * len(text) or len(result) > 100:
             return "Translation Failed"
-        # If prefix is applied
-        result = result.split(": ")[-1]
+        result = _strip_context_prefix(result)
         return result
     except Exception as e:
         logger.error(f"Translation failed for text: '{text}'. Error: {e}", exc_info=True)
@@ -58,8 +66,7 @@ def translate_fi_to_en_batch(texts: List[str]) -> List[str]:
             if len(result) > 3 * len(original) or len(result) > 100:
                 result = "Translation Failed"
             else:
-                # If prefix is applied
-                result = result.split(": ")[-1]
+                result = _strip_context_prefix(result)
             results.append(result)
 
         return results
@@ -72,25 +79,10 @@ def translate_fi_to_en_batch(texts: List[str]) -> List[str]:
 # ==========================================================
 # Embedding Functions
 # ==========================================================
-def embed_fi(text: str) -> list:
-    """Generate Finnish embedding for a single text"""
-    model = get_embedding_model_fi()
-    return model.encode(text).tolist()
-
 def embed_en(text: str) -> list:
     """Generate English embedding for a single text"""
     model = get_embedding_model_en()
     return model.encode(text).tolist()
-
-def embed_fi_batch(texts: List[str], batch_size: int = 100) -> list:
-    """Generate Finnish embeddings for multiple texts"""
-    model = get_embedding_model_fi()
-    return model.encode(
-        texts, 
-        batch_size=batch_size, 
-        show_progress_bar=False,
-        convert_to_numpy=True
-    )
 
 def embed_en_batch(texts: List[str], batch_size: int = 100) -> list:
     """Generate English embeddings for multiple texts"""
