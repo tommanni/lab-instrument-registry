@@ -431,8 +431,6 @@ class Register(APIView):
         invite_code = request.data.get('invite_code', None)
         validated = InviteCode.objects.is_valid_code(invite_code)
         if validated:
-
-
             serializer = RegistryUserSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
