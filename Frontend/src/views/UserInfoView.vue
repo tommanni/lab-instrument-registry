@@ -77,8 +77,7 @@ watch(
       </div>
       
       <div class="password-container" v-if="userStore.user && user &&  
-       ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )"
->
+       ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )">
           <PasswordOverlay :user="user"/>
       </div>
 
