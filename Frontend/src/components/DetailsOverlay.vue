@@ -187,7 +187,7 @@ const proceedDuplicateUpdate = async () => {
   await performUpdate(payload)
 }
 
-const cancelDuplicateUpdate = async () => {
+const updateOnlyCurrent = async () => {
   if (isUpdating.value) {
     return
   }
@@ -268,6 +268,11 @@ const confirmDelete = async () => {
       alertStore.showAlert(1, `${t('message.ei_poistettu')}: ${t('message.tuntematon_virhe')}`)
     }
   }
+}
+
+const cancelDuplicateUpdate = () => {
+  pendingUpdatePayload.value = null
+  pendingDuplicateCount.value = 0
 }
 
 </script>
@@ -443,8 +448,11 @@ const confirmDelete = async () => {
                     <p class="mb-2">{{ t('message.loytyi_duplikaatteja', { count: pendingDuplicateCount }) }}</p>
                     <p class="text-muted small mb-4">{{ t('message.paivita_duplikaatit_kysymys') }}</p>
                     <div class="d-flex justify-content-end gap-2">
-                      <button type="button" class="btn btn-light border" @click="cancelDuplicateUpdate" :disabled="isUpdating">
-                        {{ t('message.ei_kiitos') }}
+                      <button type="button" class="btn btn-secondary border" @click="cancelDuplicateUpdate" :disabled="isUpdating">
+                        {{ t('message.peru_päivitys') }}
+                      </button>
+                      <button type="button" class="btn btn-light border" @click="updateOnlyCurrent" :disabled="isUpdating">
+                        {{ t('message.päivitä_yksi') }}
                       </button>
                       <button type="button" class="btn btn-primary" @click="proceedDuplicateUpdate" :disabled="isUpdating">
                         <span
