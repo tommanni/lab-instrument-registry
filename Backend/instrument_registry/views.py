@@ -423,11 +423,12 @@ class Register(APIView):
 
     def post(self, request):
         invite_code = request.data.get('invite_code', None)
-        validated = InviteCode.objects.validate_and_remove(invite_code)
+        validated = InviteCode.objects.is_valid_code(invite_code)
         if validated:
             serializer = RegistryUserSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            InviteCode.objects.remove_code(invite_code)
             return Response({'message': 'user registered'})
         else:
             return Response({'message': 'invite code invalid or missing'}, status=400)
