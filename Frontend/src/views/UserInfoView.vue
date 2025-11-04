@@ -76,7 +76,9 @@ watch(
         <UserInfo :user="user"/>
       </div>
       
-      <div class="password-container">
+      <div class="password-container" v-if="userStore.user && user &&  
+       ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )"
+>
           <PasswordOverlay :user="user"/>
       </div>
 
