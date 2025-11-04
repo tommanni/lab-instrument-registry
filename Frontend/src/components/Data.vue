@@ -294,7 +294,7 @@ td {
 th {
   background-color: var(--bs-secondary-bg-subtle);
   position: sticky;
-  top: calc(var(--header-height) + 56px);
+  top: calc(var(--header-height) + var(--actions-wrapper-height));
   z-index: 1;
 }
 

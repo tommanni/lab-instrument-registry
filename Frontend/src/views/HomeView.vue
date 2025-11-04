@@ -71,6 +71,7 @@ function handleNewInstrument(item) {
   z-index: 11;
   box-sizing: border-box;
   justify-items: stretch;
+  max-height: var(--actions-wrapper-height);
 }
 
 .actions-line {
