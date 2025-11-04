@@ -25,8 +25,8 @@ async function deleteUser() {
             router.push('/admin/users'); // navigate back to user list after deletion
 
     } catch (error) {
-        if (error.response && error.response.data && error.response.data.detail) {
-            alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
+        if (error.response && error.response.data && error.response.data.message) {
+            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
         }
         else {
             alertStore.showAlert(1, t('message.tuntematon_virhe'));
