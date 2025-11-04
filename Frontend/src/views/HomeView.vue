@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import Search from '@/components/Search.vue';
 import Filter from '@/components/Filter.vue';
 import Data from '@/components/Data.vue';
@@ -9,6 +9,33 @@ import { useDataStore } from '@/stores/data';
 const store = useDataStore()
 const dataComponent = ref(null)
 
+const actionsWrapper = ref(null);
+let resizeObserver = null;
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      setTop();
+    }
+  })
+  
+  if (actionsWrapper.value) resizeObserver.observe(actionsWrapper.value)
+})
+
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+})
+
+/*Sets the top attribute of the table header to match the filter bar height*/
+const setTop = () => {
+  const header = dataComponent.value?.dataTableHeader;
+  if (!header) return;
+  const el = header.value ?? header;
+  el.style.top = `${actionsWrapper.value.offsetHeight + 65}px`
+}
 
 function onFilterChange({ filterName, value }) {
   store.filterValues[filterName] = value
@@ -29,7 +56,7 @@ function handleNewInstrument(item) {
 
 <template>
     <div class="home-root">
-      <div class="actions-wrapper p-2 gap-2 mb-2" style="z-index: 10;">
+      <div class="actions-wrapper p-2 gap-2 mb-2" ref="actionsWrapper" >
         <div class="actions-add">
           <AddOverlay @new-instrument-added="handleNewInstrument" />
         </div>
@@ -64,6 +91,12 @@ function handleNewInstrument(item) {
     "search"
     "filters"
     "add";
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "search"
+    "filters"
+    "add";
   position: sticky;
   width: 100%;
   top: var(--header-height);
@@ -71,6 +104,7 @@ function handleNewInstrument(item) {
   z-index: 11;
   box-sizing: border-box;
   justify-items: stretch;
+
 }
 
 .actions-line {
@@ -83,6 +117,7 @@ function handleNewInstrument(item) {
 .actions-line--search {
   grid-area: search;
   box-sizing: border-box;
+  
 }
 
 .actions-line--filters {
@@ -91,10 +126,6 @@ function handleNewInstrument(item) {
   gap: 0.5rem;
 }
 
-.actions-add {
-  grid-area: add;
-  justify-self: center;
-}
 
 @media screen and (min-width: 992px){
   .actions-wrapper {
@@ -110,9 +141,17 @@ function handleNewInstrument(item) {
   }
 }
 
+.actions-add {
+  grid-area: add;
+  justify-self: center;
+}
+
 @media screen and (max-width: 768px){
   .actions-wrapper {
     position: static;
+    justify-items: stretch;
+  }
+  .actions-line--filters {
     justify-items: stretch;
   }
   .actions-line--filters {
@@ -121,9 +160,6 @@ function handleNewInstrument(item) {
   }
   .actions-add {
     margin-top: 0;
-    width: 100%;
-    display: block;
-    justify-self: stretch;
   }
 }
 

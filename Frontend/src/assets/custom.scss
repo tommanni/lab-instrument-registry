@@ -83,6 +83,9 @@ $navbar-border-radius: 0.2rem;
 
 .tuni-table-wrapper table {
   min-width: 600px;
+  border-collapse: separate;
+  border-spacing: 0;
+  /*table-layout: fixed;*/
 }
 
 .tuni-table-wrapper thead tr:first-child th:first-child {
@@ -101,12 +104,19 @@ tbody tr:last-child td:last-child {
   border-bottom-right-radius: var(--bs-border-radius);
 }
 
-.tuni-table-wrapper th {
+.tuni-table-wrapper tr.tuni-table-header {
+  position: sticky;
+  z-index: 9;
+  
+  /*'top' is dynamically calculated*/
+}
+
+/*.tuni-table-wrapper th {
   background-color: var(--bs-secondary-bg-subtle);
   position: sticky;
-  top: calc(var(--header-height) + var(--actions-wrapper-height));
+  top: calc(var(--header-height) + 156px);
   z-index: 9;
-}
+}*/
 
 
 .tuni-table-wrapper td {
@@ -119,9 +129,13 @@ tbody tr:last-child td:last-child {
 
 
 @media screen and (max-width: 768px) {
-  .tuni-table-wrapper th {
+  .tuni-table-wrapper tr.tuni-table-header {
     position: static
   }
+}
+
+.tuni-table-wrapper .header-text {
+  font-weight: $font-weight-bold;
 }
 
 /* Navigation & Tabs - bottom border style instead of background */
@@ -163,6 +177,13 @@ tbody tr:last-child td:last-child {
   background-color: transparent;
   font-weight: 600;
 }
+
+/* Make input and button height match */ 
+.btn,
+input.form-control {
+  height: 40px;
+}
+
 
 /* Buttons - ensure purple theme is applied */
 .btn-primary {

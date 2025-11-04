@@ -141,44 +141,61 @@ export default {
 </script>
 
 <template>
-  <ul class="filter-wrapper gap-3 ms-md-2">
-    <li class="filter-slot" v-for="(filter, index) in filters" :key="index">
-      <div class="dropdown">
-        <button class="btn border dropdown-toggle d-toggle rounded" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
-          aria-expanded="false">
-          <div class="selection-wrapper" :title="filter.selected || $t('message.' + filter.field)">
-            {{ filter.selected || $t('message.' + filter.field) }}
-          </div>
-        </button>
-        <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="(event) => {event.stopPropagation(); clearFilter(index); }">
-            <i class="bi bi-x text-primary"></i>
-          </a>
-        <div class="dropdown-menu p-2" :aria-labelledby="'dropdownInputButton-'+index">
-          <input v-model="filter.searchTerm" type="text" class="form-control mb-2"
-            :placeholder="$t('message.' + filter.field)" />
-          <div class="dropdown-content-scrollable">
-            <button v-for="(option, optionIndex) in filteredOptions(filter)" :key="optionIndex"
-              class="dropdown-item tuni-dropdown-item" @click="applyFilter(index, option)">
-              {{ option }}
-            </button>
-          </div>
+  <div class="filter-root">
+    <div class="filter-icon-wrapper">
+      <i class="bi bi-funnel text-primary"></i>
+    </div>
+    <ul class="filter-wrapper gap-2 ms-md-2">
+      <li class="filter-slot" v-for="(filter, index) in filters" :key="index">
+        <div class="dropdown">
+          <button class="btn border dropdown-toggle d-toggle rounded" type="button" :id="'dropdownInputButton-' + index" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <div class="selection-wrapper" :title="filter.selected || $t('message.' + filter.field)">
+              {{ filter.selected || $t('message.' + filter.field) }}
+            </div>
+          </button>
+          <a v-if="filter.selected" class="btn text-muted mx-1 clear-button" @click="(event) => {event.stopPropagation(); clearFilter(index); }">
+              <i class="bi bi-x text-primary"></i>
+            </a>
+          <div class="dropdown-menu p-2" :aria-labelledby="'dropdownInputButton-'+index">
+            <input v-model="filter.searchTerm" type="text" class="form-control mb-2"
+              :placeholder="$t('message.' + filter.field)" />
+            <div class="dropdown-content-scrollable">
+              <button v-for="(option, optionIndex) in filteredOptions(filter)" :key="optionIndex"
+                class="dropdown-item tuni-dropdown-item" @click="applyFilter(index, option)">
+                {{ option }}
+              </button>
+            </div>
 
+          </div>
         </div>
-      </div>
 
-    </li>
-  </ul>
-  <button
-    v-if="filters.some(f => f.selected)"
-    type="button"
-    class="btn btn-primary ms-md-3 clear-filters-button"
-    @click="clearAllFilters"
-  >
-    {{$t('message.nollaa_suodattimet')}}
-  </button>
+      </li>
+    </ul>
+    <button
+      v-if="filters.some(f => f.selected)"
+      type="button"
+      class="btn btn-primary ms-md-3 clear-filters-button"
+      @click="clearAllFilters"
+    >
+      {{$t('message.nollaa_suodattimet')}}
+    </button>
+  </div>
 </template>
 
 <style scoped>
+
+.filter-root {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.filter-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .dropdown {
   position: relative;
@@ -187,10 +204,8 @@ export default {
 
 .filter-wrapper {
   display: grid;
-  gap: 0.5rem;
   box-sizing: border-box;
-  grid-template-columns: repeat(4, 200px);
-  padding-bottom: 4px;
+  grid-template-columns: repeat(4, 265px);
 }
 
 @media screen and (max-width: 768px){
@@ -202,6 +217,9 @@ export default {
   .clear-filters-button {
     width: 100%;
     margin-top: 8px;
+  }
+  .filter-icon-wrapper {
+    width: 100%;
   }
 }
 
@@ -236,12 +254,13 @@ export default {
   top: 50%;
   transform: translateY(-50%);
   right: 1.5rem;
+  height: fit-content;
 }
 .clear-button:hover {
   background-color: var(--bs-tertiary-bg);
 }
 
-.clear-filters-button {
+/*.clear-filters-button {
   align-self: flex-start;
   height: 40px;
   display: inline-flex;
@@ -251,7 +270,7 @@ export default {
   padding-right: 1rem;
   white-space: nowrap;
   flex-shrink: 0;
-}
+}*/
 
 
 ul {
