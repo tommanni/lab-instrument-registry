@@ -396,7 +396,7 @@ const confirmDelete = async () => {
                   <div
                     v-for="record in instrumentHistory"
                     :key="record.history_date"
-                    class="card history-card border border-secondary-subtle bg-body-tertiary mb-3"
+                    class="card history-card border border-secondary bg-secondary-subtle mb-2"
                   >
                     <div class="card-body">
                       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -406,7 +406,7 @@ const confirmDelete = async () => {
                             {{ record.history_user || t('message.jarjestelma') }}
                           </span>
                         </div>
-                        <span class="badge bg-secondary text-uppercase">{{ record.history_type }}</span>
+                        <span class="badge text-uppercase bg-primary">{{ record.history_type }}</span>
                       </div>
                     </div>
                     <ul class="list-group list-group-flush">

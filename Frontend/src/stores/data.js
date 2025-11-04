@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import Fuse from 'fuse.js'
+
 
 import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
 
@@ -179,16 +181,16 @@ export const useDataStore = defineStore('dataStore', () => {
     updateVisibleData()
   }
 
-  const filterData = () => {
+  const filterData = async () => {
 
     currentPage.value = 1
 
     updateURL()
-    applySearchAndFilter()
-  
+    await applySearchAndFilter()
+
   }
 
-  function searchData(clear) {
+  async function searchData(clear) {
     if (clear) {
       searchTerm.value = '';
     }
@@ -196,7 +198,7 @@ export const useDataStore = defineStore('dataStore', () => {
     currentPage.value = 1
 
     updateURL()
-    applySearchAndFilter()
+    await applySearchAndFilter()
   }
 
   function updateURL() {
@@ -250,73 +252,119 @@ export const useDataStore = defineStore('dataStore', () => {
     updateVisibleData()
   })
 
-  function applySearchAndFilter() {
-
-    const lowerSearch = searchTerm.value.toLowerCase()
+  const applySearchAndFilter = async () => {
+    const searchTermSanitized = searchTerm.value.trim().replace(/\s+/g, " ").toLowerCase(); //Trims whitespaces from beginning and end and replace identifies additinal whitespaces between words
 
     // Apply filters
-    const filtered = originalData.value.filter(item => {
-      let match = true
-      if (filterValues.value.yksikko)
-        match = match && item.yksikko === filterValues.value.yksikko
-      if (filterValues.value.huone)
-        match = match && item.huone === filterValues.value.huone
-      if (filterValues.value.vastuuhenkilo)
-        match = match && item.vastuuhenkilo === filterValues.value.vastuuhenkilo
-      if (filterValues.value.tilanne)
-        match = match && item.tilanne === filterValues.value.tilanne
-      return match
-    })
-
+    const fv = filterValues.value
+    const filtered = originalData.value.filter(item => 
+      (!fv.yksikko || item.yksikko === fv.yksikko) && 
+      (!fv.huone || item.huone == fv.huone) &&
+      (!fv.vastuuhenkilo || item.vastuuhenkilo == fv.vastuuhenkilo) &&
+      (!fv.tilanne || item.tilanne === fv.tilanne)
+    )
     filteredData.value = filtered
 
     // Apply search term
     let results = filtered
-    if (lowerSearch) {
-      const searchTermSanitized = searchTerm.value.trim().replace(/\s+/g, " ").toLowerCase(); //Trims whitespaces from beginning and end and replace identifies additinal whitespaces between words
-      const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTermSanitized) || /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTermSanitized)
-      if (hasBooleanOperator) {
-        results = filtered.filter((item) => matchesBooleanQuery(item, searchTermSanitized))
-      } else { 
-        // Match product names while respecting active locale and providing a fallback
-        const nameMatches = (item, term) => {
-          const primary = locale.value === 'fi' ? item.tuotenimi : item.tuotenimi_en
-          const secondary = locale.value === 'fi' ? item.tuotenimi_en : item.tuotenimi
-          return (
-            (primary && primary.toLowerCase().includes(term)) ||
-            (secondary && secondary.toLowerCase().includes(term))
-          )
-        }
-
-        results = filtered.filter(item =>
-          (item.id && item.id.toString().includes(searchTermSanitized)) ||
-          (item.tay_numero && item.tay_numero.toLowerCase().includes(searchTermSanitized)) ||
-          (item.sarjanumero && item.sarjanumero.toLowerCase().includes(searchTermSanitized)) ||
-          (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(searchTermSanitized)) ||
-          (item.toimittaja && item.toimittaja.toLowerCase().includes(searchTermSanitized)) ||
-          (item.lisatieto && item.lisatieto.toLowerCase().includes(searchTermSanitized)) ||
-          (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(searchTermSanitized)) ||
-          nameMatches(item, searchTermSanitized) ||
-          (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(searchTermSanitized)) ||
-          (item.yksikko && item.yksikko.toLowerCase().includes(searchTermSanitized)) ||
-          (item.kampus && item.kampus.toLowerCase().includes(searchTermSanitized)) ||
-          (item.rakennus && item.rakennus.toLowerCase().includes(searchTermSanitized)) ||
-          (item.huone && item.huone.toLowerCase().includes(searchTermSanitized)) ||
-          (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(searchTermSanitized)) ||
-          (item.tilanne && item.tilanne.toLowerCase().includes(searchTermSanitized))
-        )
-
+    if (searchTermSanitized) {
+      switch(searchMode.value) {
+        case 'direct':
+          results = directSearch(filtered, searchTermSanitized)
+          break
+        case 'smart':
+          results = await smartSearch(filtered, searchTermSanitized)
+          break
       }
     }
     searchedData.value = results
     numberOfPages.value = Math.ceil(results.length / 15)
 
     updateVisibleData()
+  }
 
+  const directSearch = (candidates, searchTerm) => {
+    const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm) || 
+      /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTerm)
+    if (hasBooleanOperator) {
+        return candidates.filter((item) => matchesBooleanQuery(item, searchTerm))
+    } else {
+        return candidates.filter(item =>
+          Object.values(item).some(value =>
+            value && String(value).toLowerCase().includes(searchTerm)
+          )
+        )
+      }
+  }
+
+  const smartSearch = async (candidates, searchTerm) => {
+    const fuzzyResults = fuzzySearch(candidates, searchTerm)
+
+    if (fuzzyResults.length < 10) {
+      const semanticResults = await semanticSearch(searchTerm)
+      const allowed = new Map(candidates.map(item => [item.id, item]))
+      const combined = [...fuzzyResults]
+      semanticResults.forEach(result => {
+        const candidate = allowed.get(result.id)
+        if (candidate) {
+          combined.push(candidate)
+        }
+      })
+      return [...new Map(combined.map(item => [item.id, item])).values()]
+    }
+
+    return fuzzyResults
+  }
+
+  const fuzzySearch = (candidates, searchTerm) => {
+    const fuseOptions = {
+      keys: [
+        { name: 'tuotenimi', weight: 5 },
+        { name: 'tuotenimi_en', weight: 5 },
+        { name: 'merkki_ja_malli', weight: 3 },
+        { name: 'tay_numero', weight: 4 },
+        { name: 'sarjanumero', weight: 3},
+        { name: 'vastuuhenkilo', weight: 1},
+        { name: 'tilanne', weight: 1 },
+        { name: 'vanha_sijainti', weight: 0.8 },
+        { name: 'toimittaja', weight: 0.8 },
+        { name: 'yksikko', weight: 0.8 },
+        { name: 'kampus', weight: 0.5 },
+        { name: 'rakennus', weight: 0.5 },
+        { name: 'huone', weight: 0.5 },
+        { name: 'lisatieto', weight: 0.2 },
+      ],
+        threshold: 0.2, // 0.0 exact match, 1.0 loose match
+        findAllMatches: true,
+        minMatchCharLength: 3,
+        shouldSort: true,
+        ignoreLocation: true,
+        includeMatches: true,
+    };
+    
+    const fuse = new Fuse(candidates, fuseOptions)
+    const fuseResults = fuse.search(searchTerm)
+
+    return fuseResults.map(r => r.item)
+  }
+
+  const semanticSearch = async (searchTerm) => {
+    try {
+      // Semantic search with filters
+      const semanticRes = await axios.get('/api/instruments/search/', {
+        params: { q: searchTerm },
+        withCredentials: true
+      })
+      const results = semanticRes.data
+      return results
+    } catch (error) {
+      console.error("Error during semantic search fallback:", error)
+      return []
+    }
   }
 
   // Function for data initialization based on active filters
-  const initializePageFromURL = () => {
+  const initializePageFromURL = async () => {
 
     Object.keys(filterValues.value).forEach((key)  => {
       filterValues.value[key] = route.query[key] ?? null
@@ -329,11 +377,11 @@ export const useDataStore = defineStore('dataStore', () => {
     const p = route.query.page ? parseInt(route.query.page, 10) : 1
     currentPage.value = Number.isNaN(p) ? 1 : p
 
-    applySearchAndFilter()
+    await applySearchAndFilter()
   }
 
   // Watcher for filter/search/pagination changes
-  watch(() => route.query, (newQuery) => {
+  watch(() => route.query, async (newQuery) => {
     if (route.path !== '/') return
 
     Object.keys(filterValues.value).forEach(key => {
@@ -347,7 +395,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
     currentPage.value = Number.isNaN(p) ? 1 : p
 
-    applySearchAndFilter()
+    await applySearchAndFilter()
 
   }, {immediate: false})
   

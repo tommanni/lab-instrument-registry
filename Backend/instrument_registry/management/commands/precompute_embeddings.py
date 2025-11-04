@@ -54,7 +54,6 @@ class Command(BaseCommand):
             # Filter out instruments that have already been successfully processed
             instruments_queryset = Instrument.objects.filter(
                 Q(tuotenimi_en__in=["", "Translation Failed"]) |
-                Q(embedding_fi__isnull=True) |
                 Q(embedding_en__isnull=True)
             )
             self.stdout.write(self.style.SUCCESS('Processing only instruments that need translation/embedding.'))
@@ -68,9 +67,8 @@ class Command(BaseCommand):
         # Preload all instruments with valid translations/embeddings for fast lookup
         valid_instruments = Instrument.objects.filter(
             ~Q(tuotenimi_en__in=["", "Translation Failed"]),
-            ~Q(embedding_fi__isnull=True),
             ~Q(embedding_en__isnull=True)
-        ).only('tuotenimi', 'tuotenimi_en', 'embedding_fi', 'embedding_en')
+        ).only('tuotenimi', 'tuotenimi_en', 'embedding_en')
         tuotenimi_lookup = {instr.tuotenimi.lower(): instr for instr in valid_instruments}
         
         self.stdout.write(self.style.SUCCESS(
@@ -96,9 +94,8 @@ class Command(BaseCommand):
                 existing_instrument = tuotenimi_lookup.get(tuotenimi)
                 if existing_instrument:
                     translated_text = existing_instrument.tuotenimi_en
-                    embedding_fi = existing_instrument.embedding_fi
                     embedding_en = existing_instrument.embedding_en
-                    translation_cache[tuotenimi] = (translated_text, embedding_fi, embedding_en)
+                    translation_cache[tuotenimi] = (translated_text, embedding_en)
                 else:
                     texts_to_process.append(tuotenimi)
                     
@@ -115,33 +112,31 @@ class Command(BaseCommand):
                     batch_results = response.json()
                     for text, result in zip(texts_to_process, batch_results):
                         translated_text = result['translated_text']
-                        embedding_fi = result['embedding_fi']
                         embedding_en = result['embedding_en']
-                        translation_cache[text] = (translated_text, embedding_fi, embedding_en)
+                        translation_cache[text] = (translated_text, embedding_en)
 
                 except requests.exceptions.RequestException as e:
                     self.stdout.write(self.style.ERROR(
                         f'Error connecting to semantic search service for batch: {e}'
                     ))
                     for text in texts_to_process:
-                        translation_cache[text] = ("Translation Failed", None, None)
+                        translation_cache[text] = ("Translation Failed", None)
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(
                         f'An unexpected error occurred: {e}'
                     ))
                     for text in texts_to_process:
-                        translation_cache[text] = ("Translation Failed", None, None)
+                        translation_cache[text] = ("Translation Failed", None)
             
             # Update instruments in batch
             instruments_to_update = []
             for instrument in batch:
                 tuotenimi = instrument.tuotenimi.lower()
-                translated_text, embedding_fi, embedding_en = translation_cache.get(
-                    tuotenimi, ("Translation Failed", None, None)
+                translated_text, embedding_en = translation_cache.get(
+                    tuotenimi, ("Translation Failed", None)
                 )
                 
                 instrument.tuotenimi_en = translated_text
-                instrument.embedding_fi = embedding_fi
                 instrument.embedding_en = embedding_en
                 instruments_to_update.append(instrument)
             
@@ -149,7 +144,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 Instrument.objects.bulk_update(
                     instruments_to_update, 
-                    ['tuotenimi_en', 'embedding_fi', 'embedding_en']
+                    ['tuotenimi_en', 'embedding_en']
                 )
                 self.stdout.write(self.style.SUCCESS(
                     f'Batch {i//batch_size + 1}/{(total_instruments_to_process + batch_size - 1)//batch_size} processed and updated.'

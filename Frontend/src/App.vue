@@ -56,7 +56,7 @@ onMounted(async () => {
   checkLanguageStatus()
   checkLogingStatus()
   await dataStore.fetchData()
-  dataStore.initializePageFromURL()
+  await dataStore.initializePageFromURL()
   dataStore.isInitialized = true;
 
   // --- start session monitor & intercept 401s ---

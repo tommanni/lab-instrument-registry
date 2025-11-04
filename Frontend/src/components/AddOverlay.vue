@@ -219,7 +219,7 @@ const saveData = async () => {
   .add-button-icon {
     padding-right: 4px;
   }
-  .add-button {
+  add-button {
     margin-top: 2px;
     margin-bottom: 4px;
     white-space: nowrap;

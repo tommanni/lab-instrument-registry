@@ -17,16 +17,9 @@ def download_models():
         model = MarianMTModel.from_pretrained(opus_mt_model_name)
         model.save_pretrained(model_path_fi_en)
         tokenizer.save_pretrained(model_path_fi_en)
-        print(f"✅ Downloaded {opus_mt_model_name}")
+        print(f"Downloaded {opus_mt_model_name}")
     else:
         print(f"Model already exists at {model_path_fi_en}")
-
-    # --- Finnish SBERT model ---
-    fi_sbert = "TurkuNLP/sbert-uncased-finnish-paraphrase"
-    fi_sbert_path = os.path.join(models_dir, "sbert-uncased-finnish-paraphrase")
-    if not os.path.exists(fi_sbert_path):
-        print(f"Downloading {fi_sbert}...")
-        SentenceTransformer(fi_sbert).save(fi_sbert_path)
 
     # --- English MPNet model ---
     en_mpnet = "sentence-transformers/all-mpnet-base-v2"

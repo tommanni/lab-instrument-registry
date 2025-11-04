@@ -3,6 +3,7 @@ export default {
 	  suodatin: 'Suodattimet',
 	  haku_painike: 'Hae',
 	  placeholder: 'Operaattorit AND, OR ja NOT',
+	  placeholder_smart_search: "Hae merkityksen mukaan tai synonyymeillä...",
 	  placeholder_user: 'Hae käyttäjiä...',
 	  yksikko: 'Yksikkö',
 	  huone: 'Huone',
@@ -145,7 +146,7 @@ export default {
 	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO.",
 	  tarkka_haku: "Tarkka haku",
 	  älykäs_haku: "Älykäs haku",
-	  smart_search_info_content: "Älykäs haku ymmärtää hakusanojen merkityksen ja löytää käsitteellisesti samankaltaisia tuloksia, vaikka ne eivät sisältäisikään täsmälleen samoja sanoja. Se sietää myös kirjoitusvirheitä."
+	  smart_search_info_content: "Tämä toiminto on kokeellinen, eikä sen tulokset ole aina täysin tarkkoja.\n\nÄlykäs haku ymmärtää hakusanojen merkityksen ja löytää käsitteellisesti samankaltaisia tuloksia, vaikka ne eivät sisältäisikään täsmälleen samoja sanoja. Se sietää myös kirjoitusvirheitä."
 	},
 	tableHeaders: [
 	  "Tuotenimi",
