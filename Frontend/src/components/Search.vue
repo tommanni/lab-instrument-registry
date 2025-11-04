@@ -58,6 +58,15 @@ watch(() => dataStore.searchMode, async () => {
   initPopover();
 });
 
+watch(() => dataStore.searchMode, async () => {
+  if (popoverInstance) {
+    popoverInstance.dispose();
+    popoverInstance = null;
+  }
+  await nextTick();
+  initPopover();
+});
+
 </script>
 
 <template>
@@ -68,15 +77,14 @@ watch(() => dataStore.searchMode, async () => {
                 <i class="bi bi-x text-primary"></i>
             </a>
         </div>
+        <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
         <div class="btn-group search-mode-selector" role="group" aria-label="Search mode">
           <input type="radio" class="btn-check" name="searchModeDevice" id="direct-search-device" autocomplete="off" value="direct" v-model="dataStore.searchMode">
           <label class="btn btn-outline-primary" for="direct-search-device">{{$t('message.tarkka_haku')}}</label>
-
           <input type="radio" class="btn-check" name="searchModeDevice" id="smart-search-device" autocomplete="off" value="smart" v-model="dataStore.searchMode">
           <label class="btn btn-outline-primary" for="smart-search-device">{{$t('message.älykäs_haku')}}</label>
         </div>
-        <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
-        <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button" aria-label="Hakuohje"
+        <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button me-5" aria-label="Hakuohje"
                 data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
                 :title="$t('message.haku_info_title')" 
                 :data-bs-content="dataStore.searchMode === 'direct' ? $t('message.haku_info_content') : $t('message.smart_search_info_content')"
@@ -101,7 +109,7 @@ watch(() => dataStore.searchMode, async () => {
     align-items: center;
     justify-content: space-between;
     gap: .3rem; /*Gap for input focus borders not to clip */
-    width: 80%;
+    width: 100%;
 }
 
 .search-mode-selector .btn {
@@ -111,26 +119,14 @@ watch(() => dataStore.searchMode, async () => {
 }
 
 .form-control {
-    height: 100%;
-    width: 100%;
-    padding-right:3.5rem;
-
-    padding: 7px;
+  width: 100%;
+  padding-right:3.5rem;
 }
 
 .input-wrapper {
-    position: relative;
-    flex: 1;
+  position: relative;
+  flex: 1;
 }
-
-/*input {
-    width: 150px;
-    height: 35px;
-    padding: 5px;
-    width: 100%;
-    height: 40px;
-    overflow: hidden;
-}*/
 
 .search-container {
     border-top-left-radius: var(--bs-border-radius-lg);

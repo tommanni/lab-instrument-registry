@@ -10,6 +10,7 @@ export default {
 	  vastuuhenkilo: 'Person in charge',
 	  tilanne: 'Status',
 	  uusi_laite: 'New instrument',
+	  uusi_laite: 'New instrument',
 	  tiedot_uusi: 'Add new instrument information',
 	  omat_tiedot: "My information",
 	  tay: 'TAY-number',

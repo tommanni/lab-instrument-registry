@@ -12,11 +12,14 @@ const clickedObject = ref({})
 const isMobile = useMediaQuery('(max-width: 768px');
 let modalInstance = null;
 
+const dataTableHeader = ref(null);
+
+
 onMounted(() => {
   const modalElement = document.getElementById('dataModal');
   if (modalElement) {
     modalInstance = new Modal(modalElement);
-  }
+  }  
 });
 
   // Sarakkeet:
@@ -204,8 +207,11 @@ const startResize = (event, column) => {
  }
  
  defineExpose({
-   openOverlay
+   openOverlay,
+   dataTableHeader
  });
+
+
 </script>
 
 <template>
@@ -221,7 +227,7 @@ const startResize = (event, column) => {
           <col v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }" />
         </colgroup>
         <thead class="table-secondary">
-          <tr>
+          <tr class="tuni-table-header" ref="dataTableHeader">
             <!-- Käydään läpi sarakeotsikot ja lisätään sort-indikaattori -->
             <!-- Go through the column headers and add a sort indicator -->
             <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
@@ -264,7 +270,7 @@ const startResize = (event, column) => {
 </template>
 
 <style scoped>
-.sort-wrapper {
+/*.sort-wrapper {
   width: 100%;
   display: flex;
   gap: 0.5rem;
@@ -279,9 +285,8 @@ table {
   border-radius: 8px;
 }
 
-th,
-td {
-  /*border: 1px solid #ddd;*/
+th,*/
+/*td {
   padding: 8px;
   position: relative;
   text-align: left;
@@ -289,25 +294,25 @@ td {
   text-overflow: ellipsis;
   white-space: nowrap;
   border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
-}
+}*/
 
-th {
+/*th {
   background-color: var(--bs-secondary-bg-subtle);
   position: sticky;
   top: calc(var(--header-height) + var(--actions-wrapper-height));
   z-index: 1;
-}
+}*/
 
 /* Round top corners of header */
-thead tr:first-child th:first-child {
+/*thead tr:first-child th:first-child {
   border-top-left-radius: 8px;
 }
 
 thead tr:first-child th:last-child {
   border-top-right-radius: 8px;
-}
+}*/
 
-/* Round bottom corners of last row */
+/* Round bottom corners of last row 
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
@@ -324,67 +329,18 @@ tbody tr {
 tbody tr:hover {
   background-color: #f0f0f0;
 }
-
-/* Round bottom corners of the last row */
+*/
+/* Round bottom corners of the last row 
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
 
 tbody tr:last-child td:last-child {
   border-bottom-right-radius: 8px;
-}
+}*/
 
 .sort-wrapper i {
   font-size: small;
-}
-
-.sort-indicator {
-  margin-left: 5px;
-  position: static;
-  width: 0;
-  height: 0;
-  margin-left: 10px;
-}
-
-.sort-indicator.sort-none::before,
-.sort-indicator.sort-none::after {
-  content: '';
-  display: inline-block;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-}
-
-.sort-indicator.sort-none::before {
-  border-bottom: 4px solid #ccc;
-  margin-right: 2px;
-}
-
-.sort-indicator.sort-none::after {
-  border-top: 4px solid #ccc;
-}
-
-.sort-indicator.sort-asc::before {
-  content: '';
-  display: inline-block;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 4px solid #4E008E;
-}
-
-.sort-indicator.sort-asc::after {
-  content: none;
-}
-
-.sort-indicator.sort-desc::after {
-  content: '';
-  display: inline-block;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 4px solid #4E008E;
-}
-
-.sort-indicator.sort-desc::before {
-  content: none;
 }
 
 .header-text {
