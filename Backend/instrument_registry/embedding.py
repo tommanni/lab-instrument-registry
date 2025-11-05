@@ -113,7 +113,9 @@ def precompute_instrument_embeddings(
                     tuotenimi, ("Translation Failed", None)
                 )
 
-                instrument.tuotenimi_en = translated_text
+                should_update_translation = instrument.tuotenimi_en in ("", "Translation Failed")
+                if should_update_translation:
+                    instrument.tuotenimi_en = translated_text
                 instrument.embedding_en = embedding_en
                 instruments_to_update.append(instrument)
 
@@ -128,12 +130,12 @@ def precompute_instrument_embeddings(
     finally:
         session.close()
 
-    successful = Instrument.objects.exclude(
-        tuotenimi_en__in=["", "Translation Failed"]
-    ).count()
-    failed = Instrument.objects.filter(
-        tuotenimi_en="Translation Failed"
-    ).count()
+    # Recount success/failure based on cached results and updates performed
+    successful = sum(
+        1 for _tuotenimi, (_translated, embedding) in translation_cache.items()
+        if embedding is not None
+    )
+    failed = len(translation_cache) - successful
 
     return {
         'processed_count': total_instruments_to_process,
