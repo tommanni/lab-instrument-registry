@@ -107,24 +107,3 @@ class InviteCode(models.Model):
     expires = models.DateTimeField(default=default_expire_time)
 
     objects = InviteCodeManager()
-
-# Model for tracking background embedding and translation jobs
-class EmbeddingJob(models.Model):
-    class Status(models.TextChoices):
-        PENDING = "pending", "Pending"
-        RUNNING = "running", "Running"
-        COMPLETED = "completed", "Completed"
-        FAILED = "failed", "Failed"
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    total_items = models.PositiveIntegerField(default=0)
-    processed_items = models.PositiveIntegerField(default=0)
-    error_message = models.TextField(blank=True, default="")
-    def mark_failed(self, message: str):
-        self.status = self.Status.FAILED
-        self.error_message = message
-        self.save(update_fields=["status", "error_message", "updated_at"])
-    def mark_completed(self):
-        self.status = self.Status.COMPLETED
-        self.save(update_fields=["status", "updated_at"])

@@ -24,7 +24,6 @@ INSTALLED_APPS = [
     'simple_history',
     'rest_framework',
     'knox',
-    'huey.contrib.djhuey',
     # custom apps
     'instrument_registry',
 ]
@@ -139,14 +138,3 @@ REST_KNOX = {
 # Variables used for configuring the invite code for creating new users
 INVITE_CODE_LIFETIME = timedelta(hours=2)
 INVITE_CODE_DIGITS = 8
-
-HUEY = {
-    'name': 'instrument-registry',
-    'immediate': env.bool('HUEY_IMMEDIATE', default=False),
-    'connection': {
-        'host': env('REDIS_HOST', default='localhost'),
-        'port': env.int('REDIS_PORT', default=6379),
-        'db': env.int('REDIS_DB', default=0),
-        'password': env('REDIS_PASSWORD', default=None),
-    },
-}

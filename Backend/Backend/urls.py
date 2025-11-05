@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/instruments/csv/import/', api_views.InstrumentCSVImport.as_view()),
     path('api/instruments/<pk>/', api_views.InstrumentDetail.as_view()),
     path('api/instruments/<pk>/history/', api_views.InstrumentHistory.as_view()),
+    path('api/embedding-status/', api_views.EmbeddingStatus.as_view()),
     # user
     path('api/users/', api_views.UserList.as_view()),
     path('api/users/<pk>/', api_views.UserDetail.as_view()),

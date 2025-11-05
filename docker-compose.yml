@@ -36,13 +36,6 @@ services:
       - DB_PASSWORD=postgres123
       - DB_HOST=db
       - DB_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
 
   semantic-search-service:
     build:

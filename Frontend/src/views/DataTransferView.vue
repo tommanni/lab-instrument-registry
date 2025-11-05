@@ -1,7 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useAlertStore } from '@/stores/alert';
 import ImportPreviewModal from '@/components/ImportPreviewModal.vue';
 
@@ -13,6 +13,11 @@ const selectedFile = ref(null);
 const previewData = ref(null);
 const previewModalRef = ref(null);
 const fileInputRef = ref(null);
+const isProcessingEmbeddings = ref(false);
+const pendingEmbeddingCount = ref(0);
+const failedEmbeddingCount = ref(0);
+let embeddingPollTimer = null;
+let embeddingPollingActive = false;
 
 // Import
 const onFileSelected = (event) => {
@@ -56,6 +61,7 @@ const confirmImport = async () => {
     previewModalRef.value?.hide();
     resetImport();
     alertStore.showAlert(0, t('message.tiedot_tuotu_onnistuneesti', { count: response.data.imported_count }));
+    startEmbeddingStatusPolling();
   } catch (error) {
     console.error('Import failed:', error);
     alertStore.showAlert(1, error.response?.data?.error || t('message.tiedoston_tuonti_epaonnistui'));
@@ -76,6 +82,59 @@ const resetImport = () => {
 const cancelImport = () => {
   resetImport();
 };
+
+const stopEmbeddingStatusPolling = () => {
+  if (embeddingPollTimer) {
+    clearInterval(embeddingPollTimer);
+    embeddingPollTimer = null;
+  }
+  embeddingPollingActive = false;
+};
+
+const pollEmbeddingStatus = async (suppressAlerts = false) => {
+  try {
+    const { data } = await axios.get('/api/embedding-status/', { withCredentials: true });
+    pendingEmbeddingCount.value = data?.pending_count ?? 0;
+    failedEmbeddingCount.value = data?.failed_count ?? 0;
+    isProcessingEmbeddings.value = Boolean(data?.processing);
+
+    if (!isProcessingEmbeddings.value) {
+      const wasActive = embeddingPollingActive;
+      stopEmbeddingStatusPolling();
+
+      if (!suppressAlerts && wasActive) {
+        if (failedEmbeddingCount.value > 0) {
+          alertStore.showAlert(1, t('message.import_prosessointi_epaonnistui', { count: failedEmbeddingCount.value }));
+        } else if (pendingEmbeddingCount.value === 0) {
+          alertStore.showAlert(0, t('message.import_prosessointi_valmis'));
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to poll embedding status:', error);
+    stopEmbeddingStatusPolling();
+  }
+};
+
+const startEmbeddingStatusPolling = () => {
+  stopEmbeddingStatusPolling();
+  isProcessingEmbeddings.value = true;
+  embeddingPollingActive = true;
+  pollEmbeddingStatus();
+  embeddingPollTimer = setInterval(() => pollEmbeddingStatus(), 1000);
+};
+
+onBeforeUnmount(() => {
+  stopEmbeddingStatusPolling();
+});
+
+onMounted(() => {
+  pollEmbeddingStatus(true).then(() => {
+    if (isProcessingEmbeddings.value) {
+      startEmbeddingStatusPolling();
+    }
+  });
+});
 
 // Helper function to download file
 const downloadFile = async (url, filename) => {
@@ -183,6 +242,20 @@ const exportData = async () => {
       </div>
     </div>
 
+    <div
+      v-if="isProcessingEmbeddings"
+      class="alert alert-info d-flex align-items-center mt-4"
+      role="status"
+    >
+      <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+      <span>
+        {{ t('message.import_prosessointi') }}
+        <template v-if="pendingEmbeddingCount > 0">
+          ({{ pendingEmbeddingCount }} {{ t('message.import_prosessointi_jaljella') }})
+        </template>
+      </span>
+    </div>
+
     <!-- Import Preview Modal -->
     <ImportPreviewModal
       ref="previewModalRef"
@@ -215,4 +288,3 @@ const exportData = async () => {
   font-weight: 600;
 }
 </style>
-
