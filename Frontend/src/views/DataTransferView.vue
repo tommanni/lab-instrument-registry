@@ -140,7 +140,7 @@ const exportData = async () => {
               <button
                 class="btn btn-primary"
                 @click="previewImport"
-                :disabled="true" <!-- "!selectedFile || isImporting" -->
+                :disabled="!selectedFile || isImporting"
               >
                 <span v-if="isImporting">
                   <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
