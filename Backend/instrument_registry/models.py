@@ -108,7 +108,7 @@ class InviteCode(models.Model):
 
     objects = InviteCodeManager()
 
-# Model for tracking background embedding and translation job
+# Model for tracking background embedding and translation jobs
 class EmbeddingJob(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
