@@ -13,6 +13,7 @@ const selectedFile = ref(null);
 const previewData = ref(null);
 const previewModalRef = ref(null);
 const fileInputRef = ref(null);
+// Tracks whether post-import translation/embedding work is still running
 const isProcessingEmbeddings = ref(false);
 const pendingEmbeddingCount = ref(0);
 const failedEmbeddingCount = ref(0);
@@ -83,6 +84,7 @@ const cancelImport = () => {
   resetImport();
 };
 
+// Cancel any existing polling interval and mark status as inactive
 const stopEmbeddingStatusPolling = () => {
   if (embeddingPollTimer) {
     clearInterval(embeddingPollTimer);
@@ -91,6 +93,7 @@ const stopEmbeddingStatusPolling = () => {
   embeddingPollingActive = false;
 };
 
+// Hit the backend endpoint once to refresh counters and optionally show alerts
 const pollEmbeddingStatus = async (suppressAlerts = false) => {
   try {
     const { data } = await axios.get('/api/embedding-status/', { withCredentials: true });
@@ -116,6 +119,7 @@ const pollEmbeddingStatus = async (suppressAlerts = false) => {
   }
 };
 
+// Begin polling every second until the backend reports completion
 const startEmbeddingStatusPolling = () => {
   stopEmbeddingStatusPolling();
   isProcessingEmbeddings.value = true;
@@ -128,6 +132,7 @@ onBeforeUnmount(() => {
   stopEmbeddingStatusPolling();
 });
 
+// When the view mounts, check if embeddings are still being generated and resume polling if needed
 onMounted(() => {
   pollEmbeddingStatus(true).then(() => {
     if (isProcessingEmbeddings.value) {
