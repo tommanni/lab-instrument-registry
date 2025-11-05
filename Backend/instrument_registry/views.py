@@ -4,6 +4,7 @@ from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv, csv_to_model
 from instrument_registry.translations import translate_password_error
+from instrument_registry.tasks import run_embedding_precompute
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
@@ -181,7 +182,8 @@ class InstrumentCSVExport(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
-    
+
+# Language detector setup for search terms    
 LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
     Language.ENGLISH,
     Language.FINNISH
@@ -294,6 +296,11 @@ class InstrumentCSVImport(APIView):
                 return Response({'error': serializer.errors}, status=400)
 
             serializer.save()
+
+            try:
+                run_embedding_precompute.schedule(kwargs={'force': False})
+            except Exception as exc:
+                print(f'Failed to schedule embedding precompute job: {exc}')
 
             return Response({
                 'success': True,
