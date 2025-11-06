@@ -454,7 +454,7 @@ class ChangePassword(APIView):
             return Response({'message': 'User not found.'}, status=404)
 
          # only superadmins can change superadmin passwords
-        if (not (request.user != user or request.user.is_staff or request.user.is_superuser)
+        if (not (request.user == user or request.user.is_staff or request.user.is_superuser)
             or (user.is_superuser and not request.user.is_superuser)):
             return Response({'message': 'Not authorized.'}, status=403)
 
