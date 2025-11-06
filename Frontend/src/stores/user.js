@@ -32,15 +32,18 @@ export const useUserStore = defineStore('userStore', () => {
       })
     }
 
-    numberOfPages.value = Math.max(1, Math.ceil(displayData.length / 15))
-    // Clamp currentPage
-    if (currentPage.value < 1) currentPage.value = 1
-    if (currentPage.value > numberOfPages.value) currentPage.value = numberOfPages.value
     // Paginate the data
+    numberOfPages.value = Math.max(1, Math.ceil(displayData.length / 15))
+
+    // Clamp currentPage if it’s too high (e.g., after a new search)
+    if (currentPage.value > numberOfPages.value) {
+      currentPage.value = numberOfPages.value
+    }
+
     currentData.value = displayData.slice((currentPage.value - 1) * 15, currentPage.value * 15)
   }
   
-  // Sync store state to URL and sessionStorage
+  // Sync store state to URL
   function updateURL() {
     const query = { ...route.query }
 
@@ -67,6 +70,7 @@ export const useUserStore = defineStore('userStore', () => {
       })
 
       fullData.value = res.data
+      searchedData.value = res.data;
       currentData.value = res.data.slice(0, 15)
       numberOfPages.value = Math.ceil(res.data.length / 15)
     } catch (error) {
@@ -92,8 +96,8 @@ export const useUserStore = defineStore('userStore', () => {
   }
 
   const deleteUser = async (id) => {
-    fullData.value = originalData.value.filter(o => o.id !== id)
-    currentData.value = filteredData.value.filter(o => o.id !== id)
+    fullData.value = fullData.value.filter(o => o.id !== id)
+    currentData.value = searchedData.value.filter(o => o.id !== id)
     updateVisibleData()
   }
 
@@ -102,9 +106,7 @@ export const useUserStore = defineStore('userStore', () => {
       searchTerm.value = '';
     }
     
-    currentPage.value = 1
-
-    // update URL / sessionStorage
+    // update URL
     updateURL()
 
     // Filter data based on search term
@@ -121,24 +123,24 @@ export const useUserStore = defineStore('userStore', () => {
     updateVisibleData()
   }
 
-  // Keep URL and visible data in sync when page changes
   watch(currentPage, (newPage) => {
-    // normalize and clamp page
-    const p = Number.isNaN(Number(newPage)) ? 1 : Number(newPage)
-    if (p < 1) {
-      currentPage.value = 1
-      return
-    }
-    if (numberOfPages.value && p > numberOfPages.value) {
-      currentPage.value = numberOfPages.value
-      return
-    }
+      // normalize and clamp page
+      const p = Number.isNaN(Number(newPage)) ? 1 : Number(newPage)
+      if (p < 1) {
+        currentPage.value = 1
+        return
+      }
+      if (numberOfPages.value && p > numberOfPages.value) {
+        currentPage.value = numberOfPages.value
+        return
+      }
+  
+      // Update the URL and visible slice whenever page changes
+      updateURL()
+      updateVisibleData()
+    })
 
-    // Use shared updater to keep behavior consistent and persist state
-    updateURL()
-    updateVisibleData()
-  })
-
+  // Keep URL and visible data in sync when page changes
   watch(() => route.query, (newQuery) => {
       if (route.path !== '/admin/users') return
 
@@ -148,7 +150,7 @@ export const useUserStore = defineStore('userStore', () => {
 
       searchData()
       updateVisibleData()
-  }, { immediate: false })
+  }, { immediate: true })
 
   return { fullData, currentData, currentPage, numberOfPages, user,
     fetchData, deleteUser, updateVisibleData, fetchUser, searchData, searchTerm }

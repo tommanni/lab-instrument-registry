@@ -27,6 +27,8 @@ onMounted(async () => {
   } else {
     userStore.searchData(true); // Clear search if no terms
   }
+  const p = route.query.page ? parseInt(route.query.page, 10) : 1
+  userStore.currentPage = Number.isNaN(p) ? 1 : p
 })
 </script>
 
