@@ -153,7 +153,11 @@ export default {
 	  haluatko_tehda_adminin: "Oletko varma, että haluat tehdä tästä käyttäjästä adminin?",
 	  haluatko_poistaa_adminin: "Oletko varma, että haluat poistaa käyttäjän admin-oikeudet?",
 	  haluatko_deaktivoida_kayttajan: "Oletko varma, että haluat poistaa tämän käyttäjän?",
-	  kayttajan_hallinta: "Käyttäjän hallinta"
+	  kayttajan_hallinta: "Käyttäjän hallinta",
+	  import_prosessointi: "Tuotenimiä käännetään, odota hetki.",
+	  import_prosessointi_jaljella: "kohdetta jäljellä",
+	  import_prosessointi_epaonnistui: "{count} käännöstä epäonnistui. Tarkista tiedot.",
+	  import_prosessointi_valmis: "Käännökset valmiit. Haku on nyt ajan tasalla."
 	},
 	tableHeaders: [
 	  "Tuotenimi",

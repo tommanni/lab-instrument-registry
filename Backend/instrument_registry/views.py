@@ -4,6 +4,7 @@ from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv, csv_to_model
 from instrument_registry.translations import translate_password_error
+from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
@@ -181,7 +182,8 @@ class InstrumentCSVExport(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
-    
+
+# Language detector setup for search terms    
 LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
     Language.ENGLISH,
     Language.FINNISH
@@ -295,15 +297,40 @@ class InstrumentCSVImport(APIView):
 
             serializer.save()
 
+            precompute_pid = None
+            try:
+                precompute_pid, _ = run_precompute_subprocess(force=False)
+            except Exception as exc:
+                print(f'Embedding precompute subprocess failed: {exc}')
+
             return Response({
                 'success': True,
                 'imported_count': new_count,
                 'skipped_count': duplicate_count,
-                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)'
+                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)',
+                'embedding_process_pid': precompute_pid,
             })
 
         except Exception as e:
             return Response({'error': str(e)}, status=400)
+
+# This view returns the status of translation and embedding processing
+class EmbeddingStatus(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        pending_qs = Instrument.objects.filter(
+            Q(embedding_en__isnull=True) &
+            ~Q(tuotenimi_en__exact="Translation Failed")
+        )
+        pending_count = pending_qs.count()
+        failed_count = Instrument.objects.filter(tuotenimi_en__exact="Translation Failed").count()
+        return Response({
+            'processing': pending_count > 0,
+            'pending_count': pending_count,
+            'failed_count': failed_count,
+        })
 
 # This view returns semantic search results
 class InstrumentSearch(APIView):

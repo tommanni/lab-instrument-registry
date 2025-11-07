@@ -158,7 +158,11 @@ export default {
 	  haluatko_deaktivoida_kayttajan: "Are you sure you want to remove this user?",
 	  kayttaja_poistettu: "User deactivated",
 	  kayttaja_palautettu: "User activated",
-	  kayttajan_hallinta: "Manage user"
+	  kayttajan_hallinta: "Manage user",
+	  import_prosessointi: "Product names are being translated, wait.",
+	  import_prosessointi_jaljella: "items remaining",
+	  import_prosessointi_epaonnistui: "{count} translation(s) failed. Please review the data.",
+	  import_prosessointi_valmis: "Translations ready. Search is now up to date."
 	},
 	tableHeaders: [
 	  "Product Name",
