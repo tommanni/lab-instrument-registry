@@ -7,7 +7,7 @@ from django.conf import settings
 import string
 import secrets
 
-# Abstract model for tracking the username
+# Abstract model for tracking the username for instrument history
 class UsernameHistoricalModel(models.Model):
     history_username = models.CharField(max_length=150, null=True, blank=True)
 
