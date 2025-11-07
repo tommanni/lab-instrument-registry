@@ -3,6 +3,7 @@ from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVS
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv, csv_to_model
+from instrument_registry.translations import translate_password_error
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
@@ -422,22 +423,29 @@ class Register(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        lang = request.COOKIES.get('Language')
         password = request.data.get('password')
-        try:
-            validate_password(password)
-        except ValidationError as e:
-            return Response({'message': e.messages}, status=400)
-
         invite_code = request.data.get('invite_code', None)
+
         validated = InviteCode.objects.is_valid_code(invite_code)
+
         if validated:
+            password_error = translate_password_error(password, lang)
+            if password_error:
+                return Response({
+                    'message': 'error validating password.' if lang != 'fi' else 'virhe salasanan vahvistuksessa.',
+                    'password_error': password_error
+                }, status=400)
+
             serializer = RegistryUserSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             InviteCode.objects.remove_code(invite_code)
-            return Response({'message': 'user registered'})
+            return Response({'message': 'user registered.'})
         else:
-            return Response({'message': 'invite code invalid or missing'}, status=400)
+            if (lang == 'fi'):
+                return Response({'message': 'kutsukoodi on virheellinen tai puuttuu.'}, status=400)
+            return Response({'message': 'invite code is invalid or missing.'}, status=400)
 
 # This view allows a logged in user to change their password.
 class ChangePassword(APIView):
@@ -447,6 +455,14 @@ class ChangePassword(APIView):
     def post(self, request):
         user_id = request.data.get('id')
         new_password = request.data.get('new_password')
+        lang = request.COOKIES.get('Language')
+
+        password_error = translate_password_error(new_password, lang)
+        if password_error:
+            return Response({
+                'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
+                'password_error': password_error
+            }, status=400)
         
         try:
             user = RegistryUser.objects.get(pk=user_id)

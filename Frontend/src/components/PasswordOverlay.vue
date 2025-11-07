@@ -10,6 +10,7 @@ const showOverlay = ref(false);
 const alertStore = useAlertStore();
 const new_password = ref('');
 const confirm_new_password = ref('');
+const password_error = ref('');
 const props = defineProps({
     user: Object,
     warningVisible: Boolean
@@ -25,10 +26,11 @@ const closeOverlay = () => {
     showOverlay.value = false;
     new_password.value = '';
     confirm_new_password.value = '';
-
+    password_error.value = '';
 }
 
 async function submitPassword() {
+    password_error.value = '';
     if (!new_password.value || !confirm_new_password.value) {
         alertStore.showAlert(1, t('message.tayta_molemmat_kentat'));
         return;
@@ -56,6 +58,10 @@ async function submitPassword() {
     } catch (error) {
         if (error.response && error.response.data && error.response.data.message) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+            
+            if (error.response.data.password_error) {
+              password_error.value = error.response.data.password_error;
+            }
         }
         else {
             alertStore.showAlert(1, t('message.tuntematon_virhe'));
@@ -63,9 +69,6 @@ async function submitPassword() {
 
     }
 }
-
-
-
 
 </script>
 
@@ -89,27 +92,27 @@ async function submitPassword() {
             
             <h3>{{ t('message.vaihda_salasana') }}</h3>
             <div class="password-field">
-            <label class="form-label">{{ t('message.uusi_salasana') }}</label>
-            <input
-                v-model="new_password"
-                type="password"
-                :placeholder="t('message.uusi_salasana')"
+                <label class="form-label">{{ t('message.uusi_salasana') }}</label>
+                <input
+                    v-model="new_password"
+                    type="password"
+                    :placeholder="t('message.uusi_salasana')"
                 />
+                <p class="error-text">{{ password_error || ' ' }}</p>
+            </div>
 
-                <div class="password-field">
+            <div class="password-field">
                 <label class="form-label">{{ t('message.vahvista_salasana') }}</label>
                 <input
                     v-model="confirm_new_password"
                     type="password"
                     :placeholder="t('message.vahvista_salasana')"
                 />
-
-                <div class="modal-buttons">
+            </div>
+            <div class="modal-buttons">
                 <button class="btn btn-primary" @click="submitPassword">
                     {{ t('message.vahvista_muutokset') }}
                 </button>
-                </div>
-                </div>
             </div>
         </div>    
     </div>
@@ -166,6 +169,14 @@ async function submitPassword() {
 
 .modal-buttons button {
   margin-top: 1rem;
+}
+
+.error-text {
+  color: red;
+  font-size: 0.8rem;
+  min-width: 25em;
+  max-width: 25em;
+  min-height: 1.5em;
 }
 
 </style>
