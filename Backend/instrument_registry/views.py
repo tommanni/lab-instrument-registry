@@ -452,15 +452,16 @@ class Register(APIView):
     def post(self, request):
         lang = request.COOKIES.get('Language')
         password = request.data.get('password')
+        password_again = request.data.get('password_again')
         invite_code = request.data.get('invite_code', None)
 
         validated = InviteCode.objects.is_valid_code(invite_code)
 
         if validated:
-            password_error = translate_password_error(password, lang)
+            password_error = translate_password_error(password, password_again=password_again, lang=lang)
             if password_error:
                 return Response({
-                    'message': 'error validating password.' if lang != 'fi' else 'virhe salasanan vahvistuksessa.',
+                    'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
                     'password_error': password_error
                 }, status=400)
 
@@ -484,7 +485,7 @@ class ChangePassword(APIView):
         new_password = request.data.get('new_password')
         lang = request.COOKIES.get('Language')
 
-        password_error = translate_password_error(new_password, lang)
+        password_error = translate_password_error(password=new_password, lang=lang)
         if password_error:
             return Response({
                 'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',

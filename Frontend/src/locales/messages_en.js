@@ -52,6 +52,7 @@ export default {
 	  ei_vastaus: "No",
 	  sahkoposti: "Email address",
 	  salasana: "Password",
+	  salasana_uudelleen: "Confirm password",
 	  admin_ei_oikeuksia: "You do not have permission to view this page",
 	  admin_luotu: "Admin rights given to user",
 	  superadmin_luotu: "Superadmin rights given to user",
