@@ -2,7 +2,10 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
 # Translates password validation error messages
-def translate_password_error(password, lang='en'):
+def translate_password_error(password, password_again=None, lang='en'):
+    #Not sure if this would be a validation error so own branch for it
+    if password_again is not None and password != password_again:
+        return map_password_error_message('mismatch', lang)
     try:
         validate_password(password)
         return None  # No error
@@ -23,6 +26,8 @@ def map_password_error_message(message, lang='en'):
             return "Salasana ei saa koostua pelkästään numeroista"
         elif "too similar" in message_lower:
             return "Salasana on liian samanlainen kuin käyttäjätunnus"
+        elif "mismatch" in message_lower:
+            return "Salasanat eivät täsmää"
         else:
             return "Virhe salasanan vahvistuksessa."
     else:
@@ -34,5 +39,7 @@ def map_password_error_message(message, lang='en'):
             return "Password cannot be entirely numeric"
         elif "too similar" in message_lower:
             return "Password is too similar to the username"
+        elif "mismatch" in message_lower:
+            return "Passwords do not match"
         else:
             return "Error validating password."
