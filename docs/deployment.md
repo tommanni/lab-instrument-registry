@@ -1,8 +1,16 @@
-# Deployment Guide for MetLabs Instrument Registry
+# Deployment Guide for MetLabs Instrument Registry (DEPRECATED)
+
+**⚠️ DEPRECATED**: This guide describes the old systemd-based deployment method. The system was migrated to containers on 2025-11-04.
+
+**For current deployment instructions, see [deployment-containers.md](deployment-containers.md)**
+
+---
 
 Production server: `met-metlabs.rd.tuni.fi`
 
 **Stack**: Vue.js + Django REST API + Apache + PostgreSQL
+
+**Note**: This documentation is kept for reference and rollback purposes only.
 
 ---
 

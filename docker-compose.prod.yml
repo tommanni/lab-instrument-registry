@@ -1,0 +1,84 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17-trixie
+    container_name: metlabs-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-metlabs}
+      POSTGRES_USER: ${DB_USER:-metlabs}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"  # Use 5433 to avoid conflict with existing PostgreSQL on 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - metlabs-network
+
+  web:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: metlabs-web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn Backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    ports:
+      - "127.0.0.1:8000:8000"  # Only localhost access (Apache proxies to this)
+    depends_on:
+      db:
+        condition: service_healthy
+      semantic-search-service:
+        condition: service_healthy
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_NAME=${DB_NAME:-instrumentRegistry}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DJANGO_SETTINGS_MODULE=Backend.settings.prod
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-met-metlabs.rd.tuni.fi,localhost}
+    volumes:
+      - static_files:/app/Backend/staticfiles
+      - media_files:/app/Backend/media
+    restart: unless-stopped
+    networks:
+      - metlabs-network
+
+  semantic-search-service:
+    build:
+      context: ./semantic_search_service
+      dockerfile: Dockerfile  # Use production Dockerfile (not Dockerfile.dev)
+    container_name: metlabs-semantic-search
+    ports:
+      - "127.0.0.1:8001:8001"  # Only localhost access
+    volumes:
+      - semantic-models-data:/app/models
+    environment:
+      - FINE_TUNED_OPUS_MT_ID=${FINE_TUNED_OPUS_MT_ID:-tommanni/fine-tuned-opus-mt-fi-en}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8001/healthz || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 120s  # Give more time for model downloads on first start
+    networks:
+      - metlabs-network
+
+volumes:
+  postgres_data:
+  semantic-models-data:
+  static_files:
+  media_files:
+
+networks:
+  metlabs-network:
+    driver: bridge
+
