@@ -25,7 +25,7 @@ A Django REST API backend with Vue.js frontend for managing laboratory equipment
 ```
 Assuming you have the repo already cloned, follow the instructions below:
 
-# 1. Start the backend and database
+# 1. Start the backend, database, and semantic search service
 make up
 
 # 2. Import your data (optional), file needs to be in the Backend directory under root
@@ -63,6 +63,7 @@ make fullstack
 ### Backend (Django + PostgreSQL)
 ```bash
 make up          # Start backend services
+make semantic-search   # Start semantic search service only
 make down        # Stop services
 make logs        # View logs
 make shell       # Django shell
@@ -92,6 +93,13 @@ make frontend-test       # Run tests
 make fullstack          # Start both backend + frontend
 ```
 
+### Semantic Search Service
+```bash
+make semantic-search          # (Re)start FastAPI translator/embedding service
+docker compose logs -f semantic-search-service   # Follow logs
+```
+The semantic-search container powers Finnish→English translations and English embeddings; imports and preprocessing commands rely on it.
+
 ## 🗂️ Project Structure
 
 ```
@@ -103,6 +111,7 @@ make fullstack          # Start both backend + frontend
 │   ├── src/
 │   ├── package.json
 │   └── vite.config.js
+├── semantic_search_service/ # FastAPI translator + embedding microservice
 ├── docker-compose.yml # Services configuration
 └── Makefile          # Development commands
 ```
