@@ -145,7 +145,7 @@ export default {
 	  huoltosivu_kuvaus: "Manage maintenance contracts and devices awaiting maintenance",
 	  avaa: "Open",
 	  haku_info_title: "Search instructions",
-      haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_number, serial_number, product_name, brand_and_model, unit, campus, building, room, responsible_person, status, supplier, extra_information, old_location, delivery_date. Example: product_name:kuumasaumaaja AND (building:TAYS OR building:Arvo) AND NOT room:TULO.",
+      haku_info_content: "Search supports the keywords AND, OR and NOT (case-insensitive). You can use parentheses to group terms. You can target specific fields by qualifying the field name as field:value or field:\"multiple words\". Supported fields: id, tay_number, serial_number, product_name, brand_and_model, unit, campus, building, room, responsible_person, status, supplier, extra_information, old_location, delivery_date. Also English product names can be searched with the product_name field. Example: product_name:\"hot sealer\" AND (building:TAYS OR building:Arvo) AND NOT room:TULO.",
 	  admin_oikeuksien_hallinta: "Manage admin rights",
 	  haluatko_tehda_adminin: "Are you sure you want to give this user admin rights?",
 	  haluatko_deaktivoida_kayttajan: "Are you sure you want to remove this user?",
