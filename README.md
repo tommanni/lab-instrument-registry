@@ -27,6 +27,7 @@ Assuming you have the repo already cloned, follow the instructions below:
 
 # 1. Start the backend, database, and semantic search service
 make up
+# (first run installs Docker images, PyTorch deps, and ML models—expect a slow boot)
 
 # 2. Import your data (optional), file needs to be in the Backend directory under root
 make import-csv-old FILE=your-data.csv 
@@ -45,6 +46,7 @@ Frontend: http://localhost:5173
 
 In the future once data has been imported, you can simply run:
 make fullstack
+# Subsequent restarts are much faster because containers + models stay cached.
 ```
 
 ## 📋 Prerequisites
