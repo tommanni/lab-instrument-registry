@@ -33,6 +33,7 @@ const registerUser = async () => {
     email.value = ''
     password.value = ''
     password_again.value = ''
+    password_error.value = ''
     invite_code.value = ''
     full_name.value = ''
     alertStore.showAlert(0, `${t('message.rekisteroity')}`)
@@ -92,12 +93,12 @@ const closeOverlay = () => {
           <div data-mdb-input-init class="form-outline mb-4">
             <label class="form-label" for="form2Example2">{{ t('message.salasana') }}</label>
             <input v-model="password" type="password" id="form3Example4" class="form-control" /> 
-            <p class="error-text">{{ password_error || ' ' }}</p>
           </div>
 
           <div data-mdb-input-init class="form-outline mb-4">
             <label class="form-label" for="form2Example3">{{ t('message.salasana_uudelleen') }}</label>
             <input v-model="password_again" type="password" id="form3Example5" class="form-control" /> 
+            <p class="error-text">{{ password_error || ' ' }}</p>
           </div>
 
           <!-- Submit button -->

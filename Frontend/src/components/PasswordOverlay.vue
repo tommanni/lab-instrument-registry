@@ -98,7 +98,6 @@ async function submitPassword() {
                     type="password"
                     :placeholder="t('message.uusi_salasana')"
                 />
-                <p class="error-text">{{ password_error || ' ' }}</p>
             </div>
 
             <div class="password-field">
@@ -108,6 +107,7 @@ async function submitPassword() {
                     type="password"
                     :placeholder="t('message.vahvista_salasana')"
                 />
+                <p class="error-text">{{ password_error || ' ' }}</p>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" @click="submitPassword">
