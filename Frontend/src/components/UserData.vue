@@ -1,5 +1,4 @@
 <script setup>
-import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router'
 import { useDataStore } from '@/stores/data'
 import { useUserStore } from '@/stores/user';
@@ -10,9 +9,6 @@ const dataStore = useDataStore();
 const userStore = useUserStore();
 const router = useRouter();
 
-const sortKey = ref(null);
-const sortOrder = ref('asc');
-
 const headerMap = {
   [tm('userTableHeaders')[0]] : 'full_name',
   [tm('userTableHeaders')[1]] : 'email',
@@ -21,34 +17,22 @@ const headerMap = {
 };
 
 function sortBy(key) {
-  if (sortKey.value === key) {
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  // Toggle sorting direction (asc -> desc -> none)
+  if (userStore.sortColumn === key) {
+    userStore.sortDirection =
+      userStore.sortDirection === 'asc'
+        ? 'desc'
+        : userStore.sortDirection === 'desc'
+        ? 'none'
+        : 'asc';
   } else {
-    sortKey.value = key;
-    sortOrder.value = 'asc';
+    userStore.sortColumn = key;
+    userStore.sortDirection = 'asc';
   }
+  // Sort data
+  userStore.updateVisibleData();
 }
 
-const sortedData = computed(() => {
-  if (!sortKey.value) return userStore.currentData;
-
-  return [...userStore.currentData].sort((a, b) => {
-    let aVal = a[sortKey.value];
-    let bVal = b[sortKey.value];
-
-    if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-      // For admin values, reverse logic so 'X' appears first in ascending order
-      return sortOrder.value === 'asc' ? bVal - aVal : aVal - bVal;
-    }
-
-    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-
-    if (aVal < bVal) return sortOrder.value === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortOrder.value === 'asc' ? 1 : -1;
-    return 0;
-  });
-});
 
 function goToUser(id) {
   router.push({ name: 'UserInfoView', params: { id } })
@@ -78,8 +62,8 @@ function goToUser(id) {
             style="cursor: pointer;"
           >
             {{ key }}
-            <span v-if="sortKey === headerMap[key]">
-              {{ sortOrder === 'asc' ? '↓' : '↑' }}
+            <span v-if="userStore.sortColumn === headerMap[key]">
+              {{ userStore.sortDirection === 'asc' ? '↓' : userStore.sortDirection === 'desc' ? '↑' : '' }}
             </span>
           </th>
         </tr>
@@ -87,7 +71,7 @@ function goToUser(id) {
 
       <tbody>
         <tr
-          v-for="(item, index) in sortedData"
+          v-for="(item, index) in userStore.currentData"
           :key="index"
           @click="goToUser(item.id)"
           style="cursor: pointer;"

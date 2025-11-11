@@ -21,15 +21,24 @@ export const useUserStore = defineStore('userStore', () => {
   const updateVisibleData = () => {
     // Make copy of searched data to sort and paginate
     let displayData = [...(searchedData.value || [])]
-    
+
     // If sorting is applied, sort the data first
     if (sortColumn.value && sortDirection.value !== 'none') {
       displayData.sort((a, b) => {
-        const valA = (a[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
-        const valB = (b[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
+        let valA = a[sortColumn.value]
+        let valB = b[sortColumn.value]
+
+        // Handle boolean values
+        if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+          return sortDirection.value === 'asc' ? valB - valA : valA - valB
+        }
+
+        valA = (valA ?? '').toString().toLowerCase()
+        valB = (valB ?? '').toString().toLowerCase()
+
         const comp = valA.localeCompare(valB)
         return sortDirection.value === 'asc' ? comp : -comp
-      })
+      });
     }
 
     // Paginate the data
@@ -152,6 +161,6 @@ export const useUserStore = defineStore('userStore', () => {
       updateVisibleData()
   }, { immediate: true })
 
-  return { fullData, currentData, currentPage, numberOfPages, user,
+  return { fullData, currentData, currentPage, numberOfPages, user, sortColumn, sortDirection,
     fetchData, deleteUser, updateVisibleData, fetchUser, searchData, searchTerm }
 })
