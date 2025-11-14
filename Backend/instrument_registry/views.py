@@ -502,11 +502,6 @@ class ChangePassword(APIView):
             or (user.is_superuser and not request.user.is_superuser)):
             return Response({'message': 'Not authorized.'}, status=403)
 
-        try:
-            validate_password(new_password, user=user)
-        except ValidationError as e:
-            return Response({'message': e.messages}, status=400)
-
         user.set_password(new_password)
         user.save()
 
