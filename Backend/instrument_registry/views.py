@@ -105,7 +105,7 @@ class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
 # This view returns the history of a single instrument.
 class InstrumentHistory(generics.RetrieveAPIView):
     queryset = Instrument.objects.defer('embedding_en')
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def retrieve(self, request, *args, **kwargs):
