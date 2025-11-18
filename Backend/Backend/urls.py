@@ -39,7 +39,6 @@ urlpatterns = [
     # auth
     path('api/login/', api_views.Login.as_view()),
     path('api/logout/', api_views.Logout.as_view()),
-    path('api/logoutall/', api_views.LogoutAll.as_view()),
     path('api/register/', api_views.Register.as_view()),
     path('api/invite/', api_views.GenerateInviteCode.as_view()),
     path('api/change-password/', api_views.ChangePassword.as_view()),
