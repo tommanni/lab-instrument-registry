@@ -16,6 +16,8 @@ Including another URLconf
 """
 
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework import routers
 from instrument_registry import views as api_views
 from knox import views as knox_views
@@ -46,4 +48,12 @@ urlpatterns = [
     path('api/delete-user/', api_views.DeleteUser.as_view()),
     # services
     path('api/service/', api_views.ServiceValueSet.as_view()),
+    # attachments
+    path('api/instruments/<int:instrument_id>/attachments/', api_views.InstrumentAttachmentList.as_view()),
+    path('api/attachments/<int:pk>/', api_views.InstrumentAttachmentDetail.as_view()),
+    path('api/attachments/<int:pk>/download/', api_views.InstrumentAttachmentDownload.as_view()),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

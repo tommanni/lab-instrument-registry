@@ -44,7 +44,7 @@ class Instrument(models.Model):
         bases=[UsernameHistoricalModel],
         excluded_fields=['embedding_en'],
     )
-    
+
 # Manager model used for creating users
 class RegistryUserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None, **other_fields):
@@ -107,3 +107,32 @@ class InviteCode(models.Model):
     expires = models.DateTimeField(default=default_expire_time)
 
     objects = InviteCodeManager()
+
+# Model for file attachments associated with instruments
+class InstrumentAttachment(models.Model):
+    instrument = models.ForeignKey(
+        Instrument,
+        on_delete=models.CASCADE,
+        related_name='attachments'
+    )
+    file = models.FileField(upload_to='instrument_attachments/%Y/%m/%d/')
+    filename = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=100, blank=True)
+    file_size = models.BigIntegerField()
+    description = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(
+        RegistryUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords(
+        bases=[UsernameHistoricalModel],
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.filename} - {self.instrument.tuotenimi or self.instrument.tay_numero}"
