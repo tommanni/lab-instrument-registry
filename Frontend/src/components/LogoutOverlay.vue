@@ -30,6 +30,7 @@ const logoutUser = async () => {
           withCredentials: true
         });
         store.isLoggedIn = false
+        store.user = null;
         closeOverlay();
         // Show success alert
         alertStore.showAlert(0, t('message.ulos_kirjauduttu'))

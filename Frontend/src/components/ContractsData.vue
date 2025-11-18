@@ -21,15 +21,6 @@ const columnWidths = ref([
 
 const Data = computed(() => store.data);
 
-const isMaintenanceDue = (dateStr) => {
-  if (!dateStr) return false;
-  const nextMaintenanceDate = new Date(dateStr);
-  const today = new Date();
-  // Erotetaan erotus päivissä:
-  const diffInDays = (nextMaintenanceDate - today) / (1000 * 60 * 60 * 24);
-  return diffInDays <= 30 && diffInDays >= 0;
-};
-
 // Handle column resizing
 const startResize = (event, column) => {
   const startX = event.clientX;
@@ -87,7 +78,13 @@ const handleUpdateItem = (updatedItem) => {
             <td>
               {{ item.tuotenimi }}
             </td>
-            <td :class="{ urgent: isMaintenanceDue(item.seuraava_huolto) }">
+            <td v-if="store.isMaintenanceUpcoming(item.seuraava_huolto)" class="upcoming">
+              {{ item.seuraava_huolto }}
+            </td>
+            <td v-else-if="store.isMaintenanceDue(item.seuraava_huolto)" class="urgent">
+              {{ item.seuraava_huolto }}
+            </td>
+            <td v-else>
               {{ item.seuraava_huolto }}
             </td>
             <td>
@@ -162,6 +159,10 @@ tbody tr:hover {
 .urgent {
   background-color: red;
   color: white;
+}
+
+.upcoming {
+  background-color: yellow;
 }
 
 </style>

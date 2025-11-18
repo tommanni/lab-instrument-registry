@@ -46,7 +46,7 @@ onMounted(async () => {
         class="search"
       />
       <UserData />
-      <Pagination :store="userStore" />
+      <Pagination :store="userStore" v-if="userStore.numberOfPages > 1"/>
     </div>
   </div>
 </template>

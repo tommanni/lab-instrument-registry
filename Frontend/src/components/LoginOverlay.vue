@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'  // Bring axios
 import { useDataStore } from '@/stores/data'
 import { useAlertStore } from "@/stores/alert.js";
+import { useContractStore } from '@/stores/contract';
 
 const { t } = useI18n()
 
@@ -12,6 +13,7 @@ const email = ref('')      // Define email
 const password = ref('')   // Define password
 const store = useDataStore()
 const alertStore = useAlertStore()
+const contractStore = useContractStore()
 
 const loginUser = async () => {
   try {
@@ -24,12 +26,13 @@ const loginUser = async () => {
     });
     
     store.isLoggedIn = true
+    store.user = response.data.user;
     email.value = ''
     password.value = ''
+    await contractStore.fetchData()
     closeOverlay();
     // todo users name in the welcome msg (not critical)
     alertStore.showAlert(0, `${t('message.sisaan_kirjauduttu')}`)
-    closeOverlay()
   } catch (error) {
     alertStore.showAlert(1, t('message.kirjautumisvirhe'))
   }
