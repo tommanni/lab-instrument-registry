@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Instrument, RegistryUser
 import requests
+from .models import Instrument, RegistryUser, InstrumentAttachment
 
 # Default instrument serializer for views and such.
 class InstrumentSerializer(serializers.ModelSerializer):
@@ -13,10 +13,10 @@ class InstrumentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         tuotenimi = validated_data.get('tuotenimi', '').lower()
-        
+
         # Check if another instrument with same name already exists
         existing = self._find_existing_translation(tuotenimi)
-        
+
         if existing:
             # Reuse existing translation and embeddings
             validated_data['tuotenimi_en'] = existing.tuotenimi_en
@@ -59,7 +59,7 @@ class InstrumentSerializer(serializers.ModelSerializer):
                 self._translate_and_update_embeddings(instance)
         elif tuotenimi_en_changed:
             self._update_embedding_en(instance)
-        
+
         instance.save()
 
         if update_duplicates_flag and tuotenimi_en_changed and not tuotenimi_changed:
@@ -143,7 +143,7 @@ class InstrumentCSVSerializer(serializers.ModelSerializer):
 class RegistryUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = RegistryUser
-        fields = '__all__'
+        fields = ['id', 'email', 'full_name', 'password', 'is_staff', 'is_superuser', 'is_active']
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -164,3 +164,31 @@ class RegistryUserSerializer(serializers.ModelSerializer):
         user.set_password(user.password)
         user.save()
         return user
+
+# Attachment serializer
+class InstrumentAttachmentSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.full_name', read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InstrumentAttachment
+        fields = ['id', 'instrument', 'file', 'file_url', 'filename', 'file_type',
+                  'file_size', 'description', 'uploaded_by', 'uploaded_by_name', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at', 'uploaded_by', 'uploaded_by_name', 'file_url']
+
+    def validate_file(self, value):
+        """Validate file size"""
+        from django.conf import settings
+        if value.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
+            raise serializers.ValidationError('File size exceeds 10MB limit.')
+        return value
+
+    def get_file_url(self, obj):
+        request = self.context.get('request')
+        # Only return file URL if user is authenticated
+        if request and request.user and request.user.is_authenticated:
+            if obj.file and hasattr(obj.file, 'url'):
+                if request is not None:
+                    return request.build_absolute_uri(obj.file.url)
+                return obj.file.url
+        return None

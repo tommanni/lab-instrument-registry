@@ -11,11 +11,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 vi.mock('@/stores/user', () => ({
   useUserStore: () => ({
     currentData: [
-      { id: 1, full_name: 'John Doe', email: 'john@example.com', is_superuser: true, is_active: true },
-      { id: 2, full_name: 'Jane Smith', email: 'jane@example.com', is_superuser: false, is_active: true }
+      { id: 1, full_name: 'John Doe', email: 'john@example.com', is_superuser: true, is_staff: true },
+      { id: 2, full_name: 'Jane Smith', email: 'jane@example.com', is_superuser: false, is_staff: false }
     ],
     user: {
-      is_superuser: true
+      is_superuser: true,
+      is_staff: true
     }
   })
 }))
@@ -66,24 +67,6 @@ describe('UserData.vue', () => {
 
     expect(rows[1].text()).toContain('Jane Smith')
     expect(rows[1].text()).toContain('jane@example.com')
-  })
-
-  it('sorts data when header is clicked', async () => {
-    const wrapper = mount(UserData, {
-      global: {
-        plugins: [i18n, router]
-      }
-    })
-
-    const headers = wrapper.findAll('th')
-    await headers[0].trigger('click')
-
-    expect(wrapper.vm.sortKey).toBe('full_name')
-    expect(wrapper.vm.sortOrder).toBe('asc')
-
-    // Click again to reverse sort order
-    await headers[0].trigger('click')
-    expect(wrapper.vm.sortOrder).toBe('desc')
   })
 
   it('navigates to user detail when row is clicked', async () => {

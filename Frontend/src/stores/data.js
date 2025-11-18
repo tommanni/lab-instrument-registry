@@ -62,8 +62,8 @@ export const useDataStore = defineStore('dataStore', () => {
       tay_numero: 'tay_numero',
       serial_number: 'sarjanumero',
       sarjanumero: 'sarjanumero',
-      product_name: 'tuotenimi',
-      tuotenimi: 'tuotenimi',
+      product_name: ['tuotenimi', 'tuotenimi_en'],
+      tuotenimi: ['tuotenimi', 'tuotenimi_en'],
       brand_and_model: 'merkki_ja_malli',
       merkki_ja_malli: 'merkki_ja_malli',
       unit: 'yksikko',
@@ -90,10 +90,13 @@ export const useDataStore = defineStore('dataStore', () => {
       toimituspvm: 'toimituspvm'
     }
 
-    const getFieldValue = (obj, field) => {
-      const canonical = fieldAliases[field] || field
-      const v = obj[canonical]
-      return v === undefined || v === null ? '' : String(v).toLowerCase()
+    const getFieldValues = (obj, field) => {
+      const canonical = fieldAliases[field] ?? field
+      const keys = Array.isArray(canonical) ? canonical : [canonical]
+      return keys.map(key => {
+        const v = obj[key]
+        return v === undefined || v === null ? '' : String(v).toLowerCase()
+      })
     }
 
     const anyFieldIncludes = (lower) => (
@@ -105,6 +108,7 @@ export const useDataStore = defineStore('dataStore', () => {
       (item.lisatieto && item.lisatieto.toLowerCase().includes(lower)) ||
       (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lower)) ||
       (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lower)) ||
+      (item.tuotenimi_en && item.tuotenimi_en.toLowerCase().includes(lower)) ||
       (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lower)) ||
       (item.yksikko && item.yksikko.toLowerCase().includes(lower)) ||
       (item.kampus && item.kampus.toLowerCase().includes(lower)) ||
@@ -117,8 +121,8 @@ export const useDataStore = defineStore('dataStore', () => {
     const itemMatchesSingleTerm = (symbol) => {
       const lower = String(symbol.value || '').toLowerCase()
       if (symbol.fieldName) {
-        const fieldLower = getFieldValue(item, symbol.fieldName.toLowerCase())
-        return fieldLower.includes(lower)
+        const values = getFieldValues(item, symbol.fieldName.toLowerCase())
+        return values.some(v => v.includes(lower))
       }
       return anyFieldIncludes(lower)
     }

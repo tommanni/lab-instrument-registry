@@ -29,7 +29,7 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 ## Local Development
 
 ```bash
-docker compose up semantic-search-service
+make semantic-search
 ```
 
 The container:

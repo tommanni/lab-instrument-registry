@@ -1,14 +1,17 @@
-from instrument_registry.models import Instrument, RegistryUser, InviteCode
-from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer
+from instrument_registry.models import Instrument, RegistryUser, InviteCode, InstrumentAttachment
+from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer, InstrumentAttachmentSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
 from instrument_registry.util import model_to_csv, csv_to_model
+from instrument_registry.translations import translate_password_error
+from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
 from knox import views as knox_views
 from knox.auth import TokenAuthentication
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
+from django.conf import settings
 from datetime import datetime
 from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
@@ -107,7 +110,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instrument = self.get_object()
-        
+
         history_records = list(instrument.history.all().order_by('history_date'))
 
         if not history_records:
@@ -126,26 +129,61 @@ class InstrumentHistory(generics.RetrieveAPIView):
                 if f.concrete and not f.many_to_many and not f.auto_created and f.name != 'embedding_fi' and f.name != 'embedding_en'
             ]
         })
-        
+
         # Compare consecutive records and add diffs
         for i in range(len(history_records) - 1):
             current = history_records[i]
             next_record = history_records[i + 1]
-            
+
             delta = next_record.diff_against(current)
+
+            # Only add if there are actual changes (skip empty change events)
+            if delta.changes:
+                changes.append({
+                    'history_date': next_record.history_date,
+                    'history_user': next_record.history_user.full_name if next_record.history_user else next_record.history_username,
+                    'history_type': next_record.get_history_type_display(),
+                    'changes': [
+                        {
+                            'field': change.field,
+                            'old': change.old,
+                            'new': change.new
+                        } for change in delta.changes
+                    ]
+                })
+
+        # Add attachment history
+        attachment_history = InstrumentAttachment.history.filter(
+            instrument_id=instrument.id
+        ).order_by('history_date')
+
+        for att_record in attachment_history:
+            history_type = att_record.get_history_type_display()
+            user = att_record.history_user.full_name if att_record.history_user else att_record.history_username
+
+            if history_type == 'Created':
+                change_desc = f"Added attachment: {att_record.filename}"
+            elif history_type == 'Deleted':
+                change_desc = f"Deleted attachment: {att_record.filename}"
+            else:
+                change_desc = f"Modified attachment: {att_record.filename}"
+
             changes.append({
-                'history_date': next_record.history_date,
-                'history_user': next_record.history_user.full_name if next_record.history_user else next_record.history_username,
-                'history_type': next_record.get_history_type_display(),
+                'history_date': att_record.history_date,
+                'history_user': user,
+                'history_type': 'Attachment ' + history_type,
                 'changes': [
                     {
-                        'field': change.field,
-                        'old': change.old,
-                        'new': change.new
-                    } for change in delta.changes
+                        'field': 'attachment',
+                        'old': None,
+                        'new': change_desc
+                    }
                 ]
             })
-        
+
+        # Sort all changes by date
+        changes.sort(key=lambda x: x['history_date'])
+
         return Response(changes)
 
 # This returns all the instruments that match the given filter
@@ -180,7 +218,8 @@ class InstrumentCSVExport(APIView):
 
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
-    
+
+# Language detector setup for search terms    
 LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
     Language.ENGLISH,
     Language.FINNISH
@@ -294,15 +333,40 @@ class InstrumentCSVImport(APIView):
 
             serializer.save()
 
+            precompute_pid = None
+            try:
+                precompute_pid, _ = run_precompute_subprocess(force=False)
+            except Exception as exc:
+                print(f'Embedding precompute subprocess failed: {exc}')
+
             return Response({
                 'success': True,
                 'imported_count': new_count,
                 'skipped_count': duplicate_count,
-                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)'
+                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)',
+                'embedding_process_pid': precompute_pid,
             })
 
         except Exception as e:
             return Response({'error': str(e)}, status=400)
+
+# This view returns the status of translation and embedding processing
+class EmbeddingStatus(APIView):
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        pending_qs = Instrument.objects.filter(
+            Q(embedding_en__isnull=True) &
+            ~Q(tuotenimi_en__exact="Translation Failed")
+        )
+        pending_count = pending_qs.count()
+        failed_count = Instrument.objects.filter(tuotenimi_en__exact="Translation Failed").count()
+        return Response({
+            'processing': pending_count > 0,
+            'pending_count': pending_count,
+            'failed_count': failed_count,
+        })
 
 # This view returns semantic search results
 class InstrumentSearch(APIView):
@@ -422,22 +486,30 @@ class Register(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        lang = request.COOKIES.get('Language')
         password = request.data.get('password')
-        try:
-            validate_password(password)
-        except ValidationError as e:
-            return Response({'message': e.messages}, status=400)
-
+        password_again = request.data.get('password_again')
         invite_code = request.data.get('invite_code', None)
+
         validated = InviteCode.objects.is_valid_code(invite_code)
+
         if validated:
+            password_error = translate_password_error(password, password_again=password_again, lang=lang)
+            if password_error:
+                return Response({
+                    'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
+                    'password_error': password_error
+                }, status=400)
+
             serializer = RegistryUserSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             InviteCode.objects.remove_code(invite_code)
-            return Response({'message': 'user registered'})
+            return Response({'message': 'user registered.'})
         else:
-            return Response({'message': 'invite code invalid or missing'}, status=400)
+            if (lang == 'fi'):
+                return Response({'message': 'kutsukoodi on virheellinen tai puuttuu.'}, status=400)
+            return Response({'message': 'invite code is invalid or missing.'}, status=400)
 
 # This view allows a logged in user to change their password.
 class ChangePassword(APIView):
@@ -447,6 +519,14 @@ class ChangePassword(APIView):
     def post(self, request):
         user_id = request.data.get('id')
         new_password = request.data.get('new_password')
+        lang = request.COOKIES.get('Language')
+
+        password_error = translate_password_error(password=new_password, lang=lang)
+        if password_error:
+            return Response({
+                'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
+                'password_error': password_error
+            }, status=400)
         
         try:
             user = RegistryUser.objects.get(pk=user_id)
@@ -454,14 +534,9 @@ class ChangePassword(APIView):
             return Response({'message': 'User not found.'}, status=404)
 
          # only superadmins can change superadmin passwords
-        if (not (request.user != user or request.user.is_staff or request.user.is_superuser)
+        if (not (request.user == user or request.user.is_staff or request.user.is_superuser)
             or (user.is_superuser and not request.user.is_superuser)):
             return Response({'message': 'Not authorized.'}, status=403)
-
-        try:
-            validate_password(new_password, user=user)
-        except ValidationError as e:
-            return Response({'message': e.messages}, status=400)
 
         user.set_password(new_password)
         user.save()
@@ -546,6 +621,145 @@ class DeleteUser(APIView):
 
         return Response({'message': 'User deleted successfully.'})
 
+
+# Attachment views
+class InstrumentAttachmentList(APIView):
+    """
+    List all attachments for an instrument or upload a new attachment.
+    Only authenticated users can view attachments.
+    """
+    authentication_classes = [CookieTokenAuthentication]
+
+    def get_permissions(self):
+        # All operations require authentication
+        return [permissions.IsAuthenticated()]
+
+    def get(self, request, instrument_id):
+        """List all attachments for an instrument - only for authenticated users"""
+        try:
+            instrument = Instrument.objects.get(pk=instrument_id)
+        except Instrument.DoesNotExist:
+            return Response({'detail': 'Instrument not found.'}, status=404)
+
+        attachments = InstrumentAttachment.objects.filter(instrument=instrument)
+        serializer = InstrumentAttachmentSerializer(attachments, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request, instrument_id):
+        """Upload a new attachment"""
+        try:
+            instrument = Instrument.objects.get(pk=instrument_id)
+        except Instrument.DoesNotExist:
+            return Response({'detail': 'Instrument not found.'}, status=404)
+
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'detail': 'No file provided.'}, status=400)
+
+        # Validate file size using settings constant
+        if file.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
+            return Response({'detail': 'File size exceeds 10MB limit.'}, status=400)
+
+        # Create attachment
+        attachment = InstrumentAttachment(
+            instrument=instrument,
+            file=file,
+            filename=file.name,
+            file_type=file.content_type,
+            file_size=file.size,
+            description=request.data.get('description', ''),
+            uploaded_by=request.user if request.user.is_authenticated else None
+        )
+        attachment.save()
+
+        serializer = InstrumentAttachmentSerializer(attachment, context={'request': request})
+        return Response(serializer.data, status=201)
+
+
+class InstrumentAttachmentDownload(APIView):
+    """
+    Download an attachment with Content-Disposition header to force download.
+    Only authenticated users can download attachments.
+    """
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        """Download an attachment"""
+        try:
+            attachment = InstrumentAttachment.objects.get(pk=pk)
+        except InstrumentAttachment.DoesNotExist:
+            return Response({'detail': 'Attachment not found.'}, status=404)
+
+        if not attachment.file:
+            return Response({'detail': 'File not found.'}, status=404)
+
+        # Open the file
+        file_handle = attachment.file.open('rb')
+
+        # Create response with Content-Disposition header to force download
+        response = FileResponse(file_handle, content_type=attachment.file_type or 'application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{attachment.filename}"'
+        response['Content-Length'] = attachment.file_size
+
+        return response
+
+
+class InstrumentAttachmentDetail(APIView):
+    """
+    Retrieve, update, or delete an attachment.
+    Only authenticated users can view attachments.
+    """
+    authentication_classes = [CookieTokenAuthentication]
+
+    def get_permissions(self):
+        # All operations require authentication
+        return [permissions.IsAuthenticated()]
+
+    def get(self, request, pk):
+        """Retrieve an attachment - only for authenticated users"""
+        try:
+            attachment = InstrumentAttachment.objects.get(pk=pk)
+        except InstrumentAttachment.DoesNotExist:
+            return Response({'detail': 'Attachment not found.'}, status=404)
+
+        serializer = InstrumentAttachmentSerializer(attachment, context={'request': request})
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        """Update attachment description"""
+        try:
+            attachment = InstrumentAttachment.objects.get(pk=pk)
+        except InstrumentAttachment.DoesNotExist:
+            return Response({'detail': 'Attachment not found.'}, status=404)
+
+        attachment.description = request.data.get('description', attachment.description)
+        attachment.save()
+
+        serializer = InstrumentAttachmentSerializer(attachment, context={'request': request})
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        """Delete an attachment"""
+        try:
+            attachment = InstrumentAttachment.objects.get(pk=pk)
+        except InstrumentAttachment.DoesNotExist:
+            return Response({'detail': 'Attachment not found.'}, status=404)
+
+        # Delete the file from filesystem
+        if attachment.file:
+            try:
+                attachment.file.delete()
+            except Exception as e:
+                # Log the error but continue with database deletion
+                print(f"Error deleting file {attachment.filename}: {e}")
+
+        # Delete the database record
+        attachment.delete()
+
+        return Response(status=204)
+
+
 # These last views should be pretty self explanatory based on their names.
 class Login(knox_views.LoginView):
     authentication_classes = [JSONAuthentication]
@@ -565,7 +779,7 @@ class Login(knox_views.LoginView):
             value=token,
             httponly=True,
             #secure=True,        todo: Add secure=true and samesite for live build!!!
-            #samesite='Strict',  
+            #samesite='Strict',
             max_age=2 * 60 * 60      # 2h, same as knox token
         )
         print("Set cookie with token:", token)

@@ -10,8 +10,10 @@ const { t } = useI18n()
 const showOverlay = ref(false)
 const email = ref('')
 const password = ref('')
+const password_again = ref('')
 const invite_code = ref('')
 const full_name = ref('')
+const password_error = ref('')
 const store = useDataStore()
 const alertStore = useAlertStore()
 
@@ -22,6 +24,7 @@ const registerUser = async () => {
     const response = await axios.post('/api/register/', {
       email: email.value,
       password: password.value,
+      password_again: password_again.value,
       invite_code: invite_code.value,
       full_name: full_name.value
     }, {
@@ -29,6 +32,8 @@ const registerUser = async () => {
     })
     email.value = ''
     password.value = ''
+    password_again.value = ''
+    password_error.value = ''
     invite_code.value = ''
     full_name.value = ''
     alertStore.showAlert(0, `${t('message.rekisteroity')}`)
@@ -36,6 +41,10 @@ const registerUser = async () => {
   } catch (error) {
         if (error.response && error.response.data && error.response.data.message) {
             alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+            
+            if (error.response.data.password_error) {
+              password_error.value = error.response.data.password_error;
+            }
         }
         else {
             alertStore.showAlert(1, t('message.rekisteroimisvirhe'));
@@ -49,6 +58,7 @@ const openOverlay = () => {
 
 const closeOverlay = () => {
   showOverlay.value = false
+  password_error.value = ''
 }
 </script>
 
@@ -85,6 +95,12 @@ const closeOverlay = () => {
             <input v-model="password" type="password" id="form3Example4" class="form-control" /> 
           </div>
 
+          <div data-mdb-input-init class="form-outline mb-4">
+            <label class="form-label" for="form2Example3">{{ t('message.salasana_uudelleen') }}</label>
+            <input v-model="password_again" type="password" id="form3Example5" class="form-control" /> 
+            <p class="error-text">{{ password_error || ' ' }}</p>
+          </div>
+
           <!-- Submit button -->
           <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary ms-2">
             {{ t('message.register_painike') }}
@@ -118,6 +134,14 @@ const closeOverlay = () => {
   padding: 2em;
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.error-text {
+  color: red;
+  font-size: 0.8rem;
+  min-width: 25em;
+  max-width: 25em;
+  min-height: 1.5em;
 }
 
 </style>

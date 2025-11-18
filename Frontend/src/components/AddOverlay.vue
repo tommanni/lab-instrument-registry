@@ -5,6 +5,7 @@ import { useDataStore } from '@/stores/data'
 import { useAlertStore } from '@/stores/alert'
 import { useI18n } from 'vue-i18n';
 import { Modal } from 'bootstrap';
+import { getFileIcon, formatFileSize } from '@/utils/fileUtils';
 
 const { t } = useI18n();
 const store = useDataStore()
@@ -61,6 +62,29 @@ const createFormDataWithMaintenance = () => ({
 // Form data that will be saved
 const formData = ref(createBaseFormData())
 
+// Attachment handling
+const pendingAttachments = ref([])
+const fileInputRef = ref(null)
+
+const handleFileSelect = (event) => {
+  const files = Array.from(event.target.files)
+  files.forEach(file => {
+    pendingAttachments.value.push({
+      file: file,
+      description: '',
+      tempId: Date.now() + Math.random()
+    })
+  })
+  // Reset input so same file can be selected again
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+const removePendingAttachment = (tempId) => {
+  pendingAttachments.value = pendingAttachments.value.filter(a => a.tempId !== tempId)
+}
+
 
 const closeOverlay = () => {
   showOverlay.value = false
@@ -68,6 +92,7 @@ const closeOverlay = () => {
 
 const emptyForm = () => {
   formData.value = createFormDataWithMaintenance()
+  pendingAttachments.value = []
 }
 
 const saveData = async () => {
@@ -98,8 +123,45 @@ const saveData = async () => {
     store.addObject(savedItem)
     emit('new-instrument-added', savedItem)
 
+    // Upload attachments if any
+    if (pendingAttachments.value.length > 0) {
+      const uploadErrors = []
+      for (const attachment of pendingAttachments.value) {
+        // Validate description is required
+        if (!attachment.description || !attachment.description.trim()) {
+          uploadErrors.push(`${attachment.file.name}: ${t('message.kuvaus_vaaditaan')}`)
+          continue
+        }
+
+        const formData = new FormData()
+        formData.append('file', attachment.file)
+        formData.append('description', attachment.description.trim())
+
+        try {
+          await axios.post(
+            `/api/instruments/${savedItem.id}/attachments/`,
+            formData,
+            {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error uploading attachment:', error)
+          uploadErrors.push(`${attachment.file.name}: ${error.response?.data?.detail || 'Upload failed'}`)
+        }
+      }
+
+      if (uploadErrors.length > 0) {
+        alertStore.showAlert(1, `Some attachments failed to upload: ${uploadErrors.join(', ')}`)
+      }
+    }
+
     // Close modal only on successful save
     emptyForm()
+    pendingAttachments.value = [] // Clear attachments
     if (modalInstance) {
       modalInstance.hide()
     }
@@ -198,6 +260,64 @@ const saveData = async () => {
                   <div class="mt-3">
                     <label for="lisatieto">{{ t('message.lisatieto') }}</label>
                     <textarea id="lisatieto" type="text" class="form-control" v-model="formData.lisatieto" />
+                  </div>
+                </div>
+
+                <!-- Attachments section -->
+                <div class="mt-4 p-3 border rounded bg-light">
+                  <h6 class="mb-3">{{ t('message.liitteet') }}</h6>
+
+                  <div class="mb-3">
+                    <input
+                      ref="fileInputRef"
+                      type="file"
+                      class="form-control"
+                      style="height: 31px; padding: 0.25rem 0.5rem; font-size: 0.875rem;"
+                      @change="handleFileSelect"
+                      multiple
+                    />
+                    <small class="text-muted">{{ t('message.max_tiedostokoko') }}: 10MB</small>
+                  </div>
+
+                  <!-- Pending attachments list -->
+                  <div v-if="pendingAttachments.length > 0" class="attachments-list">
+                    <div
+                      v-for="attachment in pendingAttachments"
+                      :key="attachment.tempId"
+                      class="attachment-item p-2 mb-2 border rounded bg-white"
+                    >
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="flex-grow-1">
+                          <div class="d-flex align-items-center">
+                            <i :class="`bi ${getFileIcon(attachment.file.type)} me-2`"></i>
+                            <div>
+                              <div class="fw-bold small">{{ attachment.file.name }}</div>
+                              <div class="text-muted" style="font-size: 0.75rem;">
+                                {{ formatFileSize(attachment.file.size) }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          @click="removePendingAttachment(attachment.tempId)"
+                          class="btn btn-sm btn-outline-danger"
+                          type="button"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                      <div>
+                        <input
+                          v-model="attachment.description"
+                          type="text"
+                          class="form-control form-control-sm"
+                          :placeholder="t('message.kuvaus') + ' *'"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-muted small">
+                    {{ t('message.ei_liitteita') }}
                   </div>
                 </div>
               </form>

@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs shell db-shell superuser migrate clean status test frontend-install frontend-dev frontend-build frontend-preview frontend-test fullstack clear-db
+.PHONY: help build up down restart logs shell db-shell superuser migrate clean status test frontend-install frontend-dev frontend-build frontend-preview frontend-test fullstack clear-db semantic-search
 
 # Default target
 help: ## Show this help message
@@ -33,6 +33,11 @@ up: ## Start all services (build if needed)
 down: ## Stop all services
 	@echo "Stopping services..."
 	@docker-compose down
+
+semantic-search: ## (Re)start only the semantic search service
+	@echo "Starting semantic search service..."
+	@docker-compose up --build -d semantic-search-service
+	@echo "Semantic search service running at http://localhost:8001"
 
 restart: ## Restart all services
 	@echo "Restarting services..."

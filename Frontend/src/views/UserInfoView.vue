@@ -1,25 +1,26 @@
 <script setup>
 import axios from 'axios';
 import UserInfo from '@/components/UserInfo.vue';
+import PasswordOverlay from '@/components/PasswordOverlay.vue';
 import ChangeAdminStatus from '@/components/ChangeAdminStatus.vue';
 import ChangeSuperadminStatus from '@/components/ChangeSuperadminStatus.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
-import ChangePassword from '@/components/ChangePassword.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
-import { useAlertStore } from '@/stores/alert';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { ref, onMounted, watch } from 'vue';
+import ConfirmationOverlay from '@/components/ConfirmationOverlay.vue';
 
 
 const { t } = useI18n();
 const userStore = useUserStore();
 const dataStore = useDataStore();
-const alertStore = useAlertStore();
 const route = useRoute();
 const user = ref(null);
 const loading = ref(true);
+const showAdminOverlay = ref(false);
+const showDeactivateOverlay = ref(false);
 
 async function fetchUser(id) {
   if (!id) return;
@@ -33,8 +34,8 @@ async function fetchUser(id) {
         if (!dataStore.user.is_staff) {
           return; // non-admins should not see error if user not found
         }
-        if (error.response && error.response.data && error.response.data.message) {
-            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+        if (error.response && error.response.data && error.response.data.detail) {
+            alertStore.showAlert(1, t('message.virhe') + error.response.data.detail);
         }
         else {
             alertStore.showAlert(1, t('message.tuntematon_virhe'));
@@ -75,9 +76,9 @@ watch(
         <UserInfo :user="user"/>
       </div>
       
-      <div class="change-password" v-if="userStore.user && user &&  
+      <div class="password-container" v-if="userStore.user && user &&  
        ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )">
-        <ChangePassword :user="user"/>
+          <PasswordOverlay :user="user"/>
       </div>
 
       <h3 class="control-text" v-if="userStore.user && user &&  userStore.user.is_superuser && userStore.user.id !== user.id">
@@ -118,14 +119,19 @@ main {
   box-sizing: border-box;
 }
 
-.change-password {
-  margin-top: 20px;
-  margin-bottom: 20px;
+.password-container {
+  max-width: 600px;
+  width: 100%; 
+  margin: 20px auto;
+  padding: 1rem;
+  box-sizing: border-box;
 }
+
 
 .control-text {
   margin-left: 30%;
 }
+
 
 .admin-warning {
   max-width: 600px;
@@ -138,7 +144,13 @@ main {
   border-radius: 4px;
 }
 
-
+.make-admin, .change-active {
+  max-width: 600px;
+  width: 100%; 
+  margin: 20px auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
 
 
 </style>

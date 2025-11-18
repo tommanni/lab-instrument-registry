@@ -5,6 +5,7 @@ import axios from 'axios';
 import { ref, watch, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Modal } from 'bootstrap';
+import AttachmentManager from './AttachmentManager.vue';
 
 const { t, tm } = useI18n();
 const store = useDataStore();
@@ -30,6 +31,7 @@ const isUpdating = ref(false);
 const pendingUpdatePayload = ref(null);
 const pendingDuplicateCount = ref(0);
 const showDuplicateConfirm = computed(() => Boolean(pendingUpdatePayload.value));
+const attachmentManagerRef = ref(null);
 
 const duplicateCount = computed(() => {
   if (!store.isInitialized || !props.item) return 0
@@ -43,19 +45,35 @@ const duplicateCount = computed(() => {
 })
 
 // Watch for changes in updateFormData to enable/disable update button
-watch(updateFormData, (newData) => {
-  if (!props.item) {
-    updateIsDisabled.value = true;
-    return;
-  }
-  
-  // Compare each field in updateFormData with original item
-  updateIsDisabled.value = Object.keys(newData).every(key => {
+watch(updateFormData, () => {
+  checkIfUpdateNeeded();
+}, { deep: true });
+
+// Watch for pending attachment changes
+watch(() => attachmentManagerRef.value?.pendingUploads, () => {
+  checkIfUpdateNeeded();
+}, { deep: true });
+
+watch(() => attachmentManagerRef.value?.pendingDeletes, () => {
+  checkIfUpdateNeeded();
+}, { deep: true });
+
+// Helper function to check if update button should be enabled
+const checkIfUpdateNeeded = () => {
+  const hasPendingUploads = attachmentManagerRef.value?.pendingUploads?.length > 0;
+  const hasPendingDeletes = attachmentManagerRef.value?.pendingDeletes?.length > 0;
+  const hasAttachmentChanges = hasPendingUploads || hasPendingDeletes;
+
+  // Check if form fields have changed
+  const hasFormChanges = !Object.keys(updateFormData.value).every(key => {
     const originalValue = props.item[key]?.toString() || '';
-    const newValue = newData[key]?.toString() || '';
+    const newValue = updateFormData.value[key]?.toString() || '';
     return originalValue === newValue;
   });
-}, { deep: true });
+
+  // Enable button if there are form changes OR attachment changes
+  updateIsDisabled.value = !(hasFormChanges || hasAttachmentChanges);
+};
 
 const dataModal = ref(null);
 const deleteModal = ref(null);
@@ -113,6 +131,10 @@ watch(() => props.item, (newItem) => {
       Object.entries(newItem).filter(([key]) => key !== 'id')
     );
     fetchHistory(newItem.id);
+    // Discard any pending attachment changes when switching instruments
+    if (attachmentManagerRef.value) {
+      attachmentManagerRef.value.discardPendingChanges();
+    }
   }
 }, { immediate: true, deep: true });
 
@@ -141,6 +163,10 @@ const cancelEdit = () => {
   resetFormData();
   formValidated.value = false;
   view.value = 'details';
+  // Discard pending attachment changes
+  if (attachmentManagerRef.value) {
+    attachmentManagerRef.value.discardPendingChanges();
+  }
 };
 
 const confirmUpdate = async () => {
@@ -210,8 +236,8 @@ const performUpdate = async (payload) => {
   isUpdating.value = true
   try {
     const response = await axios.put(
-      '/api/instruments/' + props.item.id + '/', 
-      payload, 
+      '/api/instruments/' + props.item.id + '/',
+      payload,
       { withCredentials: true }
     )
     alertStore.showAlert(0, t('message.on_paivitetty'))
@@ -223,6 +249,11 @@ const performUpdate = async (payload) => {
         updateFormData.value.tuotenimi,
         response.data.tuotenimi_en
       )
+    }
+
+    // Process pending attachment changes
+    if (attachmentManagerRef.value) {
+      await attachmentManagerRef.value.processPendingChanges();
     }
 
     fetchHistory(props.item.id); // Refetch history after update
@@ -393,6 +424,18 @@ const cancelDuplicateUpdate = () => {
                   </div>
                 </div>
               </form>
+
+              <!-- Attachments section - shown in both details and edit mode -->
+              <div v-if="view !== 'history' && props.item?.id && store.isLoggedIn" class="container mt-4">
+                <hr class="mb-3" />
+                <AttachmentManager
+                  ref="attachmentManagerRef"
+                  :key="`attachments-${props.item.id}`"
+                  :instrumentId="props.item.id"
+                  :isEditMode="view === 'edit'"
+                />
+              </div>
+
               <!--Change history-->
               <div v-if="view === 'history'" class="container">
                 <div class="history-details">
@@ -447,10 +490,10 @@ const cancelDuplicateUpdate = () => {
                     <p class="text-muted small mb-4">{{ t('message.paivita_duplikaatit_kysymys') }}</p>
                     <div class="d-flex justify-content-end gap-2">
                       <button type="button" class="btn btn-secondary border" @click="cancelDuplicateUpdate" :disabled="isUpdating">
-                        {{ t('message.peru_päivitys') }}
+                        {{ t('message.peru_paivitys') }}
                       </button>
                       <button type="button" class="btn btn-light border" @click="updateOnlyCurrent" :disabled="isUpdating">
-                        {{ t('message.päivitä_yksi') }}
+                        {{ t('message.paivita_yksi') }}
                       </button>
                       <button type="button" class="btn btn-primary" @click="proceedDuplicateUpdate" :disabled="isUpdating">
                         <span
@@ -480,10 +523,19 @@ const cancelDuplicateUpdate = () => {
                 <button
                   v-if="store.isLoggedIn && view === 'details'"
                   @click="view = 'history'"
-                  class="btn btn-outline-info"
+                  class="btn btn-outline-info me-2"
                   :disabled="showDuplicateConfirm || isUpdating"
                 >{{
                     t('message.historia') }}</button>
+                <button
+                    v-if="store.isLoggedIn && view === 'details' && allowDelete"
+                    class="btn btn-danger me-2"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteConfirmModal"
+                    :disabled="showDuplicateConfirm || isUpdating"
+                >
+                  {{ t('message.poista') }}
+                </button>
                 <button
                   v-if="view === 'history'"
                   @click="view = 'details'"
@@ -502,15 +554,6 @@ const cancelDuplicateUpdate = () => {
                   :disabled="showDuplicateConfirm || isUpdating"
                 >
                   {{t('message.peruuta') }}
-                </button>
-                <button
-                  v-if="store.isLoggedIn && view === 'details' && allowDelete"
-                  class="btn btn-danger me-2"
-                  data-bs-toggle="modal"
-                  data-bs-target="#deleteConfirmModal"
-                  :disabled="showDuplicateConfirm || isUpdating"
-                >
-                  {{ t('message.poista') }}
                 </button>
                 <button
                   class="btn btn-primary"
