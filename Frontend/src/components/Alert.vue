@@ -125,9 +125,8 @@ const store = useAlertStore()
     opacity: 0.95;
     word-wrap: break-word;
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: break-word;
     max-width: 300px;
 }
 

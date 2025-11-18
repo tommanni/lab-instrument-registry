@@ -31,23 +31,23 @@ class TestViewsWithoutLogin(TestCase):
         self.assertEqual(str(response.content), 'b\'{"message":"no such field"}\'')
 
     @parameterized.expand([
-        "/api/save_csv/",
+        "/api/instruments/csv/preview/",
         "/api/users/",
         "/api/users/me/",
         '/api/invite/'
     ])
     def test_auth_views(self, url: str):
-        response = self.client.get(url)
+        response = self.client.post(url) if url == "/api/instruments/csv/preview/" else self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
     def test_register_view_invalid(self):
         response = self.client.post("/api/register/", data={"invite_code": "whatever"})
-        self.assertEqual(str(response.content), 'b\'{"message":"invite code invalid or missing"}\'')
+        self.assertEqual(str(response.content), 'b\'{"message":"invite code is invalid or missing."}\'')
 
     def test_register_view_valid(self):
         invite_code = InviteCode.objects.create()
-        response = self.client.post("/api/register/", data={"invite_code": invite_code.code, "email": "a@a.com", "full_name": "aa aa", "password": "a"})
-        self.assertEqual(str(response.content), 'b\'{"message":"user registered"}\'')
+        response = self.client.post("/api/register/", data={"invite_code": invite_code.code, "email": "a@a.com", "full_name": "aa aa", "password": "ValidPassword123"})
+        self.assertEqual(str(response.content), 'b\'{"message":"user registered."}\'')
 
 
 class TestLoginView(TestCase):

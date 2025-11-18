@@ -82,7 +82,7 @@ watch(() => dataStore.searchMode, async () => {
           <input type="radio" class="btn-check" name="searchModeDevice" id="direct-search-device" autocomplete="off" value="direct" v-model="dataStore.searchMode">
           <label class="btn btn-outline-primary" for="direct-search-device">{{$t('message.tarkka_haku')}}</label>
           <input type="radio" class="btn-check" name="searchModeDevice" id="smart-search-device" autocomplete="off" value="smart" v-model="dataStore.searchMode">
-          <label class="btn btn-outline-primary" for="smart-search-device">{{$t('message.älykäs_haku')}}</label>
+          <label class="btn btn-outline-primary" for="smart-search-device">{{$t('message.alykas_haku')}}</label>
         </div>
         <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button me-5" aria-label="Hakuohje"
                 data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
