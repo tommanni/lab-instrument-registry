@@ -483,12 +483,16 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
         id = self.kwargs.get(self.lookup_field)
         if str(id) == 'me':
             return self.request.user
+        
         # otherwise use default functionality (search by pk)
+        request_user = self.request.user
+        search_user = super().get_object()
+
         # only admins can view other users
-        if not (self.request.user.is_staff or self.request.user.is_superuser):
+        if not (request_user == search_user or request_user.is_staff or request_user.is_superuser):
             raise PermissionDenied("Not authorized.")
 
-        return super().get_object()
+        return search_user
 
 
 """
