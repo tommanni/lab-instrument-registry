@@ -107,7 +107,7 @@ class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
 class InstrumentHistory(generics.RetrieveAPIView):
     queryset = Instrument.objects.defer('embedding_en')
     authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         instrument = self.get_object()
@@ -206,9 +206,13 @@ class InstrumentValueSet(APIView):
 # This view returns all the data in Instrument table as a csv file.
 class InstrumentCSVExport(APIView):
     authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # only admins can export instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
         source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en'))
@@ -259,6 +263,11 @@ class InstrumentCSVPreview(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+
+        # only admins can import instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         if 'file' not in request.FILES:
             return Response({'error': 'No file provided'}, status=400)
 
