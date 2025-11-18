@@ -5,12 +5,14 @@ import TuniFooter from './components/Footer.vue';
 import Alert from './components/Alert.vue';
 import { onMounted, onBeforeUnmount } from 'vue';
 import { useDataStore } from '@/stores/data';
+import { useContractStore } from '@/stores/contract';
 import axios from 'axios';
 import { useI18n } from 'vue-i18n';
 
 const { t, locale } = useI18n()
 
-const dataStore = useDataStore()
+const dataStore = useDataStore();
+const contractStore = useContractStore();
 
 // These should have their own file later on?
 function getCookie(name) {
@@ -43,6 +45,7 @@ async function checkLogingStatus() {
     });
     dataStore.isLoggedIn = true;
     dataStore.user = response.data;
+    await contractStore.fetchData()
   } catch (error) {
     dataStore.isLoggedIn = false;
   } finally {

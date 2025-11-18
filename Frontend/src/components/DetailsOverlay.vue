@@ -183,12 +183,25 @@ const confirmUpdate = async () => {
   if (!store.isInitialized) {
   console.warn("Store not initialized yet.")
   return
-}
+  }
 
   const originalName = ((props.item && props.item.tuotenimi) ? props.item.tuotenimi : '').trim().toLowerCase()
   const currentName = (updateFormData.value.tuotenimi || '').trim().toLowerCase()
   const tuotenimiUnchanged = originalName === currentName
   const englishChanged = props.item ? updateFormData.value.tuotenimi_en !== props.item.tuotenimi_en : false
+
+  if(updateFormData.value.toimituspvm === '') {
+    updateFormData.value.toimituspvm = null;
+  }
+  if(updateFormData.value.huoltosopimus_loppuu === '') {
+    updateFormData.value.huoltosopimus_loppuu = null;
+  }
+  if(updateFormData.value.edellinen_huolto === '') {
+    updateFormData.value.edellinen_huolto = null;
+  }
+  if(updateFormData.value.seuraava_huolto === '') {
+    updateFormData.value.seuraava_huolto = null;
+  }
 
   const payload = JSON.parse(JSON.stringify(updateFormData.value))
   if (tuotenimiUnchanged && englishChanged && duplicateCount.value > 0) {

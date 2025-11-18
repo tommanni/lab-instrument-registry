@@ -69,7 +69,7 @@ function handleNewInstrument(item) {
       </div>
       <div class="data">
         <Data ref="dataComponent" />
-        <Pagination />
+        <Pagination v-if="store.numberOfPages > 1"/>
       </div>
     </div>
 </template>

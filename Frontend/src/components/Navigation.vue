@@ -3,6 +3,7 @@ import { RouterLink } from 'vue-router';
 import LangButton from './LangButton.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
+import { useContractStore } from '@/stores/contract';
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useI18n } from 'vue-i18n';
@@ -16,6 +17,7 @@ const { t } = useI18n();
 
 const dataStore = useDataStore();
 const userStore = useUserStore();
+const contractStore = useContractStore();
 const alertStore = useAlertStore();
 const isMobile = useMediaQuery('(max-width: 768px');
 
@@ -46,8 +48,13 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
         <RouterLink v-if="isMobile" class="bi bi-person btn btn-primary fs-5" :to="`/users/${userStore.user.id}`"/>
         <RouterLink v-else class="nav-link" :to="`/users/${userStore.user.id}`">{{ t('message.omat_tiedot') }}</RouterLink>
       </li>
-      <li v-if="dataStore.isLoggedIn" class="nav-item">
-        <RouterLink v-if="isMobile" class="bi bi-wrench btn btn-primary fs-5" to="/contracts"/>
+      <li v-if="dataStore.isLoggedIn && userStore.user" class="nav-item">
+        <div v-if="!isMobile" class="d-flex align-items-center">
+          <i v-if="contractStore.isUrgent > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: -11px;"></i>
+          <i v-else-if="contractStore.isUpcoming > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: -11px;"></i>
+          <RouterLink class="nav-link" to="/contracts">{{ t('message.huoltosivu') }}</RouterLink>
+        </div>
+        <RouterLink v-else class="bi bi-wrench btn btn-primary fs-5" to="/contracts"/>
         <RouterLink v-else class="nav-link" to="/contracts">{{ t('message.huoltosivu') }}</RouterLink>
       </li>
       <li v-if="dataStore.isLoggedIn && userStore.user && (userStore.user.is_staff || userStore.user.is_superuser)" class="nav-item">
@@ -73,5 +80,14 @@ header {
 
 header ul {
   flex: 1;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.badge {
+  font-size: 0.65rem;
+  padding: 0.25rem 0.4rem;
 }
 </style>
