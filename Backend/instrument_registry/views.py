@@ -7,6 +7,7 @@ from instrument_registry.translations import translate_password_error
 from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from knox import views as knox_views
 from knox.auth import TokenAuthentication
@@ -259,6 +260,10 @@ class InstrumentCSVImport(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        # only admins can import instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+
         if 'file' not in request.FILES:
             return Response({'error': 'No file provided'}, status=400)
 
@@ -392,7 +397,7 @@ class InstrumentSearch(APIView):
             return Response({'message': 'invalid response from semantic search service'}, status=500)
 
 class ServiceValueSet(APIView):
-    authentication_classes = [CookieTokenAuthentication]  # Add your authentication if needed
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -415,6 +420,12 @@ class UserList(generics.ListAPIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    # Only admins can view the list of users
+    def get(self, request):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied('Not authorized.')
+        return super().get(request)
+
 # This view returns a single user.
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = RegistryUser.objects.all()
@@ -428,6 +439,10 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
         if str(id) == 'me':
             return self.request.user
         # otherwise use default functionality (search by pk)
+        # only admins can view other users
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            raise PermissionDenied("Not authorized.")
+
         return super().get_object()
 
 
@@ -441,6 +456,10 @@ class GenerateInviteCode(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # only admins can create invite codes
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         invite_code = InviteCode.objects.create()
         return Response({'invite_code': invite_code.code})
 
@@ -497,7 +516,7 @@ class ChangePassword(APIView):
         except RegistryUser.DoesNotExist:
             return Response({'message': 'User not found.'}, status=404)
 
-         # only superadmins can change superadmin passwords
+        # only superadmins can change superadmin passwords
         if (not (request.user == user or request.user.is_staff or request.user.is_superuser)
             or (user.is_superuser and not request.user.is_superuser)):
             return Response({'message': 'Not authorized.'}, status=403)
@@ -513,7 +532,8 @@ class ChangeAdminStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can create new admins
+        # only superadmins can create new admins
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -540,7 +560,8 @@ class ChangeSuperadminStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can create new superadmin
+        # only superadmins can create new superadmins
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -568,7 +589,8 @@ class DeleteUser(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can delete users
+        # only superadmins can delete users
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -620,7 +642,3 @@ class Logout(knox_views.LogoutView):
         # Delete the cookie
         response.delete_cookie('Authorization')
         return response
-
-class LogoutAll(knox_views.LogoutAllView):
-    authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
