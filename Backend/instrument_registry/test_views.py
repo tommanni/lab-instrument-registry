@@ -2,6 +2,7 @@ from django.test import TestCase
 from parameterized import parameterized
 from .models import InviteCode
 from .serializers import RegistryUserSerializer
+import json
 
 class TestViewsWithoutLogin(TestCase):
 
@@ -64,6 +65,17 @@ class TestLoginView(TestCase):
     def test_login_view_valid(self):
         response = self.client.post("/api/login/", data=self.logindata)
         self.assertEqual(response.status_code, 200)
+        # ensure token was removed from response json and user is present
+        body = json.loads(response.content)
+        self.assertNotIn('token', body)
+        self.assertIn('user', body)
+        # cookie should be set
+        self.assertIn('Authorization', response.cookies)
+        morsel = response.cookies['Authorization']
+        # HttpOnly attribute should be present
+        self.assertTrue(morsel['httponly'])
+        # Max-Age should match 2 hours (7200 seconds)
+        self.assertIn(morsel['max-age'], ('7200', 7200))
 
     def test_login_view_invalid_email(self):
         response = self.client.post("/api/login/", data={"email": "in@valid.com", "password": "anything"})
