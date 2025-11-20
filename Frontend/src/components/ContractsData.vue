@@ -6,7 +6,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
 
-const i18n = useI18n();
+const { t, tm } = useI18n();
 const store = useContractStore();
 const clickedObject = ref({})
 const alertStore = useAlertStore()
@@ -18,6 +18,31 @@ const columnWidths = ref([
   50,
   50
 ]);
+
+const headerMap = {
+  [tm('contractHeaders')[0]] : 'tuotenimi',
+  [tm('contractHeaders')[1]] : 'seuraava_huolto',
+  [tm('contractHeaders')[2]] : 'edellinen_huolto',
+  [tm('contractHeaders')[3]] : 'vastuuhenkilo',
+  [tm('contractHeaders')[4]] : 'huoltosopimus_loppuu'
+};
+
+function sortBy(key) {
+  // Toggle sorting direction (asc -> desc -> none)
+  if (store.sortColumn === key) {
+    store.sortDirection =
+      store.sortDirection === 'asc'
+        ? 'desc'
+        : store.sortDirection === 'desc'
+        ? 'none'
+        : 'asc';
+  } else {
+    store.sortColumn = key;
+    store.sortDirection = 'asc';
+  }
+  // Sort data
+  store.updateVisibleData();
+}
 
 const Data = computed(() => store.data);
 
@@ -61,13 +86,29 @@ const handleUpdateItem = (updatedItem) => {
     <div class="table-container">
       <table>
         <colgroup>
-          <col v-for="(key, index) in $tm('contractHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }" />
+          <col v-for="(key, index) in tm('contractHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }" />
         </colgroup>
         <thead>
           <tr>
-            <th v-for="(key, index) in $tm('contractHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
-              {{ key }}
-              <span class="resizer" @mousedown="startResize($event, index)"></span>
+            <th
+            v-for="(key, index) in tm('contractHeaders')"
+            :key="key"
+            :style="{ width: columnWidths[index] + 'px' }">
+            <div class="sort-wrapper" @click="sortBy(headerMap[key])" style="cursor: pointer;">
+              <span v-if="index === 1">
+              <i v-if="store.isUrgent > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: 5px;"></i>
+              <i v-else-if="store.isUpcoming > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: 5px;"></i>
+              </span>
+              <span v-if="index === 4">
+              <i v-if="store.isEnded > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: 5px;"></i>
+              <i v-else-if="store.isEnding > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: 5px;"></i>
+              </span>
+              <span class="header-text">{{ key }}</span>
+              <span v-if="store.sortColumn === headerMap[key]">
+                {{ store.sortDirection === 'asc' ? '↓' : store.sortDirection === 'desc' ? '↑' : '' }}
+              </span>
+            </div>
+              <span class="resizer" @pointerdown="startResize($event, index)"></span>
             </th>
           </tr>
         </thead>
@@ -93,7 +134,13 @@ const handleUpdateItem = (updatedItem) => {
             <td>
               {{ item.vastuuhenkilo }}
             </td>
-            <td>
+            <td v-if="store.isMaintenanceUpcoming(item.huoltosopimus_loppuu)" class="upcoming">
+              {{ item.huoltosopimus_loppuu }}
+            </td>
+            <td v-else-if="store.isMaintenanceDue(item.huoltosopimus_loppuu)" class="urgent">
+              {{ item.huoltosopimus_loppuu }}
+            </td>
+            <td v-else>
               {{ item.huoltosopimus_loppuu }}
             </td>
           </tr>
