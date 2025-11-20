@@ -11,6 +11,10 @@ export const useContractStore = defineStore('contractStore', () => {
   // Näytettävä data (sivuittain)
   const data = ref([])
 
+  // Lajittelukenttä ja suunta (oletuksena seuraava huolto nouseva)
+  const sortColumn = ref('seuraava_huolto') 
+  const sortDirection = ref('asc')
+
   // Sivunumeroiden hallinta
   const currentPage = ref(1)
   const numberOfPages = ref(1)
@@ -45,26 +49,48 @@ export const useContractStore = defineStore('contractStore', () => {
   const isUpcoming = computed(() =>
     (contractData.value || []).filter(item => isMaintenanceUpcoming(item.seuraava_huolto)).length
   )
+  const isEnding = computed(() => 
+  (contractData.value || []).filter(item => isMaintenanceUpcoming(item.huoltosopimus_loppuu)).length
+  )
+  const isEnded = computed(() => 
+  (contractData.value || []).filter(item => isMaintenanceDue(item.huoltosopimus_loppuu)).length
+  )
 
   // Päivitetään näkyvä data käyttäen suodatettua ja lajiteltua dataa.
   const updateVisibleData = () => {
+    // Make copy of searched data to sort and paginate
+    let displayData = [...(contractData.value || [])]
 
-    // Sort by next maintenance ascending.
-    // Items without a valid date are pushed to the end.
-    const sorted = [...(contractData.value || [])].sort((a, b) => {
-      const da = a?.seuraava_huolto ? new Date(a.seuraava_huolto) : null
-      const db = b?.seuraava_huolto ? new Date(b.seuraava_huolto) : null
+    // Sort by selected column unless sorting is 'none'.
+    if (sortColumn.value && sortDirection.value !== 'none') {
+      displayData.sort((a, b) => {
+        let valA = a[sortColumn.value]
+        let valB = b[sortColumn.value]
 
-      const validA = da instanceof Date && !Number.isNaN(da.getTime())
-      const validB = db instanceof Date && !Number.isNaN(db.getTime())
+        const isEmptyA = valA === null || valA === '' || valA === undefined
+        const isEmptyB = valB === null || valB === '' || valB === undefined
 
-      if (!validA && !validB) return 0
-      if (!validA) return 1
-      if (!validB) return -1
-      return da - db
-    })
+        // Put empty values last
+        if (isEmptyA && !isEmptyB) return 1
+        if (!isEmptyA && isEmptyB) return -1
+        if (isEmptyA && isEmptyB) return 0
 
-    data.value = sorted.slice(
+        // Compare dates if both values are valid dates
+        const aTime = Date.parse(valA)
+        const bTime = Date.parse(valB)
+
+        let cmp
+        if (!Number.isNaN(aTime) && !Number.isNaN(bTime)) {
+          cmp = aTime - bTime
+        } else {
+          cmp = String(valA).toLowerCase().localeCompare(String(valB).toLowerCase())
+        }
+
+        return sortDirection.value === 'asc' ? cmp : -cmp
+      })
+    }
+
+    data.value = displayData.slice(
       (currentPage.value - 1) * 15,
       currentPage.value * 15
     )
@@ -175,13 +201,17 @@ export const useContractStore = defineStore('contractStore', () => {
     numberOfPages, 
     currentPage,
     isUrgent,
-    isUpcoming, 
+    isUpcoming,
+    isEnding,
+    isEnded,
     fetchData, 
     updateVisibleData, 
     updateObject, 
     addObject,
     isMaintenanceDue,
-    isMaintenanceUpcoming
+    isMaintenanceUpcoming,
+    sortColumn,
+    sortDirection
     //filteredSortedData
   }
 })

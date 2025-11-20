@@ -51,7 +51,9 @@ watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
       <li v-if="dataStore.isLoggedIn && userStore.user" class="nav-item">
         <div v-if="!isMobile" class="d-flex align-items-center">
           <i v-if="contractStore.isUrgent > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: -11px;"></i>
+          <i v-else-if="contractStore.isEnded > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: -11px;"></i>
           <i v-else-if="contractStore.isUpcoming > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: -11px;"></i>
+          <i v-else-if="contractStore.isEnding > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: -11px;"></i>
           <RouterLink class="nav-link" to="/contracts">{{ t('message.huoltosivu') }}</RouterLink>
         </div>
         <RouterLink v-else class="bi bi-wrench btn btn-primary fs-5" to="/contracts"/>
@@ -90,4 +92,9 @@ header ul {
   font-size: 0.65rem;
   padding: 0.25rem 0.4rem;
 }
+
+.text-danger {
+  color: orange;
+}
+
 </style>
