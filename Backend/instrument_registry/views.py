@@ -625,7 +625,7 @@ class InstrumentAttachmentList(APIView):
 
         # Validate file size using settings constant
         if file.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
-            return Response({'detail': 'File size exceeds 10MB limit.'}, status=400)
+            return Response({'detail': 'File size exceeds 20MB limit.'}, status=400)
 
         # Create attachment
         attachment = InstrumentAttachment(

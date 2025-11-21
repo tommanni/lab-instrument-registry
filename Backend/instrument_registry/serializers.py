@@ -180,7 +180,7 @@ class InstrumentAttachmentSerializer(serializers.ModelSerializer):
         """Validate file size"""
         from django.conf import settings
         if value.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
-            raise serializers.ValidationError('File size exceeds 10MB limit.')
+            raise serializers.ValidationError('File size exceeds 20MB limit.')
         return value
 
     def get_file_url(self, obj):

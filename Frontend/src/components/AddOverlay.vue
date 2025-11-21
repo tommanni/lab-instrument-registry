@@ -107,6 +107,15 @@ const saveData = async () => {
     return // Don't save if validation fails
   }
 
+  // Validate attachment descriptions before saving
+  const missingDescriptions = pendingAttachments.value.filter(
+    a => !a.description || !a.description.trim()
+  )
+  if (missingDescriptions.length > 0) {
+    alertStore.addAlert(t('message.kuvaus_vaaditaan'), 'danger')
+    return // Don't save if attachment validation fails
+  }
+
   try {
     // send the data without any empty fields
     var dataToSend = {};
@@ -127,12 +136,6 @@ const saveData = async () => {
     if (pendingAttachments.value.length > 0) {
       const uploadErrors = []
       for (const attachment of pendingAttachments.value) {
-        // Validate description is required
-        if (!attachment.description || !attachment.description.trim()) {
-          uploadErrors.push(`${attachment.file.name}: ${t('message.kuvaus_vaaditaan')}`)
-          continue
-        }
-
         const formData = new FormData()
         formData.append('file', attachment.file)
         formData.append('description', attachment.description.trim())
@@ -276,7 +279,7 @@ const saveData = async () => {
                       @change="handleFileSelect"
                       multiple
                     />
-                    <small class="text-muted">{{ t('message.max_tiedostokoko') }}: 10MB</small>
+                    <small class="text-muted">{{ t('message.max_tiedostokoko') }}: 20MB</small>
                   </div>
 
                   <!-- Pending attachments list -->
@@ -300,8 +303,9 @@ const saveData = async () => {
                         </div>
                         <button
                           @click="removePendingAttachment(attachment.tempId)"
-                          class="btn btn-sm btn-outline-danger"
+                          class="icon-btn delete-icon"
                           type="button"
+                          :title="t('message.poista')"
                         >
                           <i class="bi bi-trash"></i>
                         </button>
@@ -311,7 +315,9 @@ const saveData = async () => {
                           v-model="attachment.description"
                           type="text"
                           class="form-control form-control-sm"
-                          :placeholder="t('message.kuvaus') + ' *'"
+                          :class="{'is-invalid': formValidated && (!attachment.description || !attachment.description.trim())}"
+                          :placeholder="t('message.kuvaus')"
+                          required
                         />
                       </div>
                     </div>
@@ -357,5 +363,29 @@ const saveData = async () => {
       width: 100%;
       display: flex;
     }
+  }
+
+  /* Icon button styles matching AttachmentManager */
+  .icon-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: inherit;
+  }
+
+  .delete-icon {
+    color: #dc3545;
+  }
+
+  .delete-icon:hover {
+    font-weight: 900;
+    transform: scale(1.1);
+  }
+
+  .delete-icon:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 </style>
