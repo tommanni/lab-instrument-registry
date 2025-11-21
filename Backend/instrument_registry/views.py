@@ -455,7 +455,10 @@ class Register(APIView):
         validated = InviteCode.objects.is_valid_code(invite_code)
 
         if validated:
-            password_error = translate_password_error(password, password_again=password_again, lang=lang)
+            email = request.data.get('email')
+            full_name = request.data.get('full_name', '')
+            user_candidate = RegistryUser(email=email, full_name=full_name)
+            password_error = translate_password_error(password, password_again=password_again, lang=lang, user=user_candidate)
             if password_error:
                 return Response({
                     'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
@@ -482,7 +485,7 @@ class ChangePassword(APIView):
         new_password = request.data.get('new_password')
         lang = request.COOKIES.get('Language')
 
-        password_error = translate_password_error(password=new_password, lang=lang)
+        password_error = translate_password_error(password=new_password, lang=lang, user=request.user)
         if password_error:
             return Response({
                 'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
