@@ -69,6 +69,11 @@ const fileInputRef = ref(null)
 const handleFileSelect = (event) => {
   const files = Array.from(event.target.files)
   files.forEach(file => {
+    // Validate file size (20MB)
+    if (file.size > 20971520) {
+      alertStore.addAlert(`${file.name}: ${t('message.tiedosto_liian_suuri')}`, 'danger')
+      return
+    }
     pendingAttachments.value.push({
       file: file,
       description: '',
