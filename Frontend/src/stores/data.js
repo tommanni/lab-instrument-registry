@@ -43,8 +43,17 @@ export const useDataStore = defineStore('dataStore', () => {
     // Jos lajittelukriteeri on asetettu, lajitellaan data
     if (sortColumn.value && sortDirection.value !== 'none') {
       displayData.sort((a, b) => {
-        const valA = (a[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
-        const valB = (b[sortColumn.value.toLowerCase()] || '').toString().toLowerCase()
+        const valA = (a[sortColumn.value.toLowerCase()] ?? '').toString().toLowerCase()
+        const valB = (b[sortColumn.value.toLowerCase()] ?? '').toString().toLowerCase()
+
+        const isEmptyA = valA === null || valA === '' || valA === undefined
+        const isEmptyB = valB === null || valB === '' || valB === undefined
+
+        // Put empty values last
+        if (isEmptyA && !isEmptyB) return 1
+        if (!isEmptyA && isEmptyB) return -1
+        if (isEmptyA && isEmptyB) return 0
+
         const comp = valA.localeCompare(valB)
         return sortDirection.value === 'asc' ? comp : -comp
       })

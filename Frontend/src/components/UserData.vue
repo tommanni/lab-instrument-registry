@@ -16,8 +16,8 @@ const headerMap = {
   [tm('userTableHeaders')[3]] : 'is_superuser',
 };
 
+// Sort table by column (asc -> desc -> none)
 function sortBy(key) {
-  // Toggle sorting direction (asc -> desc -> none)
   if (userStore.sortColumn === key) {
     userStore.sortDirection =
       userStore.sortDirection === 'asc'
@@ -33,6 +33,13 @@ function sortBy(key) {
   userStore.updateVisibleData();
 }
 
+// Get CSS class for sort icon
+function getSortClass(columnKey) {
+  if (userStore.sortColumn !== columnKey || userStore.sortDirection === 'none') {
+    return 'bi bi-caret-down text-body-tertiary'
+  }
+  return userStore.sortDirection === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
+}
 
 function goToUser(id) {
   router.push({ name: 'UserInfoView', params: { id } })
@@ -45,12 +52,9 @@ function goToUser(id) {
   class="table-container">
     <table>
       <colgroup>
-          <col v-for="(key, index) in $tm('userTableHeaders')"
+        <col v-for="(key, index) in $tm('userTableHeaders')"
             :key="key"
-            :style="{
-              width: index < 2 ? '40%' : '7%'
-            }"
-          />
+        />
       </colgroup>
       
       <thead>
@@ -58,13 +62,12 @@ function goToUser(id) {
           <th
             v-for="(key, index) in $tm('userTableHeaders')"
             :key="key"
+            :class="'col-' + index"
             @click="sortBy(headerMap[key])"
             style="cursor: pointer;"
           >
             {{ key }}
-            <span v-if="userStore.sortColumn === headerMap[key]">
-              {{ userStore.sortDirection === 'asc' ? '↓' : userStore.sortDirection === 'desc' ? '↑' : '' }}
-            </span>
+            <i :class="getSortClass(headerMap[key])"></i>
           </th>
         </tr>
       </thead>
@@ -78,8 +81,8 @@ function goToUser(id) {
         >
           <td>{{ item.full_name }}</td>
           <td>{{ item.email }}</td>
-          <td>{{ item.is_staff ? 'X' : '' }}</td>
-          <td>{{ item.is_superuser ? 'X' : '' }}</td>
+          <td class="admin-row">{{ item.is_staff ? '⬤' : '◯' }}</td>
+          <td class="superadmin-row">{{ item.is_superuser ? '⬤' : '◯' }}</td>
         </tr>
       </tbody>
     </table>
@@ -198,4 +201,8 @@ th {
 .resizer:hover {
   background: #ab9bcb;
 }
+
+.col-0, .col-1 { width: 50%; }
+.col-2, .col-3 { width: 130px; }
+.admin-row, .superadmin-row { text-align: center; color: #4E008E; }
 </style>
