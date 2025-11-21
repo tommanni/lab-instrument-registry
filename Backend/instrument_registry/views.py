@@ -2,7 +2,7 @@ from instrument_registry.models import Instrument, RegistryUser, InviteCode, Ins
 from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer, InstrumentAttachmentSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
-from instrument_registry.util import model_to_csv, csv_to_model
+from instrument_registry.util import model_to_csv, csv_to_model, parse_date, should_translate_to_english, check_csv_duplicates
 from instrument_registry.translations import translate_password_error
 from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
@@ -22,60 +22,7 @@ import csv
 import io
 from pgvector.django import CosineDistance
 import requests
-from lingua import Language, LanguageDetectorBuilder
-
-# Helper function to check for duplicate instruments
-def check_csv_duplicates(rows):
-    """
-    Check which CSV rows are duplicates and which are new.
-
-    A duplicate is defined as having the same combination of:
-    - tay_numero
-    - tuotenimi
-    - merkki_ja_malli
-
-    Args:
-        rows: List of dictionaries from CSV DictReader
-
-    Returns:
-        tuple: (new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count)
-    """
-    new_rows = []
-    duplicates = []
-    invalid_rows = []
-
-    for row in rows:
-        tay_numero = row.get('tay_numero', '').strip()
-        tuotenimi = row.get('tuotenimi', '').strip()
-        merkki_ja_malli = row.get('merkki_ja_malli', '').strip()
-
-        # Skip rows that don't have tuotenimi OR merkki_ja_malli
-        if not tuotenimi and not merkki_ja_malli:
-            invalid_rows.append({
-                'tay_numero': tay_numero or '-',
-                'tuotenimi': tuotenimi or '-',
-                'merkki_ja_malli': merkki_ja_malli or '-'
-            })
-            continue
-
-        # Check if this exact combination already exists
-        query = Q(
-            tay_numero=tay_numero,
-            tuotenimi=tuotenimi,
-            merkki_ja_malli=merkki_ja_malli
-        )
-        is_duplicate = Instrument.objects.filter(query).exists()
-
-        if is_duplicate:
-            duplicates.append({
-                'tay_numero': tay_numero or '-',
-                'tuotenimi': tuotenimi or '-',
-                'merkki_ja_malli': merkki_ja_malli or '-'
-            })
-        else:
-            new_rows.append(row)
-
-    return new_rows, duplicates, invalid_rows, len(new_rows), len(duplicates), len(invalid_rows)
+import json
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -224,39 +171,6 @@ class InstrumentCSVExport(APIView):
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
 
-# Language detector setup for search terms    
-LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
-    Language.ENGLISH,
-    Language.FINNISH
-).build()
-
-ENGLISH_CONFIDENCE_MIN = 0.60
-CONFIDENCE_MARGIN = 0.10
-    
-def should_translate_to_english(text: str) -> bool:
-    """
-    Decide whether to route the query through the Finnish->English translation step.
-    We translate unless the detector is clearly confident the text is already English.
-    """
-    if not text:
-        return True
-
-    confidence_map = {
-        confidence.language: confidence.value
-        for confidence in LANGUAGE_DETECTOR.compute_language_confidence_values(text)
-    }
-
-    english_conf = confidence_map.get(Language.ENGLISH, 0.0)
-    finnish_conf = confidence_map.get(Language.FINNISH, 0.0)
-
-    is_confident_english = (
-        english_conf >= ENGLISH_CONFIDENCE_MIN and
-        english_conf - finnish_conf >= CONFIDENCE_MARGIN
-    )
-
-    return not is_confident_english
-
-
 # This view validates and previews CSV import before actually importing
 class InstrumentCSVPreview(APIView):
     authentication_classes = [CookieTokenAuthentication]
@@ -290,8 +204,7 @@ class InstrumentCSVPreview(APIView):
                 'new_count': new_count,
                 'duplicate_count': duplicate_count,
                 'invalid_count': invalid_count,
-                'duplicates': duplicates[:10],  # Show first 10 duplicates
-                'has_more_duplicates': len(duplicates) > 10,
+                'duplicates': duplicates,
                 'invalid_rows': invalid_rows[:10],  # Show first 10 invalid rows
                 'has_more_invalid': len(invalid_rows) > 10
             })
@@ -313,6 +226,12 @@ class InstrumentCSVImport(APIView):
             return Response({'error': 'No file provided'}, status=400)
 
         csv_file = request.FILES['file']
+        duplicates_to_import_json = request.data.get('duplicates_to_import', '[]')
+
+        try:
+            duplicates_to_import = json.loads(duplicates_to_import_json)
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid format for duplicates_to_import'}, status=400)
 
         try:
             # Read and parse CSV
@@ -324,21 +243,32 @@ class InstrumentCSVImport(APIView):
                 return Response({'error': 'CSV file is empty'}, status=400)
 
             # Filter out duplicates and invalid rows using shared helper function
-            new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count = check_csv_duplicates(rows)
+            new_rows, _, _, _, _, _ = check_csv_duplicates(rows)
 
-            # Only import if there's new data
-            if not new_rows:
+            # Combine new rows with selected duplicates
+            rows_to_import = new_rows + duplicates_to_import
+            
+            if not rows_to_import:
                 return Response({
                     'success': True,
                     'imported_count': 0,
-                    'skipped_count': duplicate_count + invalid_count,
-                    'message': 'No new instruments to import (all were duplicates or invalid)'
+                    'message': 'No new instruments to import'
                 })
 
-            # Clean the data (remove empty values)
+            # Clean the data (remove empty values and parse dates)
+            date_fields = {'toimituspvm', 'huoltosopimus_loppuu', 'edellinen_huolto', 'seuraava_huolto'}
             data = []
-            for row in new_rows:
-                cleaned_row = {k: v for k, v in row.items() if v.strip()}
+            for row in rows_to_import:
+                cleaned_row = {}
+                for key, value in row.items():
+                    trimmed_value = value.strip()
+                    if not trimmed_value:
+                        continue
+                    if key in date_fields:
+                        parsed_value = parse_date(trimmed_value)
+                        if parsed_value:
+                            trimmed_value = parsed_value
+                    cleaned_row[key] = trimmed_value
                 data.append(cleaned_row)
 
             serializer = InstrumentCSVSerializer(data=data, many=True)
@@ -349,15 +279,14 @@ class InstrumentCSVImport(APIView):
 
             precompute_pid = None
             try:
-                precompute_pid, _ = run_precompute_subprocess(force=False)
+                precompute_pid, _ = run_precompute_subprocess(force=False) # Compute translations and embeddings
             except Exception as exc:
                 print(f'Embedding precompute subprocess failed: {exc}')
 
             return Response({
                 'success': True,
-                'imported_count': new_count,
-                'skipped_count': duplicate_count,
-                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)',
+                'imported_count': len(rows_to_import),
+                'message': f'Successfully imported {len(rows_to_import)} instruments',
                 'embedding_process_pid': precompute_pid,
             })
 

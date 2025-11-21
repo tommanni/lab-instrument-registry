@@ -47,12 +47,15 @@ const previewImport = async () => {
   }
 };
 
-const confirmImport = async () => {
+const confirmImport = async ({ duplicatesToImport }) => {
   if (!selectedFile.value) return;
 
   isImporting.value = true;
   const formData = new FormData();
   formData.append('file', selectedFile.value);
+  if (duplicatesToImport && duplicatesToImport.length > 0) {
+    formData.append('duplicates_to_import', JSON.stringify(duplicatesToImport));
+  }
 
   try {
     const response = await axios.post('/api/instruments/csv/import/', formData, {
