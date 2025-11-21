@@ -2,12 +2,12 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
 # Translates password validation error messages
-def translate_password_error(password, password_again=None, lang='en'):
+def translate_password_error(password, password_again=None, lang='en', user=None):
     #Not sure if this would be a validation error so own branch for it
     if password_again is not None and password != password_again:
         return map_password_error_message('mismatch', lang)
     try:
-        validate_password(password)
+        validate_password(password, user=user)
         return None  # No error
     except ValidationError as e:
         e_msg = e.messages[0]
