@@ -27,8 +27,8 @@ const headerMap = {
   [tm('contractHeaders')[4]] : 'huoltosopimus_loppuu'
 };
 
+// Sort table by column (asc -> desc -> none)
 function sortBy(key) {
-  // Toggle sorting direction (asc -> desc -> none)
   if (store.sortColumn === key) {
     store.sortDirection =
       store.sortDirection === 'asc'
@@ -42,6 +42,14 @@ function sortBy(key) {
   }
   // Sort data
   store.updateVisibleData();
+}
+
+// Get CSS class for sort icon
+function getSortClass(columnKey) {
+  if (store.sortColumn !== columnKey || store.sortDirection === 'none') {
+    return 'bi bi-caret-down text-body-tertiary'
+  }
+  return store.sortDirection === 'asc' ? 'bi bi-caret-up-fill text-primary' : 'bi bi-caret-down-fill text-primary'
 }
 
 const Data = computed(() => store.data);
@@ -94,7 +102,7 @@ const handleUpdateItem = (updatedItem) => {
             v-for="(key, index) in tm('contractHeaders')"
             :key="key"
             :style="{ width: columnWidths[index] + 'px' }">
-            <div class="sort-wrapper" @click="sortBy(headerMap[key])" style="cursor: pointer;">
+            <div class="sort-wrapper" @click.stop="sortBy(headerMap[key])" style="cursor: pointer;">
               <span v-if="index === 1">
               <i v-if="store.isUrgent > 0" class="bi bi-exclamation-circle-fill text-danger" style="margin-right: 5px;"></i>
               <i v-else-if="store.isUpcoming > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: 5px;"></i>
@@ -104,9 +112,7 @@ const handleUpdateItem = (updatedItem) => {
               <i v-else-if="store.isEnding > 0" class="bi bi-exclamation-circle-fill text-warning" style="margin-right: 5px;"></i>
               </span>
               <span class="header-text">{{ key }}</span>
-              <span v-if="store.sortColumn === headerMap[key]">
-                {{ store.sortDirection === 'asc' ? '↓' : store.sortDirection === 'desc' ? '↑' : '' }}
-              </span>
+              <i :class="getSortClass(headerMap[key])"></i>
             </div>
               <span class="resizer" @pointerdown="startResize($event, index)"></span>
             </th>
