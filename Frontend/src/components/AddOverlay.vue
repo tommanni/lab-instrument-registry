@@ -68,10 +68,14 @@ const fileInputRef = ref(null)
 
 const handleFileSelect = (event) => {
   const files = Array.from(event.target.files)
+
   files.forEach(file => {
     // Validate file size (20MB)
     if (file.size > 20971520) {
-      alertStore.addAlert(`${file.name}: ${t('message.tiedosto_liian_suuri')}`, 'danger')
+      alertStore.showAlert(1, `${file.name}: ${t('message.tiedosto_liian_suuri')}`)
+      if (fileInputRef.value) {
+        fileInputRef.value.value = ''
+      }
       return
     }
     pendingAttachments.value.push({
@@ -80,6 +84,7 @@ const handleFileSelect = (event) => {
       tempId: Date.now() + Math.random()
     })
   })
+
   // Reset input so same file can be selected again
   if (fileInputRef.value) {
     fileInputRef.value.value = ''
@@ -98,6 +103,9 @@ const closeOverlay = () => {
 const emptyForm = () => {
   formData.value = createFormDataWithMaintenance()
   pendingAttachments.value = []
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
 }
 
 const saveData = async () => {
