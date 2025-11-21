@@ -20,6 +20,25 @@ Production server: `met-metlabs.rd.tuni.fi`
 
 **Frontend**: Built with Vite, served from `/var/www/html/metlabs/build/`
 
+### Rootless Podman Setup
+
+**Important**: This system uses **rootless podman** running under a specific user account (not root). This is a secure and valid production setup.
+
+**Current setup**:
+- Containers run under user account with podman access
+- Volumes stored in `/opt/tuni/containers/<username>/storage/volumes/`
+- Only users with podman access can manage containers
+
+**For future developers**:
+- Contact IT to request podman access for your account
+- IT configured podman access during initial setup and can grant it to new team members
+- Once you have access, you can manage containers with `podman` and `podman-compose` commands (no `sudo` needed)
+
+**Why rootless?**
+- More secure (containers don't run as root)
+- Proper isolation between users
+- Standard practice for multi-user servers
+
 ---
 
 ## Before You Deploy
@@ -232,6 +251,44 @@ podman exec metlabs-web python manage.py export_csv
 podman cp metlabs-web:/app/laiterekisteri_*.csv ~/
 ```
 
+### Media Files Backup
+
+**CRITICAL**: The `media_files` volume contains all user-uploaded file attachments. If this volume is lost, all attachments are permanently deleted.
+
+**Backup media files**:
+```bash
+# Option 1: Using podman volume export (recommended)
+podman volume export proj-a2025-g02-instrument-registry-for-met-lab_media_files -o ~/media_backup_$(date +%Y%m%d_%H%M%S).tar
+
+# Option 2: Direct tar from volume location
+# First, find your volume location:
+podman volume inspect proj-a2025-g02-instrument-registry-for-met-lab_media_files | grep Mountpoint
+# Then backup (replace <username> with your actual username):
+sudo tar -czf ~/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C /opt/tuni/containers/<username>/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/ .
+
+# Copy to local machine
+scp USERNAME@met-metlabs.rd.tuni.fi:~/media_backup_*.tar* ./
+```
+
+**Restore media files**:
+```bash
+# Option 1: Using podman volume import
+podman volume import proj-a2025-g02-instrument-registry-for-met-lab_media_files ~/media_backup_TIMESTAMP.tar
+
+# Option 2: Extract tar to volume location
+# Stop web container first
+podman stop metlabs-web
+# Extract (replace <username> with your actual username)
+sudo tar -xzf ~/media_backup_TIMESTAMP.tar.gz -C /opt/tuni/containers/<username>/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/
+# Restart web container
+podman start metlabs-web
+```
+
+**Backup schedule recommendation**:
+- Database: Before every deployment
+- Media files: Weekly or before major changes
+- Store backups in a safe location (not just on the server)
+
 ### Database Restore
 
 **From PostgreSQL dump**:
@@ -439,7 +496,7 @@ sudo cat /etc/httpd/conf.d/metlabs.conf | grep ProxyPass
 
 ---
 
-**Last Updated**: 2025-11-04  
-**Server**: met-metlabs.rd.tuni.fi (RHEL-based)  
-**Podman**: 5.4.0 | **podman-compose**: 1.5.0
+**Last Updated**: 2025-11-18 (Added rootless podman documentation and media files backup)
+**Server**: met-metlabs.rd.tuni.fi (RHEL-based)
+**Podman**: 5.4.0 (rootless) | **podman-compose**: 1.5.0
 

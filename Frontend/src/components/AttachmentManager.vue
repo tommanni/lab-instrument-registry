@@ -98,8 +98,8 @@ const handleFileSelect = (event) => {
     return;
   }
 
-  // Validate file size (10MB)
-  if (file.size > 10485760) {
+  // Validate file size (20MB)
+  if (file.size > 20971520) {
     alertStore.showAlert(1, t('message.tiedosto_liian_suuri'));
     selectedFile.value = null;
     if (fileInputRef.value) {
@@ -275,7 +275,7 @@ defineExpose({
           @change="handleFileSelect"
           :disabled="isUploading"
         />
-        <small class="text-muted">{{ t('message.max_tiedostokoko') }}: 10MB</small>
+        <small class="text-muted">{{ t('message.max_tiedostokoko') }}: 20MB</small>
       </div>
       <div class="mb-2">
         <input
