@@ -170,7 +170,7 @@ export default {
 	  lataa: "Lataa",
 	  tiedosto_ladattu: "Tiedosto ladattu onnistuneesti",
 	  lataus_epaonnistui: "Tiedoston lataus epäonnistui",
-	  tiedosto_liian_suuri: "Tiedosto on liian suuri. Maksimikoko on 10MB.",
+	  tiedosto_liian_suuri: "Tiedosto on liian suuri. Maksimikoko on 20MB.",
 	  vahvista_liitteen_poisto: "Oletko varma, että haluat poistaa tämän liitteen?",
 	  liite_poistettu: "Liite poistettu onnistuneesti",
 	  liitteen_poisto_epaonnistui: "Liitteen poisto epäonnistui",
