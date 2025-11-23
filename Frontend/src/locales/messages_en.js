@@ -169,6 +169,7 @@ export default {
 	  tiedosto_ladattu: "File uploaded successfully",
 	  lataus_epaonnistui: "File upload failed",
 	  tiedosto_liian_suuri: "File is too large. Maximum size is 20MB.",
+	  palvelimen_tila_taynna: "Server storage is nearly full. Please contact IT support before uploading files.",
 	  vahvista_liitteen_poisto: "Are you sure you want to delete this attachment?",
 	  liite_poistettu: "Attachment deleted successfully",
 	  liitteen_poisto_epaonnistui: "Failed to delete attachment",

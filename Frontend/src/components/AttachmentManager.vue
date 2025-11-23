@@ -208,7 +208,12 @@ const processPendingChanges = async () => {
       );
     } catch (error) {
       console.error('Error uploading file:', error);
-      errors.push(`${upload.file.name}: ${error.response?.data?.detail || 'Upload failed'}`);
+      // Check for disk space error (507 Insufficient Storage)
+      if (error.response?.status === 507) {
+        errors.push(t('message.palvelimen_tila_taynna'));
+      } else {
+        errors.push(`${upload.file.name}: ${error.response?.data?.detail || 'Upload failed'}`);
+      }
     }
   }
 
