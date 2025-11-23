@@ -623,6 +623,21 @@ class InstrumentAttachmentList(APIView):
         if not file:
             return Response({'detail': 'No file provided.'}, status=400)
 
+        # Check disk space before accepting upload
+        import shutil
+        try:
+            media_path = settings.MEDIA_ROOT
+            disk_usage = shutil.disk_usage(media_path)
+            usage_percent = (disk_usage.used / disk_usage.total) * 100
+
+            if usage_percent >= 90:
+                return Response({
+                    'detail': 'Server storage is nearly full. Please contact IT support to resolve this issue before uploading files.'
+                }, status=507)  # HTTP 507 Insufficient Storage
+        except Exception as e:
+            # If disk check fails, log but don't block upload
+            print(f"Warning: Could not check disk space: {e}")
+
         # Validate file size using settings constant
         if file.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
             return Response({'detail': 'File size exceeds 20MB limit.'}, status=400)

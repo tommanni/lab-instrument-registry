@@ -22,17 +22,21 @@ Production server: `met-metlabs.rd.tuni.fi`
 
 ### Rootless Podman Setup
 
-**Important**: This system uses **rootless podman** running under a specific user account (not root). This is a secure and valid production setup.
+**Important**: This system uses **rootless podman** running under a dedicated service account (not root). This is a secure and valid production setup.
 
 **Current setup**:
-- Containers run under user account with podman access
-- Volumes stored in `/opt/tuni/containers/<username>/storage/volumes/`
-- Only users with podman access can manage containers
+- Containers run under the `metlabs` user account (dedicated service account)
+- Volumes stored in `/opt/tuni/containers/metlabs/storage/volumes/`
+- The `metlabs` user was created specifically for running these containers
+
+**Why a dedicated user?**
+- Using a dedicated service account (`metlabs`) ensures the system continues working regardless of individual user account changes
+- More secure and follows IT department recommendations
 
 **For future developers**:
-- Contact IT to request podman access for your account
-- IT configured podman access during initial setup and can grant it to new team members
-- Once you have access, you can manage containers with `podman` and `podman-compose` commands (no `sudo` needed)
+- Use `sudo su - metlabs` to switch to the service account
+- Manage containers with `podman` and `podman-compose` commands
+- The service account has lingering enabled, so containers auto-start on server reboot
 
 **Why rootless?**
 - More secure (containers don't run as root)
@@ -70,12 +74,15 @@ sudo systemctl start httpd
 
 ### Backend Only (Code Changes)
 ```bash
+# Switch to metlabs service account
+sudo su - metlabs
+
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
 git pull origin main
 
 # Rebuild and restart web container
 podman-compose -f docker-compose.prod.yml build web
-podman-compose -f docker-compose.prod.yml up -d web
+podman-compose -f docker-compose.prod.yml restart web
 
 # Check logs
 podman logs -f metlabs-web
@@ -83,6 +90,9 @@ podman logs -f metlabs-web
 
 ### Backend (Dependency Changes)
 ```bash
+# Switch to metlabs service account
+sudo su - metlabs
+
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
 git pull origin main
 
@@ -95,6 +105,9 @@ podman-compose -f docker-compose.prod.yml up -d web
 
 ### Database Migrations
 ```bash
+# Switch to metlabs service account
+sudo su - metlabs
+
 # Migrations run automatically on container start
 # Check migration status
 podman exec metlabs-web python manage.py showmigrations
@@ -178,6 +191,9 @@ podman ps
 
 ### View Logs
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # All containers
 podman-compose -f docker-compose.prod.yml logs
 
@@ -192,6 +208,9 @@ podman logs -f metlabs-web
 
 ### Restart Containers
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # Restart all
 podman-compose -f docker-compose.prod.yml restart
 
@@ -201,6 +220,9 @@ podman restart metlabs-web
 
 ### Stop/Start Containers
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # Stop all
 podman-compose -f docker-compose.prod.yml down
 
@@ -216,6 +238,9 @@ podman start metlabs-web
 
 ### Execute Commands in Containers
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # Django management commands
 podman exec metlabs-web python manage.py migrate
 podman exec metlabs-web python manage.py createsuperuser
@@ -238,15 +263,21 @@ podman exec -it metlabs-web python manage.py dbshell
 
 **PostgreSQL dump** (recommended):
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # Create backup
 podman exec metlabs-db pg_dump -U metlabs -d metlabs > ~/backup_$(date +%Y%m%d_%H%M%S).sql
 
-# Copy to local machine
-scp USERNAME@met-metlabs.rd.tuni.fi:~/backup_*.sql ./
+# Copy to local machine (from your local terminal, not on server)
+scp USERNAME@met-metlabs.rd.tuni.fi:/home/metlabs/backup_*.sql ./
 ```
 
 **CSV export** (alternative):
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 podman exec metlabs-web python manage.py export_csv
 podman cp metlabs-web:/app/laiterekisteri_*.csv ~/
 ```
@@ -257,6 +288,9 @@ podman cp metlabs-web:/app/laiterekisteri_*.csv ~/
 
 **Backup media files**:
 ```bash
+# Switch to metlabs service account first
+sudo su - metlabs
+
 # Option 1: Using podman volume export (recommended)
 podman volume export proj-a2025-g02-instrument-registry-for-met-lab_media_files -o ~/media_backup_$(date +%Y%m%d_%H%M%S).tar
 

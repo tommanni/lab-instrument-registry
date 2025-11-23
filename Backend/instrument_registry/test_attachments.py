@@ -220,3 +220,26 @@ class TestAttachmentAPIWithAuth(TestCase):
         latest_history = attachment.history.first()
         self.assertEqual(latest_history.description, "Updated description")
 
+    def test_disk_space_check(self):
+        """Test that disk space is checked before upload"""
+        from unittest.mock import patch
+
+        # Mock disk_usage to simulate 95% full disk
+        mock_usage = type('obj', (object,), {
+            'total': 100 * 1024 * 1024 * 1024,  # 100GB
+            'used': 95 * 1024 * 1024 * 1024,     # 95GB (95% full)
+            'free': 5 * 1024 * 1024 * 1024       # 5GB
+        })
+
+        with patch('shutil.disk_usage', return_value=mock_usage):
+            test_file = SimpleUploadedFile("test.pdf", b"content", content_type="application/pdf")
+            response = self.client.post(
+                f"/api/instruments/{self.instrument.id}/attachments/",
+                {"file": test_file, "description": "Test"},
+                format="multipart"
+            )
+
+            # Should return 507 Insufficient Storage
+            self.assertEqual(response.status_code, 507)
+            self.assertIn('storage', response.json()['detail'].lower())
+

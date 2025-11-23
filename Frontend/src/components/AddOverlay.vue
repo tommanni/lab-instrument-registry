@@ -166,7 +166,12 @@ const saveData = async () => {
           )
         } catch (error) {
           console.error('Error uploading attachment:', error)
-          uploadErrors.push(`${attachment.file.name}: ${error.response?.data?.detail || 'Upload failed'}`)
+          // Check for disk space error (507 Insufficient Storage)
+          if (error.response?.status === 507) {
+            uploadErrors.push(t('message.palvelimen_tila_taynna'))
+          } else {
+            uploadErrors.push(`${attachment.file.name}: ${error.response?.data?.detail || 'Upload failed'}`)
+          }
         }
       }
 
