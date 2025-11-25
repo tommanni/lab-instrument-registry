@@ -1,97 +1,45 @@
 <script setup>
-import { ref, computed, watch} from 'vue';
 import { useI18n } from 'vue-i18n';
-import axios from 'axios';
-import { useAlertStore } from "@/stores/alert.js";
-import { defineProps, defineEmits } from 'vue';
-
+import { useAlertStore } from '@/stores/alert';
 
 const { t } = useI18n()
 const alertStore = useAlertStore();
 
 const props = defineProps({
+  component: Object,
   user: Object,
-  actionType: String, // "admin" or "deactivate"
-  show: Boolean
+  messageKey: String
 });
 
 const emit = defineEmits(['update-user', 'close']);
-const showOverlay = ref(props.show);
 
-watch(() => props.show, (newVal) => {
-    showOverlay.value = newVal;
-});
 
-const closeOverlay = () => {
-    showOverlay.value = false;
-    emit('close');
-};
-
-// Computed texts for template
-const headerText = computed(() => 
-  props.actionType === 'admin' 
-    ? t('message.admin_oikeuksien_hallinta') 
-    : t('message.deaktivoi_kayttaja')
-);
-
-// Function to handle confirmation action
-const confirmAction = async () => {
-    try {
-        if (props.actionType === 'admin') {
-            const res = await axios.post('/api/change-admin-status/',
-                { id: props.user.id }, { withCredentials: true });
-            emit('update-user', { ...props.user, is_superuser: res.data.newAdminStatus });
-            
-            alertStore.showAlert(0, res.data.newAdminStatus
-            ? t('message.admin_luotu')
-            : t('message.admin_poistettu'));
-    
-        } else if (props.actionType === 'deactivate') {
-            const res = await axios.post('/api/change-active-status/',
-                { id: props.user.id },
-                { withCredentials: true });
-            emit('update-user', { ...props.user, is_active: res.data.newActiveStatus });
-
-            alertStore.showAlert(0, res.data.newActiveStatus
-                ? t('message.kayttaja_aktivoitu')
-                : t('message.kayttaja_deaktivoitu')
-            );
-        }
-    } catch (error) {
-        alertStore.showAlert(1, t('message.virhe'));
-    } finally {
-        closeOverlay();
-    }
-};
+function closeOverlay() {
+  emit('close');
+}
 </script>
 
 <template>
-  <div v-if="showOverlay" class="overlay-backdrop">
+  <div class="overlay-backdrop">
     <div class="overlay-content">
       <button type="button"
             class="btn-close position-absolute top-0 end-0 m-3"
             @click="closeOverlay"
             aria-label="Close"></button>
 
-      <!-- Show different content for overlay depending on action type (admin/deactivate) -->
-      <h3>{{ actionType === 'admin'
-            ? t('message.admin_oikeuksien_hallinta')
-            : t('message.kayttajan_hallinta') }}</h3>
-      <p>
-        {{ actionType === 'admin'
-          ? (props.user.is_superuser
-          ? t('message.haluatko_poistaa_adminin')
-          : t('message.haluatko_tehda_adminin')
-            )
-          : (props.user.is_active
-          ? t('message.haluatko_deaktivoida_kayttajan')
-          : t('message.aktivoi_kayttaja')) }}
-      </p>
+      <!-- Title -->
+      <h3 class="overlay-message" style="margin-top: 1.5rem;">
+        {{ t(props.messageKey) }}
+      </h3>
 
-      <div class="modal-buttons">
-        <button class="btn btn-secondary me-2" @click="closeOverlay">{{  t('message.peruuta') }}</button>
-        <button class="btn btn-danger" @click="confirmAction">{{ t('message.vahvista_muutokset') }}</button>
-      </div>
+      <!-- Render selected inner component -->
+      <component
+        v-if="props.component"
+        :is="props.component"
+        :user="props.user"
+        @update-user="$emit('update-user', $event)"
+        @close="closeOverlay"
+      />
     </div>
   </div>
 </template>

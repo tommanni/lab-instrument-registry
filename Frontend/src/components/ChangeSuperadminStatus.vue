@@ -6,6 +6,8 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const props = defineProps({ user: Object });
 const alertStore = useAlertStore();
+const emit = defineEmits(['update-user', 'close']);
+
 
 async function changeSuperadminValue() {
         try {
@@ -18,14 +20,23 @@ async function changeSuperadminValue() {
             withCredentials: true
         });
 
-        props.user.is_superuser = res.data.newSuperadminStatus;
+        //props.user.is_superuser = res.data.newSuperadminStatus;
+        
+        const updatedUser = {
+          ...props.user,
+          is_superuser: res.data.newSuperadminStatus,
+          // When removing superadmin, also remove admin rights
+          is_staff: res.data.newSuperadminStatus ? props.user.is_staff : false
+        };
+        
+        // send user update event to parent
+        emit('update-user', updatedUser);
 
         if (res.data.newSuperadminStatus) {
           alertStore.showAlert(0, t('message.superadmin_luotu'));
         }
         else {
           // api call removes all admin rights
-          props.user.is_staff = res.data.newSuperadminStatus; 
           alertStore.showAlert(0, t('message.admin_poistettu'));
         }
     } catch (error) {
@@ -35,24 +46,28 @@ async function changeSuperadminValue() {
         else {
             alertStore.showAlert(1, t('message.tuntematon_virhe'));
         }
+    } finally {
+    //closing overlay
+    emit('close');
     }
 }
 </script>
 
 <template>
-<div class="admin-container">
-  <div class="modal-buttons" v-if="props.user && props.user?.is_superuser">
-    <button class="btn btn-primary" @click="changeSuperadminValue">
-      {{ props.user.is_superuser ? t('message.poista_oikeudet') : t('message.tee_superadmin') }}
-    </button>
-  </div>
-    <div class="modal-buttons" v-else>
-    <button class="btn btn-primary" @click="changeSuperadminValue">{{ t('message.tee_superadmin') }}
-    </button>
-  </div>
-</div>
+  <div class="admin-container">
+    
+    <div class="modal-buttons">
+      <button class="btn btn-primary" @click="changeSuperadminValue">
+        {{ props.user.is_superuser 
+            ? t('message.poista_oikeudet') 
+            : t('message.tee_superadmin') 
+        }}
+      </button>
+    </div>
 
+  </div>
 </template>
+
 
 <style scoped>
 
