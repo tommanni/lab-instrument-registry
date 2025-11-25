@@ -8,3 +8,4 @@ venv/
 
 # Media files (user uploads)
 /Backend/Backend/media
+/Backend/Backend/staticfiles

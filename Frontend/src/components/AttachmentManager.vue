@@ -327,8 +327,7 @@ defineExpose({
             <i :class="`bi ${getFileIcon(attachment.file_type)} me-2`"></i>
             <div>
               <a
-                :href="attachment.file_url"
-                target="_blank"
+                :href="`/api/attachments/${attachment.id}/download/`"
                 class="text-decoration-none fw-bold"
                 :class="{ 'text-muted': pendingDeletes.includes(attachment.id) }"
               >

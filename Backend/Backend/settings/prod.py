@@ -11,3 +11,5 @@ folder in file database.md
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = False
 ALLOWED_HOSTS = ['met-metlabs.rd.tuni.fi', 'localhost', '127.0.0.1']
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
