@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
+import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
+
 export const useContractStore = defineStore('contractStore', () => {
   // Alkuperäinen data haetaan API:sta
   const originalData = ref([])
@@ -10,6 +12,9 @@ export const useContractStore = defineStore('contractStore', () => {
   const contractData = ref([])
   // Näytettävä data (sivuittain)
   const data = ref([])
+  // Search term
+  const searchTerm = ref('')
+  const searchedData = ref([])
 
   // Lajittelukenttä ja suunta (oletuksena seuraava huolto nouseva)
   const sortColumn = ref('seuraava_huolto') 
@@ -44,22 +49,34 @@ export const useContractStore = defineStore('contractStore', () => {
   };
 
   const isUrgent = computed(() =>
-    (contractData.value || []).filter(item => isMaintenanceDue(item.seuraava_huolto)).length
+    (searchedData.value || []).filter(item => isMaintenanceDue(item.seuraava_huolto)).length
   )
   const isUpcoming = computed(() =>
-    (contractData.value || []).filter(item => isMaintenanceUpcoming(item.seuraava_huolto)).length
+    (searchedData.value || []).filter(item => isMaintenanceUpcoming(item.seuraava_huolto)).length
   )
   const isEnding = computed(() => 
-  (contractData.value || []).filter(item => isMaintenanceUpcoming(item.huoltosopimus_loppuu)).length
+  (searchedData.value || []).filter(item => isMaintenanceUpcoming(item.huoltosopimus_loppuu)).length
   )
   const isEnded = computed(() => 
+  (searchedData.value || []).filter(item => isMaintenanceDue(item.huoltosopimus_loppuu)).length
+  )
+  const isUrgentNav = computed(() =>
+    (contractData.value || []).filter(item => isMaintenanceDue(item.seuraava_huolto)).length
+  )
+  const isUpcomingNav = computed(() =>
+    (contractData.value || []).filter(item => isMaintenanceUpcoming(item.seuraava_huolto)).length
+  )
+  const isEndingNav = computed(() => 
+  (contractData.value || []).filter(item => isMaintenanceUpcoming(item.huoltosopimus_loppuu)).length
+  )
+  const isEndedNav = computed(() => 
   (contractData.value || []).filter(item => isMaintenanceDue(item.huoltosopimus_loppuu)).length
   )
 
   // Päivitetään näkyvä data käyttäen suodatettua ja lajiteltua dataa.
   const updateVisibleData = () => {
     // Make copy of searched data to sort and paginate
-    let displayData = [...(contractData.value || [])]
+    let displayData = [...(searchedData.value || [])]
 
     // Sort by selected column unless sorting is 'none'.
     if (sortColumn.value && sortDirection.value !== 'none') {
@@ -100,6 +117,12 @@ export const useContractStore = defineStore('contractStore', () => {
   function updateURL() {
     const query = { ...route.query }
 
+    if (searchTerm.value && searchTerm.value.trim() !== '') {
+      query.search = searchTerm.value.trim()
+    } else {
+      delete query.search
+    }
+
     if (currentPage.value && currentPage.value > 1) {
       query.page = String(currentPage.value)
     } else {
@@ -118,6 +141,7 @@ export const useContractStore = defineStore('contractStore', () => {
       })
       originalData.value = res.data
       contractData.value = res.data
+      searchedData.value = res.data
       numberOfPages.value = Math.max(1, Math.ceil(res.data.length / 15))
       // compute visible slice from data first
       updateVisibleData()
@@ -137,28 +161,133 @@ export const useContractStore = defineStore('contractStore', () => {
     updateVisibleData()
   }
 
-  // Lisää uuden objektin
-  const addObject = (object) => {
-    originalData.value.push(object)
+  const matchesBooleanQuery = (item, query) => {
+  
+      const fieldAliases = {
+        id: 'id',
+        tay_number: 'tay_numero',
+        tay_numero: 'tay_numero',
+        serial_number: 'sarjanumero',
+        sarjanumero: 'sarjanumero',
+        product_name: ['tuotenimi', 'tuotenimi_en'],
+        tuotenimi: ['tuotenimi', 'tuotenimi_en'],
+        brand_and_model: 'merkki_ja_malli',
+        merkki_ja_malli: 'merkki_ja_malli',
+        unit: 'yksikko',
+        yksikko: 'yksikko',
+        campus: 'kampus',
+        kampus: 'kampus',
+        building: 'rakennus',
+        rakennus: 'rakennus',
+        room: 'huone',
+        huone: 'huone',
+        responsible_person: 'vastuuhenkilo',
+        vastuuhenkilo: 'vastuuhenkilo',
+        status: 'tilanne',
+        tilanne: 'tilanne',
+        supplier: 'toimittaja',
+        toimittaja: 'toimittaja',
+        extra_information: 'lisatieto',
+        extra_info: 'lisatieto',
+        details: 'lisatieto',
+        lisatieto: 'lisatieto',
+        old_location: 'vanha_sijainti',
+        vanha_sijainti: 'vanha_sijainti',
+        delivery_date: 'toimituspvm',
+        toimituspvm: 'toimituspvm'
+      }
+  
+      const getFieldValues = (obj, field) => {
+        const canonical = fieldAliases[field] ?? field
+        const keys = Array.isArray(canonical) ? canonical : [canonical]
+        return keys.map(key => {
+          const v = obj[key]
+          return v === undefined || v === null ? '' : String(v).toLowerCase()
+        })
+      }
+  
+      const anyFieldIncludes = (lower) => (
+        (item.id !== undefined && item.id !== null && item.id.toString().includes(lower)) ||
+        (item.tay_numero && item.tay_numero.toLowerCase().includes(lower)) ||
+        (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lower)) ||
+        (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lower)) ||
+        (item.toimittaja && item.toimittaja.toLowerCase().includes(lower)) ||
+        (item.lisatieto && item.lisatieto.toLowerCase().includes(lower)) ||
+        (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lower)) ||
+        (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lower)) ||
+        (item.tuotenimi_en && item.tuotenimi_en.toLowerCase().includes(lower)) ||
+        (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lower)) ||
+        (item.yksikko && item.yksikko.toLowerCase().includes(lower)) ||
+        (item.kampus && item.kampus.toLowerCase().includes(lower)) ||
+        (item.rakennus && item.rakennus.toLowerCase().includes(lower)) ||
+        (item.huone && item.huone.toLowerCase().includes(lower)) ||
+        (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lower)) ||
+        (item.tilanne && item.tilanne.toLowerCase().includes(lower))
+      )
+  
+      const itemMatchesSingleTerm = (symbol) => {
+        const lower = String(symbol.value || '').toLowerCase()
+        if (symbol.fieldName) {
+          const values = getFieldValues(item, symbol.fieldName.toLowerCase())
+          return values.some(v => v.includes(lower))
+        }
+        return anyFieldIncludes(lower)
+      }
+  
+      const rpn = parseQueryToRpn(query)
+      return evaluateRpnBoolean(rpn, item, itemMatchesSingleTerm)
+    }
+
+  // Functions for search
+  async function searchData(clear) {
+    if (clear) {
+      searchTerm.value = '';
+    }
+
+    currentPage.value = 1
+
+    updateURL()
+    await applySearch()
+  }
+
+  const applySearch = async () => {
+    const searchTermSanitized = searchTerm.value.trim().replace(/\s+/g, " ").toLowerCase(); //Trims whitespaces from beginning and end and replace identifies additinal whitespaces between words
+
+    // Apply search term
+    let results = originalData.value;
+    if (searchTermSanitized) {
+      results = directSearch(originalData.value, searchTermSanitized)
+    }
+    searchedData.value = results
+    numberOfPages.value = Math.ceil(results.length / 15)
+
     updateVisibleData()
   }
 
+  const directSearch = (candidates, searchTerm) => {
+    const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm) || 
+      /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTerm)
+    if (hasBooleanOperator) {
+        return candidates.filter((item) => matchesBooleanQuery(item, searchTerm))
+    } else {
+        return candidates.filter(item =>
+          Object.values(item).some(value =>
+            value && String(value).toLowerCase().includes(searchTerm)
+          )
+        )
+      }
+  }
+
   // Initialize currentPage from route.query preferred
-  function initializePageFromURL() {
-    const hasQueryPage = typeof route.query.page !== 'undefined'
+  const initializePageFromURL = async () => {
 
-    if (hasQueryPage) {
-      const p = route.query.page ? parseInt(route.query.page, 10) : 1
-      currentPage.value = Number.isNaN(p) ? 1 : p
-    }
+    searchTerm.value = route.query.search ?? ''
 
-    // clamp to available pages
-    if (currentPage.value < 1) currentPage.value = 1
-    if (numberOfPages.value && currentPage.value > numberOfPages.value) currentPage.value = numberOfPages.value
+    const p = route.query.page ? parseInt(route.query.page, 10) : 1
+    currentPage.value = Number.isNaN(p) ? 1 : p
 
-    updateVisibleData()
-    // allow watcher to update URL from now on
     isInitialized.value = true
+    await applySearch()
     // ensure URL reflects final page state (removes page param when page=1)
     updateURL()
   }
@@ -187,13 +316,15 @@ export const useContractStore = defineStore('contractStore', () => {
     })
 
   // Keep URL and visible data in sync when page changes
-  watch(() => route.query, (newQuery) => {
-      if (route.path !== '/contracts') return
+  watch(() => route.query, async (newQuery) => {
+    if (route.path !== '/contracts') return
 
-      const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
-      currentPage.value = Number.isNaN(p) ? 1 : p
+    searchTerm.value = newQuery.search ?? ''
 
-      updateVisibleData()
+    const p = newQuery.page ? parseInt(newQuery.page, 10) : 1
+    currentPage.value = Number.isNaN(p) ? 1 : p
+
+    await applySearch()
   }, { immediate: false })
 
   return { 
@@ -204,14 +335,18 @@ export const useContractStore = defineStore('contractStore', () => {
     isUpcoming,
     isEnding,
     isEnded,
-    fetchData, 
-    updateVisibleData, 
-    updateObject, 
-    addObject,
+    isUrgentNav,
+    isUpcomingNav,
+    isEndingNav,
+    isEndedNav,
+    fetchData,
+    updateVisibleData,
+    updateObject,
     isMaintenanceDue,
     isMaintenanceUpcoming,
     sortColumn,
-    sortDirection
-    //filteredSortedData
+    sortDirection,
+    searchTerm,
+    searchData
   }
 })

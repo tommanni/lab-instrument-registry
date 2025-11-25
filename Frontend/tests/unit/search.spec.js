@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createRouter, createMemoryHistory } from 'vue-router';
 import Search from "@/components/Search.vue";
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
@@ -37,10 +38,20 @@ const i18n = createI18n({
 });
 
 describe("Search.vue", () => {
-  let pinia;
+  const routes = [
+    { path: '/', name: 'home' },
+    { path: '/contracts', name: 'contracts' },
+    { path: '/admin/users', name: 'admin'}
+  ]
 
-  beforeEach(() => {
+  let pinia;
+  let router;
+
+  beforeEach(async () => {
     searchDataMock.mockClear(); // Reset mock calls
+    router = createRouter({ history: createMemoryHistory(), routes })
+    await router.push('/')
+    await router.isReady()
     pinia = createPinia();
   })
 
@@ -48,7 +59,7 @@ describe("Search.vue", () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, searchType: "device" },
       global: {
-        plugins: [i18n, pinia]
+        plugins: [i18n, pinia, router]
       }
     });
     expect(wrapper.find("input.form-control").exists()).toBe(true)
@@ -59,7 +70,7 @@ describe("Search.vue", () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, searchType: "device" },
       global: {
-        plugins: [i18n, pinia]
+        plugins: [i18n, pinia, router]
       }
     });
     const input = wrapper.find("input.form-control");
@@ -72,7 +83,7 @@ describe("Search.vue", () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, searchType: "device" },
       global: {
-        plugins: [i18n, pinia]
+        plugins: [i18n, pinia, router]
       }
     });
 
@@ -86,7 +97,7 @@ describe("Search.vue", () => {
     const wrapper = mount(Search, {
       props: { searchFunction: searchDataMock, searchType: "device" },
       global: {
-        plugins: [i18n, pinia]
+        plugins: [i18n, pinia, router]
       }
     });
 

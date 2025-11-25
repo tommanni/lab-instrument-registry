@@ -1,12 +1,14 @@
 <script setup>
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
+import { useContractStore } from '@/stores/contract';
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { Popover } from 'bootstrap';
 import { useI18n } from 'vue-i18n';
 
 const dataStore = useDataStore();
 const userStore = useUserStore();
+const contractStore = useContractStore();
 
 const props = defineProps({
   searchFunction: Function,
@@ -58,15 +60,6 @@ watch(() => dataStore.searchMode, async () => {
   initPopover();
 });
 
-watch(() => dataStore.searchMode, async () => {
-  if (popoverInstance) {
-    popoverInstance.dispose();
-    popoverInstance = null;
-  }
-  await nextTick();
-  initPopover();
-});
-
 </script>
 
 <template>
@@ -88,6 +81,22 @@ watch(() => dataStore.searchMode, async () => {
                 data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
                 :title="$t('message.haku_info_title')" 
                 :data-bs-content="dataStore.searchMode === 'direct' ? $t('message.haku_info_content') : $t('message.smart_search_info_content')"
+        >
+            <i class="bi bi-info-circle text-primary"></i>
+        </button>
+    </div>
+    <div v-else-if="searchType==='contract'" class="search-container">
+        <div class="input-wrapper">
+            <input class="form-control" v-model="contractStore.searchTerm" :placeholder="$t('message.placeholder')" @keyup.enter="searchFunction(false)" />
+            <a v-if="contractStore.searchTerm" class="text-muted mx-1 clear-button fs-5" @click="clearSearch" data-bs-toggle="tooltip" :title="$t('message.nollaa_haku')">
+                <i class="bi bi-x text-primary"></i>
+            </a>
+        </div>
+        <button class="btn btn-primary" @click="searchFunction(false)">{{$t('message.haku_painike')}}</button>
+        <button ref="infoButtonRef" type="button" class="btn text-muted mx-1 info-button me-5" aria-label="Hakuohje"
+                data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="hover focus"
+                :title="$t('message.haku_info_title')" 
+                :data-bs-content="$t('message.haku_info_content')"
         >
             <i class="bi bi-info-circle text-primary"></i>
         </button>
