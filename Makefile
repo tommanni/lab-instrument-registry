@@ -106,6 +106,11 @@ preprocess-instruments:
 	@docker-compose exec web python manage.py precompute_embeddings || \
 		(echo "Failed to precompute embeddings. Make sure containers are running."; exit 1)
 
+preprocess-instruments-prod: ## Precompute embeddings (production with podman)
+	@echo "Precomputing embeddings and translations (production)..."
+	@podman exec metlabs-web python manage.py precompute_embeddings || \
+		(echo "Failed to precompute embeddings. Make sure containers are running."; exit 1)
+
 # Testing
 test: ## Run Django tests
 	@echo "Running tests..."
