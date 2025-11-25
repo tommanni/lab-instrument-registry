@@ -56,21 +56,70 @@ const Data = computed(() => store.data);
 
 // Handle column resizing
 const startResize = (event, column) => {
-  const startX = event.clientX;
-  const startWidth = columnWidths.value[column];
+  event.preventDefault();
 
-  const onMouseMove = (moveEvent) => {
-    const newWidth = startWidth + (moveEvent.clientX - startX);
-    columnWidths.value[column] = Math.max(newWidth, 25);
+  const tableEl = event.target.closest('table');
+  const minWidth = 40; // px
+  // total columns and current widths
+  const totalCols = columnWidths.value.length;
+  const totalCurrent = columnWidths.value.reduce((s, w) => s + (Number(w) || 0), 0);
+  const initialWidth = Number(columnWidths.value[column]) || 120;
+  const tableWidth = tableEl ? tableEl.clientWidth : window.innerWidth;
+
+  // compute a conservative max width so other columns won't shrink below minWidth
+  const minOtherTotal = Math.max(0, (totalCols - 1) * minWidth);
+  const maxWidthCap = Math.max(minWidth + 50, Math.min(800, tableWidth - minOtherTotal));
+
+  let currentWidth = initialWidth;
+  let lastClientX = event.clientX;
+
+  // disable text selection while dragging
+  const prevUserSelect = document.body.style.userSelect;
+  const prevCursor = document.body.style.cursor;
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+
+  // pointer capture if available keeps events consistent
+  try {
+    if (event.pointerId && event.target && event.target.setPointerCapture) {
+      event.target.setPointerCapture(event.pointerId);
+    }
+  } catch (e) { /* ignore */ }
+
+  const onMove = (moveEvent) => {
+    // prefer movementX, fallback to delta of clientX
+    const clientX = moveEvent.clientX;
+    const dx = typeof moveEvent.movementX === 'number' ? moveEvent.movementX : (clientX - lastClientX);
+    lastClientX = clientX;
+
+    currentWidth = Math.round(currentWidth + dx);
+    if (currentWidth < minWidth) currentWidth = minWidth;
+    if (currentWidth > maxWidthCap) currentWidth = maxWidthCap;
+
+    // update reactive widths
+    columnWidths.value.splice(column, 1, currentWidth);
   };
 
-  const onMouseUp = () => {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+
+    try {
+      if (event.pointerId && event.target && event.target.releasePointerCapture) {
+        event.target.releasePointerCapture(event.pointerId);
+      }
+    } catch (e) { /* ignore */ }
+
+    // restore styles
+    document.body.style.userSelect = prevUserSelect;
+    document.body.style.cursor = prevCursor;
+
+    // persist widths
+    try { sessionStorage.setItem('dataColumnWidths', JSON.stringify(columnWidths.value)); } catch (e) {}
   };
 
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
+  document.addEventListener('pointermove', onMove, { passive: false });
+  document.addEventListener('pointerup', onUp);
 };
 
 const openOverlay = (item) => {

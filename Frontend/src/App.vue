@@ -5,6 +5,7 @@ import TuniFooter from './components/Footer.vue';
 import Alert from './components/Alert.vue';
 import { onMounted, onBeforeUnmount } from 'vue';
 import { useDataStore } from '@/stores/data';
+import { useUserStore } from './stores/user';
 import { useContractStore } from '@/stores/contract';
 import axios from 'axios';
 import { useI18n } from 'vue-i18n';
@@ -12,6 +13,7 @@ import { useI18n } from 'vue-i18n';
 const { t, locale } = useI18n()
 
 const dataStore = useDataStore();
+const userStore = useUserStore();
 const contractStore = useContractStore();
 
 // These should have their own file later on?
@@ -70,6 +72,13 @@ onMounted(async () => {
       if (ev.data?.type === 'logout') {
         dataStore.isLoggedIn = false;
         dataStore.user = null;
+        userStore.user = null;
+        userStore.fullData = null;
+        userStore.searchedData = null;
+        userStore.currentData = null;
+        contractStore.originalData = null;
+        contractStore.contractData = null;
+        contractStore.data = null;
         dataStore.loginChecked = true;
       }
     }
@@ -82,6 +91,13 @@ onMounted(async () => {
       if (err?.response?.status === 401) {
         dataStore.isLoggedIn = false;
         dataStore.user = null;
+        userStore.user = null;
+        userStore.fullData = null;
+        userStore.searchedData = null;
+        userStore.currentData = null;
+        contractStore.originalData = null;
+        contractStore.contractData = null;
+        contractStore.data = null;
         dataStore.loginChecked = true;
         if (bc) bc.postMessage({ type: 'logout' });
       }
@@ -104,6 +120,13 @@ onMounted(async () => {
       if (e?.response?.status === 401) {
         dataStore.isLoggedIn = false;
         dataStore.user = null;
+        userStore.user = null;
+        userStore.fullData = null;
+        userStore.searchedData = null;
+        userStore.currentData = null;
+        contractStore.originalData = null;
+        contractStore.contractData = null;
+        contractStore.data = null;
         dataStore.loginChecked = true;
         if (bc) bc.postMessage({ type: 'logout' });
       }
