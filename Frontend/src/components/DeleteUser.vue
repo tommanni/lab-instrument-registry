@@ -7,7 +7,8 @@ import { useRouter } from 'vue-router';
 const { t } = useI18n();
 const props = defineProps({ user: Object });
 const alertStore = useAlertStore();
-const router = useRouter()
+const router = useRouter();
+const emit = defineEmits(['close']);
 
 async function deleteUser() {
         try {
@@ -21,8 +22,8 @@ async function deleteUser() {
             });
 
             alertStore.showAlert(0, t('message.kayttaja_poistettu'));
-            
-            router.push('/admin/users'); // navigate back to user list after deletion
+            emit('close');
+            router.push('/admin/users');
 
     } catch (error) {
         if (error.response && error.response.data && error.response.data.message) {

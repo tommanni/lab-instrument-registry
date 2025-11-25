@@ -16,7 +16,6 @@ const props = defineProps({
     warningVisible: Boolean
 });
 
-const extraMargin = computed(() => props.warningVisible ? '3rem' : '1rem');
 
 const openOverlay = () => {
     showOverlay.value = true
