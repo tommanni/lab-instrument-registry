@@ -124,6 +124,19 @@ const fieldToIndexMap = {
   tuotenimi_en: 19,
 };
 
+
+const fetchHistory = async (id) => {
+  if (!id) return;
+  try {
+    const response = await axios.get(`/api/instruments/${id}/history/`, {
+      withCredentials: true
+    });
+    instrumentHistory.value = response.data.reverse();
+  } catch (error) {
+    console.error('Error fetching instrument history:', error);
+  }
+}
+
 watch(() => props.item, (newItem) => {
   if (newItem && newItem.id) {
     view.value = 'details';
@@ -138,17 +151,7 @@ watch(() => props.item, (newItem) => {
   }
 }, { immediate: true, deep: true });
 
-const fetchHistory = async (id) => {
-  if (!id) return;
-  try {
-    const response = await axios.get(`/api/instruments/${id}/history/`, {
-      withCredentials: true
-    });
-    instrumentHistory.value = response.data.reverse();
-  } catch (error) {
-    console.error('Error fetching instrument history:', error);
-  }
-}
+
 
 
 const resetFormData = () => {

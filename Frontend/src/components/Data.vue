@@ -251,8 +251,8 @@ const startResize = (event, column) => {
         </thead>
 
         <tbody>
-          <tr v-for="(item, index) in displayedData" @click="openOverlay(item)" data-bs-toggle="modal"
-            data-bs-target="#dataModal" :key="index">
+          <tr v-for="(item, index) in displayedData" :key="index" :id="'datarow-'+index" @click="openOverlay(item)" data-bs-toggle="modal"
+            data-bs-target="#dataModal">
             <td>
               {{ store.locale === 'fi' ? item.tuotenimi : item.tuotenimi_en }}
             </td>
