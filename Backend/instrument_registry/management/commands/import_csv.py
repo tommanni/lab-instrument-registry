@@ -103,8 +103,11 @@ def _to_Instrument(row: dict) -> Instrument:
 	for f in Instrument._meta.get_fields():
 		if f.name == "id": # skip id since it's automatically assigned
 			continue
+		# Skip vector fields; they are filled after embeddings are computed
 		if isinstance(f, VectorField):
-			# Skip vector fields; they are filled after embeddings are computed
+			continue
+		# Skip reverse relationships (e.g., 'attachments' from InstrumentAttachment)
+		if f.auto_created and f.one_to_many:
 			continue
 
 		# Find the Excel column name that maps to this Django field
