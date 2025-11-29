@@ -2,7 +2,7 @@ from instrument_registry.models import Instrument, RegistryUser, InviteCode, Ins
 from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer, InstrumentAttachmentSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
-from instrument_registry.util import model_to_csv, csv_to_model, parse_date, should_translate_to_english, check_csv_duplicates
+from instrument_registry.util import model_to_csv, csv_to_model, parse_date, should_translate_to_english, check_csv_duplicates, clean_whitespace
 from instrument_registry.translations import translate_password_error
 from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
@@ -261,7 +261,7 @@ class InstrumentCSVImport(APIView):
             for row in rows_to_import:
                 cleaned_row = {}
                 for key, value in row.items():
-                    trimmed_value = value.strip()
+                    trimmed_value = clean_whitespace(value)
                     if not trimmed_value:
                         continue
                     if key in date_fields:

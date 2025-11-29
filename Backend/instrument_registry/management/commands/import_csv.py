@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from instrument_registry.util import csv_to_model
+from instrument_registry.util import csv_to_model, clean_whitespace
 from instrument_registry.models import Instrument
 from instrument_registry.serializers import InstrumentCSVSerializer
 from pgvector.django import VectorField
@@ -116,7 +116,7 @@ def _to_Instrument(row: dict) -> Instrument:
 
 		# Get the value from the row using Excel column name
 		if excel_col and excel_col in row:
-			value = row[excel_col]
+			value = clean_whitespace(row[excel_col])
 		else:
 			value = ""  # Default empty value for missing columns
 

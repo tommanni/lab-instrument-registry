@@ -4,6 +4,16 @@ from datetime import datetime
 import io
 import csv
 
+def clean_whitespace(value):
+    """
+    Trims leading/trailing whitespace and collapses multiple internal spaces to a single space.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return " ".join(value.split())
+    return value
+
 # Returns a StringIO object containing model data in csv format based on the queryset.
 def model_to_csv(serializer_class, queryset):
     serializer = serializer_class(instance=queryset, many=True)
@@ -22,7 +32,14 @@ def csv_to_model(serializer_class, csv_file):
     data = []
     # remove empty string entries because serializer validation fails otherwise
     for row in reader:
-        data.append({k:v for k,v in row.items() if v != ''})
+        cleaned_row = {}
+        for k, v in row.items():
+            cleaned_val = clean_whitespace(v)
+            if cleaned_val:
+                cleaned_row[k] = cleaned_val
+        if cleaned_row:
+            data.append(cleaned_row)
+            
     serializer = serializer_class(data=data, many=True)
     serializer.is_valid(raise_exception=True)
     serializer.save()
@@ -106,9 +123,9 @@ def check_csv_duplicates(rows):
     )
 
     for row in rows:
-        tay_numero = row.get('tay_numero', '').strip()
-        tuotenimi = row.get('tuotenimi', '').strip()
-        merkki_ja_malli = row.get('merkki_ja_malli', '').strip()
+        tay_numero = clean_whitespace(row.get('tay_numero', ''))
+        tuotenimi = clean_whitespace(row.get('tuotenimi', ''))
+        merkki_ja_malli = clean_whitespace(row.get('merkki_ja_malli', ''))
 
         # Skip rows that don't have tuotenimi AND merkki_ja_malli
         if not tuotenimi and not merkki_ja_malli:
