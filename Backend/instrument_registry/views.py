@@ -485,17 +485,17 @@ class ChangePassword(APIView):
         new_password = request.data.get('new_password')
         lang = request.COOKIES.get('Language')
 
-        password_error = translate_password_error(password=new_password, lang=lang, user=request.user)
+        try:
+            user = RegistryUser.objects.get(pk=user_id)
+        except RegistryUser.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=404)
+
+        password_error = translate_password_error(password=new_password, lang=lang, user=user)
         if password_error:
             return Response({
                 'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
                 'password_error': password_error
             }, status=400)
-        
-        try:
-            user = RegistryUser.objects.get(pk=user_id)
-        except RegistryUser.DoesNotExist:
-            return Response({'message': 'User not found.'}, status=404)
 
         # only superadmins can change superadmin passwords
         if (not (request.user == user or request.user.is_staff or request.user.is_superuser)
