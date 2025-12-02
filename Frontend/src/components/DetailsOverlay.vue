@@ -124,6 +124,19 @@ const fieldToIndexMap = {
   tuotenimi_en: 19,
 };
 
+
+const fetchHistory = async (id) => {
+  if (!id) return;
+  try {
+    const response = await axios.get(`/api/instruments/${id}/history/`, {
+      withCredentials: true
+    });
+    instrumentHistory.value = response.data.reverse();
+  } catch (error) {
+    console.error('Error fetching instrument history:', error);
+  }
+}
+
 watch(() => props.item, (newItem) => {
   if (newItem && newItem.id) {
     view.value = 'details';
@@ -138,17 +151,7 @@ watch(() => props.item, (newItem) => {
   }
 }, { immediate: true, deep: true });
 
-const fetchHistory = async (id) => {
-  if (!id) return;
-  try {
-    const response = await axios.get(`/api/instruments/${id}/history/`, {
-      withCredentials: true
-    });
-    instrumentHistory.value = response.data.reverse();
-  } catch (error) {
-    console.error('Error fetching instrument history:', error);
-  }
-}
+
 
 
 const resetFormData = () => {
@@ -183,12 +186,25 @@ const confirmUpdate = async () => {
   if (!store.isInitialized) {
   console.warn("Store not initialized yet.")
   return
-}
+  }
 
   const originalName = ((props.item && props.item.tuotenimi) ? props.item.tuotenimi : '').trim().toLowerCase()
   const currentName = (updateFormData.value.tuotenimi || '').trim().toLowerCase()
   const tuotenimiUnchanged = originalName === currentName
   const englishChanged = props.item ? updateFormData.value.tuotenimi_en !== props.item.tuotenimi_en : false
+
+  if(updateFormData.value.toimituspvm === '') {
+    updateFormData.value.toimituspvm = null;
+  }
+  if(updateFormData.value.huoltosopimus_loppuu === '') {
+    updateFormData.value.huoltosopimus_loppuu = null;
+  }
+  if(updateFormData.value.edellinen_huolto === '') {
+    updateFormData.value.edellinen_huolto = null;
+  }
+  if(updateFormData.value.seuraava_huolto === '') {
+    updateFormData.value.seuraava_huolto = null;
+  }
 
   const payload = JSON.parse(JSON.stringify(updateFormData.value))
   if (tuotenimiUnchanged && englishChanged && duplicateCount.value > 0) {
@@ -335,38 +351,38 @@ const cancelDuplicateUpdate = () => {
                     <div class="form-field-wrapper">
                       <label for="tay-no">{{ tm('fullHeaders')[1] }}</label>
                       <input id="tay-no" v-model="updateFormData['tay_numero']" class="form-control" type="text"
-                        :disabled="view != 'edit'">
+                        maxlength="100" :disabled="view != 'edit'">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="product-name">{{ tm('fullHeaders')[2] }} <span v-if="view === 'edit'" class="text-danger">*</span></label>
                       <input id="product-name" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['tuotenimi']" type="text" :required="view === 'edit'">
+                        v-model="updateFormData['tuotenimi']" type="text" maxlength="100" :required="view === 'edit'">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="product-name-en">{{ tm('fullHeaders')[19] }}</label>
                       <input id="product-name-en" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['tuotenimi_en']" type="text">
+                        v-model="updateFormData['tuotenimi_en']" type="text" maxlength="100">
                     </div>
 
                     <div class="form-field-wrapper">
                       <label for="product-model">{{ tm('fullHeaders')[3] }}</label>
                       <input id="product-model" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['merkki_ja_malli']">
+                        v-model="updateFormData['merkki_ja_malli']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="unit">{{ tm('fullHeaders')[5] }}</label>
                       <input id="unit" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['yksikko']">
+                        v-model="updateFormData['yksikko']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="campus">{{ tm('fullHeaders')[6] }}</label>
                       <input id="campus" class="form-control" :disabled="!(view == 'edit')"
-                        v-model="updateFormData['kampus']">
+                        v-model="updateFormData['kampus']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="responsible-person">{{ tm('fullHeaders')[9] }}</label>
                       <input id="responsible-person" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['vastuuhenkilo']">
+                        v-model="updateFormData['vastuuhenkilo']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="deliverydate">{{ tm('fullHeaders')[10] }}</label>
@@ -389,22 +405,22 @@ const cancelDuplicateUpdate = () => {
                     <div class="form-field-wrapper">
                       <label for="product-serialno">{{ tm('fullHeaders')[4] }}</label>
                       <input id="product-serialno" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['sarjanumero']">
+                        v-model="updateFormData['sarjanumero']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="building">{{ tm('fullHeaders')[7] }}</label>
                       <input id="building" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['rakennus']">
+                        v-model="updateFormData['rakennus']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="room">{{ tm('fullHeaders')[8] }}</label>
                       <input id="room" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['huone']">
+                        v-model="updateFormData['huone']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="supplier">{{ tm('fullHeaders')[11] }}</label>
                       <input id="supplier" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['toimittaja']">
+                        v-model="updateFormData['toimittaja']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="contract-ends">{{ tm('fullHeaders')[15] }}</label>
@@ -414,12 +430,12 @@ const cancelDuplicateUpdate = () => {
                     <div class="form-field-wrapper">
                       <label for="status">{{ tm('fullHeaders')[18] }}</label>
                       <input id="status" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['tilanne']">
+                        v-model="updateFormData['tilanne']" maxlength="100">
                     </div>
                     <div class="form-field-wrapper">
                       <label for="footnote">{{ tm('fullHeaders')[12] }}</label>
                       <textarea id="footnote" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['lisatieto']"></textarea>
+                        v-model="updateFormData['lisatieto']" maxlength="1000"></textarea>
                     </div>
                   </div>
                 </div>

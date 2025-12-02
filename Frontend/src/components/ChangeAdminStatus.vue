@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const props = defineProps({ user: Object });
+const emit = defineEmits(['update-user', 'close']);
 const alertStore = useAlertStore();
 
 async function changeAdminValue() {
@@ -17,41 +18,40 @@ async function changeAdminValue() {
             {
             withCredentials: true
         });
+        const updatedUser = {
+          ...props.user,
+        is_staff: res.data.newAdminStatus
+      };
 
-        props.user.is_staff = res.data.newAdminStatus;
-
-        if (res.data.newAdminStatus) {
-          alertStore.showAlert(0, t('message.admin_luotu'));
-        }
-        else {
-          // api call removes all admin rights
-          props.user.is_superuser = res.data.newAdminStatus; 
-          alertStore.showAlert(0, t('message.admin_poistettu'));
-        }
-    } catch (error) {
-        if (error.response && error.response.data && error.response.data.message) {
-            alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
-        }
-        else {
-            alertStore.showAlert(1, t('message.tuntematon_virhe'));
-        }
+      emit('update-user', updatedUser);
+      alertStore.showAlert(
+        0,
+        res.data.newAdminStatus
+          ? t('message.admin_luotu')
+          : t('message.admin_poistettu')
+      );
+        } catch (error) {
+        if (error.response?.data?.message) {
+          alertStore.showAlert(1, t('message.virhe') + error.response.data.message);
+    } else {
+      alertStore.showAlert(1, t('message.tuntematon_virhe'));
+    }
+  } finally {
+    emit('close');
     }
 }
 </script>
 
 <template>
-<div class="admin-container">
-  <div class="modal-buttons" v-if="props.user && props.user?.is_staff">
-    <button class="btn btn-primary" @click="changeAdminValue">
-      {{ props.user.is_staff ? t('message.poista_oikeudet') : t('message.tee_admin') }}
-    </button>
+  <div class="admin-container">
+    <div class="modal-buttons">
+      <button class="btn btn-primary" @click="changeAdminValue">
+        {{ props.user.is_staff
+          ? t('message.poista_oikeudet')
+          : t('message.tee_admin') }}
+      </button>
+    </div>
   </div>
-    <div class="modal-buttons" v-else>
-    <button class="btn btn-primary" @click="changeAdminValue">{{ t('message.tee_admin') }}
-    </button>
-  </div>
-</div>
-
 </template>
 
 <style scoped>

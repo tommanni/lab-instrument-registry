@@ -74,15 +74,19 @@ sudo systemctl start httpd
 
 ### Backend Only (Code Changes)
 ```bash
+# Pull latest code
+cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
+sudo git pull origin main
+
 # Switch to metlabs service account
 sudo su - metlabs
-
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
-git pull origin main
 
-# Rebuild and restart web container
+# Rebuild and recreate web container
 podman-compose -f docker-compose.prod.yml build web
-podman-compose -f docker-compose.prod.yml restart web
+podman stop metlabs-web
+podman rm metlabs-web
+podman-compose -f docker-compose.prod.yml up -d web
 
 # Check logs
 podman logs -f metlabs-web
@@ -90,11 +94,13 @@ podman logs -f metlabs-web
 
 ### Backend (Dependency Changes)
 ```bash
+# Pull latest code
+cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
+sudo git pull origin main
+
 # Switch to metlabs service account
 sudo su - metlabs
-
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
-git pull origin main
 
 # Rebuild with --no-cache to force fresh install
 podman-compose -f docker-compose.prod.yml build --no-cache web
@@ -157,17 +163,21 @@ curl -I http://met-metlabs.rd.tuni.fi/
 ```bash
 # 1. Pull latest code
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
-git pull origin main
+sudo git pull origin main
 
-# 2. Rebuild web container
+# 2. Switch to metlabs service account
+sudo su - metlabs
+cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
+
+# 3. Rebuild web container
 podman-compose -f docker-compose.prod.yml build web
 
-# 3. Restart container
+# 4. Recreate container
 podman stop metlabs-web
 podman rm metlabs-web
 podman-compose -f docker-compose.prod.yml up -d web
 
-# 4. Watch logs to ensure it starts correctly
+# 5. Watch logs to ensure it starts correctly
 podman logs -f metlabs-web
 # Press Ctrl+C when you see "Booting worker with pid"
 ```

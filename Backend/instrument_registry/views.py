@@ -2,11 +2,12 @@ from instrument_registry.models import Instrument, RegistryUser, InviteCode, Ins
 from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer, InstrumentAttachmentSerializer
 from instrument_registry.authentication import JSONAuthentication
 from instrument_registry.permissions import IsSameUserOrReadOnly
-from instrument_registry.util import model_to_csv, csv_to_model
+from instrument_registry.util import model_to_csv, csv_to_model, parse_date, should_translate_to_english, check_csv_duplicates, clean_whitespace
 from instrument_registry.translations import translate_password_error
 from instrument_registry.job_runner import run_precompute_subprocess
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from knox import views as knox_views
 from knox.auth import TokenAuthentication
@@ -21,60 +22,7 @@ import csv
 import io
 from pgvector.django import CosineDistance
 import requests
-from lingua import Language, LanguageDetectorBuilder
-
-# Helper function to check for duplicate instruments
-def check_csv_duplicates(rows):
-    """
-    Check which CSV rows are duplicates and which are new.
-
-    A duplicate is defined as having the same combination of:
-    - tay_numero
-    - tuotenimi
-    - merkki_ja_malli
-
-    Args:
-        rows: List of dictionaries from CSV DictReader
-
-    Returns:
-        tuple: (new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count)
-    """
-    new_rows = []
-    duplicates = []
-    invalid_rows = []
-
-    for row in rows:
-        tay_numero = row.get('tay_numero', '').strip()
-        tuotenimi = row.get('tuotenimi', '').strip()
-        merkki_ja_malli = row.get('merkki_ja_malli', '').strip()
-
-        # Skip rows that don't have tuotenimi OR merkki_ja_malli
-        if not tuotenimi and not merkki_ja_malli:
-            invalid_rows.append({
-                'tay_numero': tay_numero or '-',
-                'tuotenimi': tuotenimi or '-',
-                'merkki_ja_malli': merkki_ja_malli or '-'
-            })
-            continue
-
-        # Check if this exact combination already exists
-        query = Q(
-            tay_numero=tay_numero,
-            tuotenimi=tuotenimi,
-            merkki_ja_malli=merkki_ja_malli
-        )
-        is_duplicate = Instrument.objects.filter(query).exists()
-
-        if is_duplicate:
-            duplicates.append({
-                'tay_numero': tay_numero or '-',
-                'tuotenimi': tuotenimi or '-',
-                'merkki_ja_malli': merkki_ja_malli or '-'
-            })
-        else:
-            new_rows.append(row)
-
-    return new_rows, duplicates, invalid_rows, len(new_rows), len(duplicates), len(invalid_rows)
+import json
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -105,8 +53,8 @@ class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
 # This view returns the history of a single instrument.
 class InstrumentHistory(generics.RetrieveAPIView):
     queryset = Instrument.objects.defer('embedding_en')
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    authentication_classes = [CookieTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         instrument = self.get_object()
@@ -205,9 +153,13 @@ class InstrumentValueSet(APIView):
 # This view returns all the data in Instrument table as a csv file.
 class InstrumentCSVExport(APIView):
     authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # only admins can export instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
         source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en'))
@@ -219,45 +171,17 @@ class InstrumentCSVExport(APIView):
         response = HttpResponse(csv_bytes.encode('utf-8'), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
         return response
 
-# Language detector setup for search terms    
-LANGUAGE_DETECTOR = LanguageDetectorBuilder.from_languages(
-    Language.ENGLISH,
-    Language.FINNISH
-).build()
-
-ENGLISH_CONFIDENCE_MIN = 0.60
-CONFIDENCE_MARGIN = 0.10
-    
-def should_translate_to_english(text: str) -> bool:
-    """
-    Decide whether to route the query through the Finnish->English translation step.
-    We translate unless the detector is clearly confident the text is already English.
-    """
-    if not text:
-        return True
-
-    confidence_map = {
-        confidence.language: confidence.value
-        for confidence in LANGUAGE_DETECTOR.compute_language_confidence_values(text)
-    }
-
-    english_conf = confidence_map.get(Language.ENGLISH, 0.0)
-    finnish_conf = confidence_map.get(Language.FINNISH, 0.0)
-
-    is_confident_english = (
-        english_conf >= ENGLISH_CONFIDENCE_MIN and
-        english_conf - finnish_conf >= CONFIDENCE_MARGIN
-    )
-
-    return not is_confident_english
-
-
 # This view validates and previews CSV import before actually importing
 class InstrumentCSVPreview(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+
+        # only admins can import instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         if 'file' not in request.FILES:
             return Response({'error': 'No file provided'}, status=400)
 
@@ -280,8 +204,7 @@ class InstrumentCSVPreview(APIView):
                 'new_count': new_count,
                 'duplicate_count': duplicate_count,
                 'invalid_count': invalid_count,
-                'duplicates': duplicates[:10],  # Show first 10 duplicates
-                'has_more_duplicates': len(duplicates) > 10,
+                'duplicates': duplicates,
                 'invalid_rows': invalid_rows[:10],  # Show first 10 invalid rows
                 'has_more_invalid': len(invalid_rows) > 10
             })
@@ -295,10 +218,20 @@ class InstrumentCSVImport(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        # only admins can import instruments
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+
         if 'file' not in request.FILES:
             return Response({'error': 'No file provided'}, status=400)
 
         csv_file = request.FILES['file']
+        duplicates_to_import_json = request.data.get('duplicates_to_import', '[]')
+
+        try:
+            duplicates_to_import = json.loads(duplicates_to_import_json)
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid format for duplicates_to_import'}, status=400)
 
         try:
             # Read and parse CSV
@@ -310,21 +243,32 @@ class InstrumentCSVImport(APIView):
                 return Response({'error': 'CSV file is empty'}, status=400)
 
             # Filter out duplicates and invalid rows using shared helper function
-            new_rows, duplicates, invalid_rows, new_count, duplicate_count, invalid_count = check_csv_duplicates(rows)
+            new_rows, _, _, _, _, _ = check_csv_duplicates(rows)
 
-            # Only import if there's new data
-            if not new_rows:
+            # Combine new rows with selected duplicates
+            rows_to_import = new_rows + duplicates_to_import
+            
+            if not rows_to_import:
                 return Response({
                     'success': True,
                     'imported_count': 0,
-                    'skipped_count': duplicate_count + invalid_count,
-                    'message': 'No new instruments to import (all were duplicates or invalid)'
+                    'message': 'No new instruments to import'
                 })
 
-            # Clean the data (remove empty values)
+            # Clean the data (remove empty values and parse dates)
+            date_fields = {'toimituspvm', 'huoltosopimus_loppuu', 'edellinen_huolto', 'seuraava_huolto'}
             data = []
-            for row in new_rows:
-                cleaned_row = {k: v for k, v in row.items() if v.strip()}
+            for row in rows_to_import:
+                cleaned_row = {}
+                for key, value in row.items():
+                    trimmed_value = clean_whitespace(value)
+                    if not trimmed_value:
+                        continue
+                    if key in date_fields:
+                        parsed_value = parse_date(trimmed_value)
+                        if parsed_value:
+                            trimmed_value = parsed_value
+                    cleaned_row[key] = trimmed_value
                 data.append(cleaned_row)
 
             serializer = InstrumentCSVSerializer(data=data, many=True)
@@ -335,15 +279,14 @@ class InstrumentCSVImport(APIView):
 
             precompute_pid = None
             try:
-                precompute_pid, _ = run_precompute_subprocess(force=False)
+                precompute_pid, _ = run_precompute_subprocess(force=False) # Compute translations and embeddings
             except Exception as exc:
                 print(f'Embedding precompute subprocess failed: {exc}')
 
             return Response({
                 'success': True,
-                'imported_count': new_count,
-                'skipped_count': duplicate_count,
-                'message': f'Successfully imported {new_count} instruments (skipped {duplicate_count} duplicates)',
+                'imported_count': len(rows_to_import),
+                'message': f'Successfully imported {len(rows_to_import)} instruments',
                 'embedding_process_pid': precompute_pid,
             })
 
@@ -428,7 +371,7 @@ class InstrumentSearch(APIView):
             return Response({'message': 'invalid response from semantic search service'}, status=500)
 
 class ServiceValueSet(APIView):
-    authentication_classes = [CookieTokenAuthentication]  # Add your authentication if needed
+    authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -451,6 +394,12 @@ class UserList(generics.ListAPIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    # Only admins can view the list of users
+    def get(self, request):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied('Not authorized.')
+        return super().get(request)
+
 # This view returns a single user.
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = RegistryUser.objects.all()
@@ -463,8 +412,16 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
         id = self.kwargs.get(self.lookup_field)
         if str(id) == 'me':
             return self.request.user
+        
         # otherwise use default functionality (search by pk)
-        return super().get_object()
+        request_user = self.request.user
+        search_user = super().get_object()
+
+        # only admins can view other users
+        if not (request_user == search_user or request_user.is_staff or request_user.is_superuser):
+            raise PermissionDenied("Not authorized.")
+
+        return search_user
 
 
 """
@@ -477,6 +434,10 @@ class GenerateInviteCode(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # only admins can create invite codes
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({'message': 'Not authorized.'}, status=403)
+        
         invite_code = InviteCode.objects.create()
         return Response({'invite_code': invite_code.code})
 
@@ -494,7 +455,10 @@ class Register(APIView):
         validated = InviteCode.objects.is_valid_code(invite_code)
 
         if validated:
-            password_error = translate_password_error(password, password_again=password_again, lang=lang)
+            email = request.data.get('email')
+            full_name = request.data.get('full_name', '')
+            user_candidate = RegistryUser(email=email, full_name=full_name)
+            password_error = translate_password_error(password, password_again=password_again, lang=lang, user=user_candidate)
             if password_error:
                 return Response({
                     'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
@@ -521,19 +485,19 @@ class ChangePassword(APIView):
         new_password = request.data.get('new_password')
         lang = request.COOKIES.get('Language')
 
-        password_error = translate_password_error(password=new_password, lang=lang)
-        if password_error:
-            return Response({
-                'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
-                'password_error': password_error
-            }, status=400)
-        
         try:
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
             return Response({'message': 'User not found.'}, status=404)
 
-         # only superadmins can change superadmin passwords
+        password_error = translate_password_error(password=new_password, lang=lang, user=user)
+        if password_error:
+            return Response({
+                'message': 'Error validating password.' if lang != 'fi' else 'Virhe salasanan vahvistuksessa.',
+                'password_error': password_error
+            }, status=400)
+
+        # only superadmins can change superadmin passwords
         if (not (request.user == user or request.user.is_staff or request.user.is_superuser)
             or (user.is_superuser and not request.user.is_superuser)):
             return Response({'message': 'Not authorized.'}, status=403)
@@ -549,7 +513,8 @@ class ChangeAdminStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can create new admins
+        # only superadmins can create new admins
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -576,7 +541,8 @@ class ChangeSuperadminStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can create new superadmin
+        # only superadmins can create new superadmins
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -604,7 +570,8 @@ class DeleteUser(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_superuser: # only superadmins can delete users
+        # only superadmins can delete users
+        if not request.user.is_superuser:
             return Response({'message': 'Not authorized.'}, status=403)
 
         user_id = request.data.get('id')
@@ -810,7 +777,3 @@ class Logout(knox_views.LogoutView):
         # Delete the cookie
         response.delete_cookie('Authorization')
         return response
-
-class LogoutAll(knox_views.LogoutAllView):
-    authentication_classes = [CookieTokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]

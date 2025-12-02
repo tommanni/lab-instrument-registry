@@ -81,15 +81,6 @@ describe('AddOverlay.vue', () => {
     expect(button.text()).toBe('New Device');
   })
 
-  it('opens the modal when the add button is clicked', async () => {
-    const button = wrapper.find('button.btn.btn-primary');
-    await button.trigger('click');
-
-    const modal = document.body.querySelector('#addModal');
-    modal.classList.add('show');
-    expect(modal.classList.contains('show')).toBe(true);
-  })
-
   it('saves data and emits event on save button click', async () => {
     // Set required form data
     wrapper.vm.formData.tuotenimi = 'Test Device'

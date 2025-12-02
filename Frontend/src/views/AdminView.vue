@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import TokenOverlay from '@/components/TokenOverlay.vue';
 import UserData from '@/components/UserData.vue';
 import { useDataStore } from '@/stores/data';
@@ -31,53 +31,70 @@ function navigateToTab(tab) {
   router.push(routes[tab]);
 }
 
-// Redirect to /admin/users if on /admin root
-onMounted(() => {
+// Redirects
+onMounted(async () => {
+  if (typeof userStore.fetchUser === 'function') {
+    try { await userStore.fetchUser() } catch (e) { /* ignore */ }
+  }
+
   if (route.path === '/admin') {
     router.replace('/admin/users');
+  }
+
+  if (!userStore.user || !(userStore.user.is_staff || userStore.user.is_superuser)) {
+    console.log('admin access denied; user:', userStore.user)
+    router.replace('/')
+  }
+});
+
+// watcher for login status
+watch(() => dataStore.isLoggedIn, (isLoggedIn) => {
+  if (!loading.value && !isLoggedIn) {
+    router.replace('/');
   }
 });
 </script>
 
 <template>
-  <main v-if="dataStore.isLoggedIn && userStore.user && (userStore.user.is_staff || userStore.user.is_superuser)">
-    <div class="admin-header">
-      <h2>{{ t('message.adminsivu') }}</h2>
+  <div v-if="dataStore.isLoggedIn && userStore.user && (userStore.user.is_staff || userStore.user.is_superuser)" class="screen-container">
+    <div v-if="loading" class="loading-screen">
+      Loading...
     </div>
+    <main v-else>
+      <div class="admin-header">
+        <h2>{{ t('message.adminsivu') }}</h2>
+      </div>
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-tabs mb-3">
-      <li class="nav-item">
-        <a
-          class="nav-link"
-          :class="{ active: activeTab === 'users' }"
-          @click="navigateToTab('users')"
-          style="cursor: pointer;"
-        >
-          {{ t('message.kayttajasivu') }}
-        </a>
-      </li>
-      <li class="nav-item">
-        <a
-          class="nav-link"
-          :class="{ active: activeTab === 'data-transfer' }"
-          @click="navigateToTab('data-transfer')"
-          style="cursor: pointer;"
-        >
-          {{ t('message.tiedonsiirto') }}
-        </a>
-      </li>
-    </ul>
+      <!-- Tab Navigation -->
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            :class="{ active: activeTab === 'users' }"
+            @click="navigateToTab('users')"
+            style="cursor: pointer;"
+          >
+            {{ t('message.kayttajasivu') }}
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            :class="{ active: activeTab === 'data-transfer' }"
+            @click="navigateToTab('data-transfer')"
+            style="cursor: pointer;"
+          >
+            {{ t('message.tiedonsiirto') }}
+          </a>
+        </li>
+      </ul>
 
-    <!-- Router View for Child Routes -->
-    <div class="tab-content">
-      <router-view />
-    </div>
-  </main>
-
-  <main v-else-if="!loading">
-    <h1 class="text-center"> {{ t('message.admin_ei_oikeuksia') }} </h1>
-  </main>
+      <!-- Router View for Child Routes -->
+      <div class="tab-content">
+        <router-view />
+      </div>
+    </main>
+  </div>
 </template>
 
 <style scoped>

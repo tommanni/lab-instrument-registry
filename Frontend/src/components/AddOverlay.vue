@@ -219,23 +219,23 @@ const saveData = async () => {
                   <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <div>
                       <label for="tuotenimi">{{ t('message.tuotenimi') }} <span class="text-danger">*</span></label>
-                      <input class="form-control" id="tuotenimi" v-model="formData.tuotenimi" required />
+                      <input class="form-control" id="tuotenimi" v-model="formData.tuotenimi" maxlength="100" required />
                     </div>
                     <div>
                       <label for="merkki_ja_malli">{{ t('message.merkki') }} <span class="text-danger">*</span></label>
-                      <input id="merkki_ja_malli" class="form-control" v-model="formData.merkki_ja_malli" required />
+                      <input id="merkki_ja_malli" class="form-control" v-model="formData.merkki_ja_malli" maxlength="100" required />
                     </div>
                     <div>
                       <label for="kampus">{{ t('message.kampus') }} <span class="text-danger">*</span></label>
-                      <input id="kampus" class="form-control" v-model="formData.kampus" required />
+                      <input id="kampus" class="form-control" v-model="formData.kampus" maxlength="100" required />
                     </div>
                     <div>
                       <label for="yksikko">{{ t('message.yksikko') }}</label>
-                      <input id="yksikko" class="form-control" v-model="formData.yksikko" />
+                      <input id="yksikko" class="form-control" v-model="formData.yksikko" maxlength="100" />
                     </div>
                     <div>
                       <label for="vastuuhenkilo">{{ t('message.vastuuhenkilo') }}</label>
-                      <input id="vastuuhenkilo" class="form-control" v-model="formData.vastuuhenkilo" />
+                      <input id="vastuuhenkilo" class="form-control" v-model="formData.vastuuhenkilo" maxlength="100" />
                     </div>
                     <div>
                       <label for="toimituspvm">{{ t('message.pvm') }}</label>
@@ -250,23 +250,23 @@ const saveData = async () => {
                   <div class="col d-flex flex-column" style="gap: 0.33rem;">
                     <div>
                       <label for="sarjanumero">{{ t('message.sarjanumero') }}</label>
-                      <input id="sarjanumero" class="form-control" v-model="formData.sarjanumero" />
+                      <input id="sarjanumero" class="form-control" v-model="formData.sarjanumero" maxlength="100" />
                     </div>
                     <div>
                       <label for="tay_numero">{{ t('message.tay') }}</label>
-                      <input id="tay_numero" class="form-control" v-model="formData.tay_numero" placeholder="12345" />
+                      <input id="tay_numero" class="form-control" v-model="formData.tay_numero" maxlength="100" placeholder="12345" />
                     </div>
                     <div>
                       <label for="huone">{{ t('message.huone') }}</label>
-                      <input id="huone" class="form-control" v-model="formData.huone" placeholder="ARVO-D007" />
+                      <input id="huone" class="form-control" v-model="formData.huone" maxlength="100" placeholder="ARVO-D007" />
                     </div>
                     <div>
                       <label for="rakennus">{{ t('message.rakennus') }}</label>
-                      <input id="rakennus" class="form-control" v-model="formData.rakennus" />
+                      <input id="rakennus" class="form-control" v-model="formData.rakennus" maxlength="100" />
                     </div>
                     <div>
                       <label for="toimittaja">{{ t('message.toimittaja') }}</label>
-                      <input id="toimittaja" class="form-control" v-model="formData.toimittaja" />
+                      <input id="toimittaja" class="form-control" v-model="formData.toimittaja" maxlength="100" />
                     </div>
                     <div>
                       <label for="huoltosopimus_loppuu">{{ t('message.huoltosopimus_loppuu') }}</label>
@@ -280,7 +280,7 @@ const saveData = async () => {
                   </div>
                   <div class="mt-3">
                     <label for="lisatieto">{{ t('message.lisatieto') }}</label>
-                    <textarea id="lisatieto" type="text" class="form-control" v-model="formData.lisatieto" />
+                    <textarea id="lisatieto" type="text" class="form-control" v-model="formData.lisatieto" maxlength="1000" />
                   </div>
                 </div>
 

@@ -2,8 +2,29 @@ from rest_framework import serializers
 import requests
 from .models import Instrument, RegistryUser, InstrumentAttachment
 
+# Mixin to clean whitespace from all CharFields
+class WhitespaceCleaningSerializerMixin:
+    def to_internal_value(self, data):
+        from .util import clean_whitespace
+        
+        # Create a mutable copy of the data
+        if hasattr(data, 'copy'):
+            data = data.copy()
+        else:
+            data = dict(data)
+
+        # Clean whitespace for all string fields provided in the data
+        for key, value in data.items():
+            if isinstance(value, str):
+                # Check if this field exists on the serializer and is a CharField
+                field = self.fields.get(key)
+                if field and isinstance(field, serializers.CharField):
+                    data[key] = clean_whitespace(value)
+
+        return super().to_internal_value(data)
+
 # Default instrument serializer for views and such.
-class InstrumentSerializer(serializers.ModelSerializer):
+class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):
     # If true, update English name for all instruments with the same Finnish name
     update_duplicates = serializers.BooleanField(write_only=True, required=False)
 
@@ -134,13 +155,13 @@ class InstrumentSerializer(serializers.ModelSerializer):
 
 
 # Instrument serializer for CSV import/export.
-class InstrumentCSVSerializer(serializers.ModelSerializer):
+class InstrumentCSVSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = Instrument
         exclude = ['id', 'embedding_en']
 
 # User serializer
-class RegistryUserSerializer(serializers.ModelSerializer):
+class RegistryUserSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = RegistryUser
         fields = ['id', 'email', 'full_name', 'password', 'is_staff', 'is_superuser', 'is_active']
@@ -166,7 +187,7 @@ class RegistryUserSerializer(serializers.ModelSerializer):
         return user
 
 # Attachment serializer
-class InstrumentAttachmentSerializer(serializers.ModelSerializer):
+class InstrumentAttachmentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.full_name', read_only=True)
     file_url = serializers.SerializerMethodField()
 

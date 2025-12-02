@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useDataStore } from '@/stores/data'
+import { useUserStore } from '@/stores/user'
+import { useContractStore } from '@/stores/contract'
 import { useAlertStore } from '@/stores/alert'
 import { useMediaQuery } from '@vueuse/core'
 import { useRouter } from 'vue-router';
@@ -12,6 +14,8 @@ const isMobile = useMediaQuery('(max-width: 768px');
 
 const showOverlay = ref(false)
 const store = useDataStore()
+const userStore = useUserStore()
+const contractStore = useContractStore()
 const alertStore = useAlertStore()
 const router = useRouter()
 
@@ -30,6 +34,14 @@ const logoutUser = async () => {
           withCredentials: true
         });
         store.isLoggedIn = false
+        store.user = null;
+        userStore.user = null;
+        userStore.fullData = null;
+        userStore.searchedData = null;
+        userStore.currentData = null;
+        contractStore.originalData = null;
+        contractStore.contractData = null;
+        contractStore.data = null;
         closeOverlay();
         // Show success alert
         alertStore.showAlert(0, t('message.ulos_kirjauduttu'))

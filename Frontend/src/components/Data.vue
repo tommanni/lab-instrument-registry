@@ -106,8 +106,17 @@ const displayedData = computed(() => {
     let sorted = [...baseData]
     const key = headerToKey[sortColumn.value] || sortColumn.value
     sorted.sort((a, b) => {
-      const valA = (a[key] || '').toString().toLowerCase()
-      const valB = (b[key] || '').toString().toLowerCase()
+      const valA = (a[key] ?? '').toString().toLowerCase()
+      const valB = (b[key] ?? '').toString().toLowerCase()
+
+      const isEmptyA = valA === null || valA === '' || valA === undefined
+      const isEmptyB = valB === null || valB === '' || valB === undefined
+
+      // Put empty values last
+      if (isEmptyA && !isEmptyB) return 1
+      if (!isEmptyA && isEmptyB) return -1
+      if (isEmptyA && isEmptyB) return 0
+
       const comp = valA.localeCompare(valB)
       return sortDirection.value === 'asc' ? comp : -comp
     })
@@ -231,19 +240,19 @@ const startResize = (event, column) => {
             <!-- Käydään läpi sarakeotsikot ja lisätään sort-indikaattori -->
             <!-- Go through the column headers and add a sort indicator -->
             <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
-              <div class="sort-wrapper">
-              <span class="header-text" @click.stop="toggleSort(key)">{{ key }}</span>
+              <div class="sort-wrapper" @click.stop="toggleSort(key)" style="cursor: pointer;">
+                <span class="header-text">{{ key }}</span>
 
-                <i :class="getSortClass(key)" @click.stop="toggleSort(key)"></i>
+                  <i :class="getSortClass(key)"></i>
               </div>
-              <span class="resizer" @pointerdown="startResize($event, index)"></span>
+              <span class="resizer" @pointerdown="startResize($event, index)" role="separator" aria-orientation="vertical"></span>
             </th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="(item, index) in displayedData" @click="openOverlay(item)" data-bs-toggle="modal"
-            data-bs-target="#dataModal" :key="index">
+          <tr v-for="(item, index) in displayedData" :key="index" :id="'datarow-'+index" @click="openOverlay(item)" data-bs-toggle="modal"
+            data-bs-target="#dataModal">
             <td>
               {{ store.locale === 'fi' ? item.tuotenimi : item.tuotenimi_en }}
             </td>
@@ -347,14 +356,34 @@ tbody tr:last-child td:last-child {
   cursor: pointer;
 }
 
+.tuni-table-header-cell {
+  position: relative;
+  padding-right: 8px;
+}
+
 .resizer {
   position: absolute;
   top: 0;
   right: 0;
-  width: 8px;
+  width: 10px;
   height: 100%;
   cursor: col-resize;
-  background: transparent;
-  z-index: 1000;
+  background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.04) 50%, rgba(0,0,0,0) 100%);
+  transition: background .12s;
+  z-index: 20;
+}
+.resizer:hover {
+  background: rgba(0,0,0,0.08);
+}
+/* small visible line to hint the handle */
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  right: 4px;
+  width: 2px;
+  background: rgba(0,0,0,0.18);
+  border-radius: 1px;
 }
 </style>
