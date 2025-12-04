@@ -46,7 +46,7 @@ const createBaseFormData = () => ({
   toimituspvm: '',
   toimittaja: '',
   lisatieto: '',
-  tilanne: "Saatavilla"
+  tilanne: "Saatavilla/Available"
 })
 
 // Factory function to create form data with maintenance fields for reset

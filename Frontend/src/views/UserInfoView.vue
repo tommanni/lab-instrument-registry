@@ -10,7 +10,7 @@ import DeleteUser from '@/components/DeleteUser.vue';
 import { useDataStore } from '@/stores/data';
 import { useUserStore } from '@/stores/user';
 import { useI18n } from 'vue-i18n';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { ref, onMounted, watch } from 'vue';
 import { useAlertStore } from '@/stores/alert';
 import { computed } from 'vue';
@@ -18,7 +18,6 @@ import { computed } from 'vue';
 const { t } = useI18n();
 const userStore = useUserStore();
 const dataStore = useDataStore();
-const router = useRouter();
 const route = useRoute();
 const user = ref(null);
 const loading = ref(true);
@@ -94,29 +93,8 @@ async function fetchUser(id) {
   }
 }
 
-onMounted(async() => {
-  try {
-    await userStore.fetchUser();
-  } finally {
-    loading.value = false;
-  }
-  
-  // Redirects
-  if (!dataStore.isLoggedIn) {
-    router.replace('/');
-    return;
-  }
-  const targetId = route.params?.id ? String(route.params.id) : null;
-  if (targetId) {
-    const currentId = userStore.user?.id ? String(userStore.user.id) : null;
-    const isAdmin = userStore.user?.is_staff || userStore.user?.is_superuser;
-    if (currentId !== targetId && !isAdmin) {
-      router.replace('/');
-      return;
-    }
-  }
-  await fetchUser(route.params.id);
-})
+onMounted(() => fetchUser(route.params.id));
+
 watch(
   // Refetch user data when route id param changes 
   // (e.g. when navigating to 'my information' from another user's info page)
@@ -132,89 +110,88 @@ watch(
 
 <template>
   <!-- Nothing is rendered on screen until loading state is false -->
-   <div v-if="dataStore.isLoggedIn" class="screen-container">
-    <div v-if="loading" class="loading-screen">
-      Loading...
-    </div>
-    <main v-else>
-      <template v-if="dataStore.isLoggedIn && userStore.user && user &&
-      ( userStore.user.id === user.id || userStore.user.is_staff || userStore.user.is_superuser )">
-        
-        <h2 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h2>
+  <main v-if="!loading">
+    <template v-if="dataStore.isLoggedIn && userStore.user && user &&
+    ( userStore.user.id === user.id || userStore.user.is_staff || userStore.user.is_superuser )">
+      
+      <h2 class="text-center"> {{ t('message.kayttaja_tietoja') }} </h2>
 
-        <!-- Warning for admins editing someone else's information -->
-        <div v-if="userStore.user && user && 
-          userStore.user.id !== user.id" class="admin-warning">
-          {{ t('message.tietojen_muokkaus_varoitus') }}
-        </div>
+      <!-- Warning for admins editing someone else's information -->
+      <div v-if="userStore.user && user && 
+        userStore.user.id !== user.id" class="admin-warning">
+        {{ t('message.tietojen_muokkaus_varoitus') }}
+      </div>
+        
+      <div class="user-info-wrapper">
+        <UserInfo :user="user"/>
+      </div>
+      
+      <!-- Password overlay -->
+      <div class="password-container" v-if="userStore.user && user &&  
+       ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )">
+          <PasswordOverlay :user="user"/>
+      </div>
+
+      <!-- Admin stuff -->
+      <h3 class="admin-info-wrapper" v-if="userStore.user && user && userStore.user.is_superuser && userStore.user.id !== user.id">
+        {{t('message.adminteksti')}}
+      </h3>
+
+      <div class="action-buttons-container" v-if="userStore.user && user &&  userStore.user.is_superuser && 
+       userStore.user.id !== user.id">
           
-        <div class="user-info-wrapper">
-          <UserInfo :user="user"/>
-        </div>
-        
-        <!-- Password overlay -->
-        <div class="password-container" v-if="userStore.user && user &&  
-        ( userStore.user.id === user.id || userStore.user.is_superuser || !user.is_superuser )">
-            <PasswordOverlay :user="user"/>
-        </div>
-
-        <!-- Admin stuff -->
-        <h3 class="admin-info-wrapper" v-if="userStore.user && user && userStore.user.is_superuser && userStore.user.id !== user.id">
-          {{t('message.adminteksti')}}
-        </h3>
-
-        <div class="action-buttons-container" v-if="userStore.user && user &&  userStore.user.is_superuser && 
-        userStore.user.id !== user.id">
-            
-            <!-- If user is superadmin: show only "Remove admin" button -->
-            <template v-if="user.is_superuser">
-              <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
-                {{ t('message.poista_oikeudet') }}
-              </button>
-            </template>
-
-            <!-- If user is admin (but not superadmin): show both remove admin and make superadmin buttons -->
-            <template v-else-if="user.is_staff">
-              <button class="btn btn-primary me-2" @click="openConfirmation(user, 'admin')">
-                {{ t('message.poista_oikeudet') }}
-              </button>
-              <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
-                {{ t('message.tee_superadmin') }}
-              </button>
-            </template>
-
-            <!-- If user is regular user: show make admin and make superadmin buttons -->
-            <template v-else>
-              <button class="btn btn-primary me-2" @click="openConfirmation(user, 'admin')">
-                {{ t('message.tee_admin') }}
-              </button>
-              <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
-                {{ t('message.tee_superadmin') }}
-              </button>
-            </template>
-
-            <!-- Delete user button (always shown) -->
-            <button class="btn btn-danger" @click="openConfirmation(user, 'delete')">
-              {{ t('message.poista_kayttaja') }}
+          <!-- If user is superadmin: show only "Remove admin" button -->
+          <template v-if="user.is_superuser">
+            <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
+              {{ t('message.poista_oikeudet') }}
             </button>
-          </div>
+          </template>
 
-        <!-- Confirmation overlay, shows current action component -->
-        <ConfirmationOverlay
-        v-if="showOverlay"
-        :component="currentComponent"
-        :user="selectedUser"
-        :message-key="currentMessageKey"
-        @close="closeOverlay"
-        @update-user="handleUserUpdate"
-        />
-      </template>
+          <!-- If user is admin (but not superadmin): show both remove admin and make superadmin buttons -->
+          <template v-else-if="user.is_staff">
+            <button class="btn btn-primary me-2" @click="openConfirmation(user, 'admin')">
+              {{ t('message.poista_oikeudet') }}
+            </button>
+            <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
+              {{ t('message.tee_superadmin') }}
+            </button>
+          </template>
 
-      <template v-else-if="userStore.user && !user &&  userStore.user.is_superuser">
-        <h1 class="text-center"> {{ t('message.kayttajaa_ei_olemassa') }} </h1>
-      </template>
-    </main>
-  </div>
+          <!-- If user is regular user: show make admin and make superadmin buttons -->
+          <template v-else>
+            <button class="btn btn-primary me-2" @click="openConfirmation(user, 'admin')">
+              {{ t('message.tee_admin') }}
+            </button>
+            <button class="btn btn-primary me-2" @click="openConfirmation(user, 'superadmin')">
+              {{ t('message.tee_superadmin') }}
+            </button>
+          </template>
+
+          <!-- Delete user button (always shown) -->
+          <button class="btn btn-danger" @click="openConfirmation(user, 'delete')">
+            {{ t('message.poista_kayttaja') }}
+          </button>
+        </div>
+
+      <!-- Confirmation overlay, shows current action component -->
+      <ConfirmationOverlay
+      v-if="showOverlay"
+      :component="currentComponent"
+      :user="selectedUser"
+      :message-key="currentMessageKey"
+      @close="closeOverlay"
+      @update-user="handleUserUpdate"
+      />
+    </template>
+
+    <template v-else-if="userStore.user && !user &&  userStore.user.is_superuser">
+      <h1 class="text-center"> {{ t('message.kayttajaa_ei_olemassa') }} </h1>
+    </template>
+
+    <template v-else>
+      <h1 class="text-center"> {{ t('message.admin_ei_oikeuksia') }} </h1>
+    </template>
+  </main>
 </template>
 
 

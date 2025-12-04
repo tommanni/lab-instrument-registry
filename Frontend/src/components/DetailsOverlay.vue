@@ -33,6 +33,15 @@ const pendingDuplicateCount = ref(0);
 const showDuplicateConfirm = computed(() => Boolean(pendingUpdatePayload.value));
 const attachmentManagerRef = ref(null);
 
+const STATUS_OPTIONS = [
+  { value: 'Saatavilla/Available', label: t('Saatavilla/Available') },
+  { value: 'Poistettu/Removed', label: t('Poistettu/Removed') },
+  { value: 'Tarkistamatta/Unchecked', label: t('Tarkistamatta/Unchecked') },
+  { value: 'Hukassa/Missing', label: t('Hukassa/Missing') },
+  { value: 'Epäselvä/Unclear', label: t('Epäselvä/Unclear') },
+  { value: 'Muu.../Other...', label: t('Muu.../Other...') }
+];
+
 const duplicateCount = computed(() => {
   if (!store.isInitialized || !props.item) return 0
   const targetName = (updateFormData.value.tuotenimi || '').trim().toLowerCase()
@@ -429,8 +438,14 @@ const cancelDuplicateUpdate = () => {
                     </div>
                     <div class="form-field-wrapper">
                       <label for="status">{{ tm('fullHeaders')[18] }}</label>
-                      <input id="status" class="form-control" :disabled="view != 'edit'"
-                        v-model="updateFormData['tilanne']" maxlength="100">
+                      <select id="status"
+                              class="form-select"
+                              :disabled="view != 'edit'"
+                              v-model="updateFormData['tilanne']">
+                        <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+                          {{ opt.label }}
+                        </option>
+                      </select>
                     </div>
                     <div class="form-field-wrapper">
                       <label for="footnote">{{ tm('fullHeaders')[12] }}</label>
@@ -573,7 +588,7 @@ const cancelDuplicateUpdate = () => {
                 </button>
                 <button
                   class="btn btn-primary"
-                  v-if="store.isLoggedIn && view == 'details'"
+                  v-if="store.isLoggedIn && view === 'details'"
                   @click="view = 'edit'"
                   :disabled="showDuplicateConfirm || isUpdating"
                 >
