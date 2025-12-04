@@ -54,11 +54,39 @@ async function checkLogingStatus() {
     dataStore.loginChecked = true;
   }
 }
+
+async function checkShibbolethAuth() {
+  // Request a simple resource that requires Shibboleth
+  // This will redirect to Shibboleth IDP if not authenticated
+  // but we use a non-XHR approach so redirects work
+  try {
+    // Try to access a public endpoint that SHOULD work if Shibboleth is satisfied
+    const response = await fetch('/api/instruments/valueset/yksikko/', {
+      credentials: 'include'
+    });
+    // If API returns data, we're authenticated
+    const hasData = response.ok && response.status === 200;
+    return hasData;
+  } catch (error) {
+    console.warn('Auth check failed:', error);
+    return false;
+  }
+}
+
 // Above are cookie things for auto log  in. Secure since authentication is happening server side
 // and token is kept in HttpOnly cookie
 
 onMounted(async () => {
   checkLanguageStatus()
+
+  const shibAuth = await checkShibbolethAuth();
+  if (!shibAuth) {
+    console.warn('Waiting for Shibboleth authentication...');
+    // Redirect user to Shibboleth login
+    window.location.href = '/Shibboleth.sso/Login?target=' + encodeURIComponent(window.location.href);
+    return;
+  }
+
   checkLogingStatus()
   await dataStore.fetchData()
   await dataStore.initializePageFromURL()
