@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs shell db-shell superuser migrate clean status test frontend-install frontend-dev frontend-build frontend-preview frontend-test fullstack clear-db semantic-search
+.PHONY: help build up down restart logs shell db-shell superuser migrate clean status test frontend-install frontend-dev frontend-build frontend-preview frontend-test fullstack clear-db semantic-search semantic-test
 
 # Default target
 help: ## Show this help message
@@ -120,6 +120,10 @@ test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	@docker-compose exec web coverage run --source='.' manage.py test
 	@docker-compose exec web coverage report
+
+semantic-test: ## Run semantic search service tests
+	@echo "Running semantic search service tests..."
+	@docker-compose exec semantic-search-service pytest tests/
 
 # Utility commands
 status: ## Show status of all services

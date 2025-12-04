@@ -72,3 +72,33 @@ uvicorn main:app --reload
 ```
 
 Set `FINE_TUNED_OPUS_MT_ID` in your shell if you want a custom translation model.
+
+## Testing
+
+The service includes a comprehensive test suite covering both unit logic and API endpoints. To ensure fast execution without loading heavy ML models, all tests use mocked models by default.
+
+### Running Tests
+
+#### Option 1: Docker (Recommended)
+Run tests inside the container using the project Makefile:
+```bash
+make semantic-test
+```
+This requires the service to be running (`make semantic-search`).
+
+#### Option 2: Manual (Local Environment)
+1.  **Activate your virtual environment** (see "Running Outside Docker" above).
+2.  **Install test dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  **Run the tests:**
+    ```bash
+    pytest
+    ```
+
+### Test Structure
+
+*   `tests/conftest.py`: Contains global fixtures, including mocks for the `MarianMT` (translation) and `SentenceTransformer` (embedding) models.
+*   `tests/test_services.py`: Unit tests for core logic (prefix handling, validation, batch processing).
+*   `tests/test_main.py`: Integration tests for the FastAPI endpoints (`/process`, `/process_batch`, `/healthz`).

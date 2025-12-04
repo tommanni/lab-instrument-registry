@@ -133,7 +133,6 @@ const fieldToIndexMap = {
   tuotenimi_en: 19,
 };
 
-
 const fetchHistory = async (id) => {
   if (!id) return;
   try {

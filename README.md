@@ -70,7 +70,8 @@ make down        # Stop services
 make logs        # View logs
 make shell       # Django shell
 make db-shell    # PostgreSQL shell
-make test        # Run tests
+make test        # Run Django tests
+make semantic-test # Run Semantic Search Service tests
 ```
 
 ### Data Management
@@ -98,6 +99,7 @@ make fullstack          # Start both backend + frontend
 ### Semantic Search Service
 ```bash
 make semantic-search          # (Re)start FastAPI translator/embedding service
+make semantic-test            # Run tests for the semantic search service
 docker compose logs -f semantic-search-service   # Follow logs
 ```
 The semantic-search container powers Finnish→English translations and English embeddings; imports and preprocessing commands rely on it.

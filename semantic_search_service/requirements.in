@@ -7,3 +7,7 @@ sentence-transformers
 sentencepiece
 sacremoses
 watchdog==4.0.0
+pytest
+httpx
+pytest-mock
+pytest-asyncio

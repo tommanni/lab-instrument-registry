@@ -14,15 +14,14 @@ let modalInstance = null;
 
 const dataTableHeader = ref(null);
 
-
 onMounted(() => {
   const modalElement = document.getElementById('dataModal');
   if (modalElement) {
     modalInstance = new Modal(modalElement);
-  }  
+  }
 });
 
-  // Sarakkeet:
+ // Sarakkeet:
  // Columns:
  const headerToKey = {
    "Tuotenimi": "tuotenimi",
@@ -52,7 +51,6 @@ const columnWidths = ref([
    100, // Vastuuhenkilö
    100  // Tilanne
    ]);
- 
 
 // Lajittelun hallinta klikkaamalla
 // Toggling sorting by clicking
@@ -195,7 +193,7 @@ const startResize = (event, column) => {
   document.addEventListener('pointermove', onMove, { passive: false });
   document.addEventListener('pointerup', onUp);
 };
- 
+
  const openOverlay = async (item) => {
    clickedObject.value = { ...item }
    await nextTick()
@@ -205,21 +203,20 @@ const startResize = (event, column) => {
      modalInstance.show();
    }
  }
- 
+
  const handleUpdateItem = (updatedItem) => {
    store.updateObject(updatedItem);
    clickedObject.value = updatedItem
  }
- 
+
  const handleDeleteItem = (itemId) => {
    store.deleteObject(itemId);
  }
- 
+
  defineExpose({
    openOverlay,
    dataTableHeader
  });
-
 
 </script>
 
@@ -321,7 +318,7 @@ thead tr:first-child th:last-child {
   border-top-right-radius: 8px;
 }*/
 
-/* Round bottom corners of last row 
+/* Round bottom corners of last row
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
@@ -339,7 +336,7 @@ tbody tr:hover {
   background-color: #f0f0f0;
 }
 */
-/* Round bottom corners of the last row 
+/* Round bottom corners of the last row
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }

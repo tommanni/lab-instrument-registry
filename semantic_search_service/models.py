@@ -59,7 +59,6 @@ _embedding_model_en = None
 _models_loaded = False
 _models_lock = threading.Lock()
 
-
 def _load_translation_components():
     global _translation_tokenizer, _translation_model
 
