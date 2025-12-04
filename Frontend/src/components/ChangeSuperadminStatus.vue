@@ -20,7 +20,6 @@ async function changeSuperadminValue() {
             withCredentials: true
         });
 
-        //props.user.is_superuser = res.data.newSuperadminStatus;
         
         const updatedUser = {
           ...props.user,
