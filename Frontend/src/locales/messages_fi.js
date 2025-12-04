@@ -150,7 +150,7 @@ export default {
 	  haku_info_content: "Haku mahdollistaa sanat AND, OR ja NOT (kirjainkoolla ei merkitystä). Sulkeita voi hyödyntää haussa. Haun voi kohdentaa eri kenttiin tarkentamalla kentän nimen tavalla kentta:arvo tai kentta:\"sanassa välilyönti\". Tuetut kentät: id, tay_numero, sarjanumero, tuotenimi, merkki_ja_malli, yksikko, kampus, rakennus, huone, vastuuhenkilo, tilanne, toimittaja, lisatieto, vanha_sijainti, toimituspvm. Esimerkki: tuotenimi:kuumasaumaaja AND (rakennus:TAYS OR rakennus:Arvo) AND NOT huone:TULO.",
 	  tarkka_haku: "Tarkka haku",
 	  alykas_haku: "Älykäs haku",
-	  smart_search_info_content: "Tämä toiminto on kokeellinen, eikä sen tulokset ole aina täysin tarkkoja.\n\nÄlykäs haku ymmärtää hakusanojen merkityksen ja löytää käsitteellisesti samankaltaisia tuloksia, vaikka ne eivät sisältäisikään täsmälleen samoja sanoja. Se sietää myös kirjoitusvirheitä.",
+	  smart_search_info_content: "Tämä toiminto on kokeellinen, eikä sen tulokset ole aina täysin tarkkoja.\n\nÄlykäs haku ymmärtää hakusanojen merkityksen ja löytää käsitteellisesti samankaltaisia tuloksia, vaikka ne eivät sisältäisikään täsmälleen samoja sanoja. Se sietää myös kirjoitusvirheitä.\n\nBoolean operaattorit EIVÄT ole toistaiseksi tuettuja.",
 	  haluatko_tehda_adminin: "Oletko varma, että haluat tehdä tästä käyttäjästä adminin?",
 	  haluatko_tehda_superadminin: "Oletko varma, että haluat tehdä käyttäjästä superadminin?",
 	  haluatko_poistaa_adminin: "Oletko varma, että haluat poistaa käyttäjän admin-oikeudet?",

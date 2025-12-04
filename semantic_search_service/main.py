@@ -20,7 +20,6 @@ from services import (
 
 app = FastAPI()
 
-
 @app.on_event("startup")
 async def load_models_on_startup():
     """Preload and warm models before accepting requests."""
@@ -72,12 +71,12 @@ async def process_batch_text(input_texts: InputTexts):
             status_code=413,
             detail=f"Payload too large. Maximum batch size is {MAX_BATCH_SIZE}."
         )
-    
+
     prefix_texts = [CONTEXT_PREFIX + text.strip().lower() for text in input_texts.texts]
 
     # Batch translate all Finnish texts to English
     translated_texts = translate_fi_to_en_batch(prefix_texts)
-    
+
     # Generate English embeddings only for successful translations
     raw_valid_translations = [t for t in translated_texts if t != "Translation Failed"]
     if raw_valid_translations:

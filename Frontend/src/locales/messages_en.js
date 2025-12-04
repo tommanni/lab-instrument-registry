@@ -155,7 +155,7 @@ export default {
 	  kayttajan_hallinta: "Manage user",
 	  tarkka_haku: "Direct Search",
 	  alykas_haku: "Smart Search",
-	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings.",
+	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings.\n\nBoolean operators are currently NOT supported.",
 	  haluatko_poistaa_adminin: "Are you sure you want to remove this user's admin rights?",
 	  import_prosessointi: "Product names are being translated, wait.",
 	  import_prosessointi_jaljella: "items remaining",
