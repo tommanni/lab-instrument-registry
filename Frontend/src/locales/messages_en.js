@@ -120,6 +120,7 @@ export default {
 	  ja_lisaa_virheellisia: "...and more invalid rows",
 	  varoitus_duplikaatit: "Duplicate instruments detected",
 	  duplikaatit_kuvaus_valitse: "The following instruments might already exist in the database. Select the ones you wish to import.",
+	  duplikaatit_peruste: "Duplicates are identified by the combination of TAY-number, product name, and brand and model.",
 	  ei_uusia_laitteita: "No new instruments to import",
 	  ei_uusia_laitteita_kuvaus: "All rows in the file are either duplicates or invalid. Please correct the invalid rows and try again.",
 	  ei_uusia_laitteita_duplikaatteja: "No new instruments to import (only duplicates)",

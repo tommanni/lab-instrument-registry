@@ -50,6 +50,7 @@
             <div v-if="previewData.duplicate_count > 0" class="mb-3">
               <h6 class="text-warning">{{ t('message.varoitus_duplikaatit') }}</h6>
               <p class="small text-muted mb-2">{{ t('message.duplikaatit_kuvaus_valitse') }}</p>
+              <p class="small text-muted mb-2"><em>{{ t('message.duplikaatit_peruste') }}</em></p>
               <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
                 <table class="table table-sm mb-0">
                   <thead class="table-light">

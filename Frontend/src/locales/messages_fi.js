@@ -121,6 +121,7 @@ export default {
 	  ja_lisaa_virheellisia: "...ja lisää virheellisiä rivejä",
 	  varoitus_duplikaatit: "Duplikaattilaitteita havaittu",
 	  duplikaatit_kuvaus_valitse: "Seuraavat laitteet ovat mahdollisesti jo tietokannassa. Valitse ne, jotka haluat tuoda.",
+	  duplikaatit_peruste: "Duplikaatit tunnistetaan TAY-numeron, tuotenimen ja merkki ja malli -tietojen yhdistelmällä.",
 	  ei_uusia_laitteita: "Ei uusia laitteita tuotavaksi",
 	  ei_uusia_laitteita_kuvaus: "Kaikki tiedoston rivit ovat joko duplikaatteja tai virheellisiä. Korjaa virheelliset rivit ja yritä uudelleen.",
 	  ei_uusia_laitteita_duplikaatteja: "Ei uusia laitteita tuotavaksi (vain duplikaatteja)",
