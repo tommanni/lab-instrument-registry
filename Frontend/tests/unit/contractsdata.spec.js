@@ -12,6 +12,7 @@ const contractStoreMock = {
   data: [{
     id: 1,
     tuotenimi: 'Instrument A',
+    tuotenimi_en: 'Instrument A',
     seuraava_huolto: '2025-12-01',
     edellinen_huolto: '2024-12-01',
     vastuuhenkilo: 'Jane Doe',
