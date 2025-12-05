@@ -179,7 +179,9 @@ export default {
 	  ei_liitteita: "No attachments",
 	  liitteet_vain_kirjautuneille: "Attachments are only visible to logged-in users",
 	  odottaa_paivitysta: "Waiting for update",
-	  poistetaan: "Will be deleted"
+	  poistetaan: "Will be deleted",
+	  ai_translation_warning_title: "Translation Notice",
+	  ai_translation_warning_content: "Some of the product name translations are AI-generated and may contain mistakes. Please verify critical information."
 	},
 	tableHeaders: [
 	  "Product Name",

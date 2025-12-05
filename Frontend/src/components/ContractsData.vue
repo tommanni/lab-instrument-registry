@@ -5,8 +5,9 @@ import axios from 'axios';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
+import ProductNameInfoPopover from './ProductNameInfoPopover.vue';
 
-const { t, tm } = useI18n();
+const { t, tm, locale } = useI18n();
 const store = useContractStore();
 const clickedObject = ref({})
 const alertStore = useAlertStore()
@@ -162,6 +163,7 @@ const handleUpdateItem = (updatedItem) => {
               </span>
               <span class="header-text">{{ key }}</span>
               <i :class="getSortClass(headerMap[key])"></i>
+              <ProductNameInfoPopover v-if="index === 0" />
             </div>
               <span class="resizer" @pointerdown="startResize($event, index)"></span>
             </th>
@@ -172,7 +174,7 @@ const handleUpdateItem = (updatedItem) => {
           <tr v-for="(item, index) in Data" @click="openOverlay(item)" data-bs-toggle="modal"
             data-bs-target="#dataModal" :key="index">
             <td>
-              {{ item.tuotenimi }}
+              {{ locale === 'fi' ? item.tuotenimi : item.tuotenimi_en }}
             </td>
             <td v-if="store.isMaintenanceUpcoming(item.seuraava_huolto)" class="upcoming">
               {{ item.seuraava_huolto }}
@@ -265,6 +267,12 @@ tbody tr:hover {
 
 .upcoming {
   background-color: yellow;
+}
+
+.sort-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 
 </style>

@@ -3,6 +3,7 @@ import { useDataStore } from '@/stores/data'
 import { computed, ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
+import ProductNameInfoPopover from './ProductNameInfoPopover.vue';
 import { useMediaQuery } from '@vueuse/core';
 import { Modal } from 'bootstrap';
 
@@ -239,8 +240,8 @@ const startResize = (event, column) => {
             <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
               <div class="sort-wrapper" @click.stop="toggleSort(key)" style="cursor: pointer;">
                 <span class="header-text">{{ key }}</span>
-
-                  <i :class="getSortClass(key)"></i>
+                <i :class="getSortClass(key)"></i>
+                <ProductNameInfoPopover v-if="index === 0" />
               </div>
               <span class="resizer" @pointerdown="startResize($event, index)" role="separator" aria-orientation="vertical"></span>
             </th>
@@ -382,5 +383,11 @@ tbody tr:last-child td:last-child {
   width: 2px;
   background: rgba(0,0,0,0.18);
   border-radius: 1px;
+}
+
+.sort-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 </style>
