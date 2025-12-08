@@ -47,7 +47,7 @@ describe('Data.vue', () => {
       global: {
         plugins: [i18n],
         mocks: {
-          $tm: () => ['Tuotenimi','Merkki ja malli','Kampus','Huone','Vastuuhenkilö','Tilanne']
+          $tm: () => ['Tuotenimi', 'Merkki ja malli', 'Kampus', 'Huone', 'Vastuuhenkilö', 'Tilanne']
         }
       },
     })
@@ -63,5 +63,27 @@ describe('Data.vue', () => {
 
     expect(rows[1].text()).toContain('Testi 2')
     expect(rows[1].text()).toContain('M2')
+  })
+
+  it('renders ProductNameInfoPopover in the first header cell', () => {
+    // Stub the popover to easily find it
+    const wrapper = mount(Data, {
+      global: {
+        plugins: [i18n],
+        mocks: {
+          $tm: () => ['Tuotenimi', 'Merkki ja malli', 'Kampus', 'Huone', 'Vastuuhenkilö', 'Tilanne']
+        },
+        stubs: {
+          ProductNameInfoPopover: { template: '<div class="popover-stub"></div>' },
+          DetailsOverlay: true
+        }
+      },
+    })
+
+    const headers = wrapper.findAll('th')
+    // First header should have it
+    expect(headers[0].find('.popover-stub').exists()).toBe(true)
+    // Others should not
+    expect(headers[1].find('.popover-stub').exists()).toBe(false)
   })
 })
