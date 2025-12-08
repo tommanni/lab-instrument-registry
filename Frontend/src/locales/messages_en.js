@@ -158,7 +158,7 @@ export default {
 	  alykas_haku: "Smart Search",
 	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings.\n\nBoolean operators are currently NOT supported.",
 	  haluatko_poistaa_adminin: "Are you sure you want to remove this user's admin rights?",
-	  import_prosessointi: "Product names are being translated, wait.",
+	  import_prosessointi: "Product names are being translated. You can leave this page.",
 	  import_prosessointi_jaljella: "items remaining",
 	  import_prosessointi_epaonnistui: "{count} translation(s) failed. Please review the data.",
 	  import_prosessointi_valmis: "Translations ready. Search is now up to date.",

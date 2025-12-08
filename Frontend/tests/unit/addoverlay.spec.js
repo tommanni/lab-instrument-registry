@@ -91,6 +91,8 @@ describe('AddOverlay.vue', () => {
     await wrapper.vm.saveData()
 
     expect(axios.post).toHaveBeenCalled()
+    expect(mockShowAlert).toHaveBeenCalledWith(0, expect.stringContaining('added'))
+    expect(mockAddObject).toHaveBeenCalled()
   })
 
 })
