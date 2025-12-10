@@ -158,6 +158,7 @@ export const useContractStore = defineStore('contractStore', () => {
       obj.id === object.id ? { ...obj, ...object } : obj
     )
     contractData.value = originalData.value
+    searchedData.value = originalData.value
     updateVisibleData()
   }
 

@@ -26,7 +26,8 @@ Production server: `met-metlabs.rd.tuni.fi`
 
 **Current setup**:
 - Containers run under the `metlabs` user account (dedicated service account)
-- Volumes stored in `/opt/tuni/containers/metlabs/storage/volumes/`
+- Volumes stored in `/home/metlabs/.local/share/containers/storage/volumes/` (Podman default location)
+- Container runtime state in `/run/user/989/containers` (configured in `~/.config/containers/storage.conf`)
 - The `metlabs` user was created specifically for running these containers
 
 **Why a dedicated user?**
@@ -305,10 +306,7 @@ sudo su - metlabs
 podman volume export proj-a2025-g02-instrument-registry-for-met-lab_media_files -o ~/media_backup_$(date +%Y%m%d_%H%M%S).tar
 
 # Option 2: Direct tar from volume location
-# First, find your volume location:
-podman volume inspect proj-a2025-g02-instrument-registry-for-met-lab_media_files | grep Mountpoint
-# Then backup (replace <username> with your actual username):
-sudo tar -czf ~/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C /opt/tuni/containers/<username>/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/ .
+tar -czf ~/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C ~/.local/share/containers/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/ .
 
 # Copy to local machine
 scp USERNAME@met-metlabs.rd.tuni.fi:~/media_backup_*.tar* ./
@@ -322,8 +320,8 @@ podman volume import proj-a2025-g02-instrument-registry-for-met-lab_media_files 
 # Option 2: Extract tar to volume location
 # Stop web container first
 podman stop metlabs-web
-# Extract (replace <username> with your actual username)
-sudo tar -xzf ~/media_backup_TIMESTAMP.tar.gz -C /opt/tuni/containers/<username>/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/
+# Extract
+tar -xzf ~/media_backup_TIMESTAMP.tar.gz -C ~/.local/share/containers/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_media_files/_data/
 # Restart web container
 podman start metlabs-web
 ```
@@ -534,13 +532,26 @@ sudo cat /etc/httpd/conf.d/metlabs.conf | grep ProxyPass
 
 **Volumes** (persistent data):
 - `postgres_data`: Database files
-- `semantic-models-data`: ML models cache
+- `semantic-models-data`: ML models cache (~707MB)
 - `static_files`: Django static files
 - `media_files`: User uploads
 
+**Volume location**: `/home/metlabs/.local/share/containers/storage/volumes/proj-a2025-g02-instrument-registry-for-met-lab_<volume-name>/_data/`
+
+**Podman configuration**: `~/.config/containers/storage.conf`
+```ini
+[storage]
+driver = "overlay"
+graphroot = "/home/metlabs/.local/share/containers/storage"
+runroot = "/run/user/989/containers"
+
+[storage.options]
+mount_program = "/usr/bin/fuse-overlayfs"
+```
+
 ---
 
-**Last Updated**: 2025-11-18 (Added rootless podman documentation and media files backup)
+**Last Updated**: 2025-12-05 (Updated volume paths and Podman configuration)
 **Server**: met-metlabs.rd.tuni.fi (RHEL-based)
 **Podman**: 5.4.0 (rootless) | **podman-compose**: 1.5.0
 

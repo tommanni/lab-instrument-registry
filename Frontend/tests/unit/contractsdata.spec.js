@@ -12,6 +12,7 @@ const contractStoreMock = {
   data: [{
     id: 1,
     tuotenimi: 'Instrument A',
+    tuotenimi_en: 'Instrument A',
     seuraava_huolto: '2025-12-01',
     edellinen_huolto: '2024-12-01',
     vastuuhenkilo: 'Jane Doe',
@@ -130,6 +131,22 @@ describe('ContractsData.vue', () => {
     expect(rows[0].text()).toContain('Instrument A');
     expect(rows[0].text()).toContain('2025-12-01');
     expect(rows[0].text()).toContain('Jane Doe');
+  });
+
+  it('renders ProductNameInfoPopover in the first header cell', async () => {
+    const wrapper = mount(ContractsData, {
+      global: {
+        plugins: [i18n, router, pinia],
+        stubs: {
+          ProductNameInfoPopover: { template: '<div class="popover-stub"></div>' }
+        }
+      }
+    });
+
+    await nextTick();
+    const headers = wrapper.findAll('th');
+    expect(headers[0].find('.popover-stub').exists()).toBe(true);
+    expect(headers[1].find('.popover-stub').exists()).toBe(false);
   });
 
   it('shows urgent/upcoming icons in headers when computed values > 0', async () => {

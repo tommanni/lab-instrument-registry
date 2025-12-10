@@ -5,12 +5,10 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Fuse from 'fuse.js'
 
-
-
 import { parseQueryToRpn, evaluateRpnBoolean } from '../searchUtils/index'
 
 export const useDataStore = defineStore('dataStore', () => {
-  const { locale } = useI18n() 
+  const { locale } = useI18n()
 
   const route = useRoute()
   const router = useRouter()
@@ -35,11 +33,11 @@ export const useDataStore = defineStore('dataStore', () => {
   vastuuhenkilo: null,
   tilanne: null,
 })
- 
+
   const updateVisibleData = () => {
     // Tehdään kopio hakutuloksista
     let displayData = [...searchedData.value]
-    
+
     // Jos lajittelukriteeri on asetettu, lajitellaan data
     if (sortColumn.value && sortDirection.value !== 'none') {
       displayData.sort((a, b) => {
@@ -58,7 +56,7 @@ export const useDataStore = defineStore('dataStore', () => {
         return sortDirection.value === 'asc' ? comp : -comp
       })
     }
-    
+
     // Tehdään sivutus lopuksi
     data.value = displayData.slice((currentPage.value - 1) * 15, currentPage.value * 15)
   }
@@ -162,18 +160,18 @@ export const useDataStore = defineStore('dataStore', () => {
   }
 
   const updateObject = (object) => {
-    originalData.value = originalData.value.map(obj => 
+    originalData.value = originalData.value.map(obj =>
       obj.id === object.id ? {...obj, ...object} : obj
     )
-    filteredData.value = filteredData.value.map(obj => 
+    filteredData.value = filteredData.value.map(obj =>
       obj.id === object.id ? {...obj, ...object} : obj
     )
-    searchedData.value = searchedData.value.map(obj => 
+    searchedData.value = searchedData.value.map(obj =>
       obj.id === object.id ? {...obj, ...object} : obj
     )
     updateVisibleData()
   }
-  
+
   const updateDuplicateTuotenimiEN = (fiName, newEn) => {
     const normalized = (fiName || '').trim().toLowerCase()
     const updateList = (list) =>
@@ -271,8 +269,8 @@ export const useDataStore = defineStore('dataStore', () => {
 
     // Apply filters
     const fv = filterValues.value
-    const filtered = originalData.value.filter(item => 
-      (!fv.yksikko || item.yksikko === fv.yksikko) && 
+    const filtered = originalData.value.filter(item =>
+      (!fv.yksikko || item.yksikko === fv.yksikko) &&
       (!fv.huone || item.huone == fv.huone) &&
       (!fv.vastuuhenkilo || item.vastuuhenkilo == fv.vastuuhenkilo) &&
       (!fv.tilanne || item.tilanne === fv.tilanne)
@@ -298,7 +296,7 @@ export const useDataStore = defineStore('dataStore', () => {
   }
 
   const directSearch = (candidates, searchTerm) => {
-    const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm) || 
+    const hasBooleanOperator = /\b(AND|OR|NOT)\b/i.test(searchTerm) ||
       /\b[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(searchTerm)
     if (hasBooleanOperator) {
         return candidates.filter((item) => matchesBooleanQuery(item, searchTerm))
@@ -355,7 +353,7 @@ export const useDataStore = defineStore('dataStore', () => {
         ignoreLocation: true,
         includeMatches: true,
     };
-    
+
     const fuse = new Fuse(candidates, fuseOptions)
     const fuseResults = fuse.search(searchTerm)
 
@@ -412,7 +410,7 @@ export const useDataStore = defineStore('dataStore', () => {
     await applySearchAndFilter()
 
   }, {immediate: false})
-  
+
   watch(searchMode, (mode) => {
     if (!SUPPORTED_SEARCH_MODES.includes(mode)) {
       searchMode.value = DEFAULT_SEARCH_MODE
@@ -421,22 +419,22 @@ export const useDataStore = defineStore('dataStore', () => {
     updateURL()
   })
 
-  return { 
+  return {
     data,
     originalData,
-    numberOfPages, 
-    currentPage, 
-    fetchData, 
-    filterData, 
-    updateVisibleData, 
+    numberOfPages,
+    currentPage,
+    fetchData,
+    filterData,
+    updateVisibleData,
     searchData,
-    deleteObject, 
-    updateObject, 
-    addObject, 
-    filteredData, 
-    searchedData, 
+    deleteObject,
+    updateObject,
+    addObject,
+    filteredData,
+    searchedData,
     isLoggedIn,
-    sortColumn, 
+    sortColumn,
     sortDirection,
     filterValues,
     searchTerm,

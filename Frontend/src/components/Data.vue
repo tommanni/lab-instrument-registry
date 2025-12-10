@@ -3,6 +3,7 @@ import { useDataStore } from '@/stores/data'
 import { computed, ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DetailsOverlay from './DetailsOverlay.vue';
+import ProductNameInfoPopover from './ProductNameInfoPopover.vue';
 import { useMediaQuery } from '@vueuse/core';
 import { Modal } from 'bootstrap';
 
@@ -14,15 +15,14 @@ let modalInstance = null;
 
 const dataTableHeader = ref(null);
 
-
 onMounted(() => {
   const modalElement = document.getElementById('dataModal');
   if (modalElement) {
     modalInstance = new Modal(modalElement);
-  }  
+  }
 });
 
-  // Sarakkeet:
+ // Sarakkeet:
  // Columns:
  const headerToKey = {
    "Tuotenimi": "tuotenimi",
@@ -52,7 +52,6 @@ const columnWidths = ref([
    100, // Vastuuhenkilö
    100  // Tilanne
    ]);
- 
 
 // Lajittelun hallinta klikkaamalla
 // Toggling sorting by clicking
@@ -195,7 +194,7 @@ const startResize = (event, column) => {
   document.addEventListener('pointermove', onMove, { passive: false });
   document.addEventListener('pointerup', onUp);
 };
- 
+
  const openOverlay = async (item) => {
    clickedObject.value = { ...item }
    await nextTick()
@@ -205,21 +204,20 @@ const startResize = (event, column) => {
      modalInstance.show();
    }
  }
- 
+
  const handleUpdateItem = (updatedItem) => {
    store.updateObject(updatedItem);
    clickedObject.value = updatedItem
  }
- 
+
  const handleDeleteItem = (itemId) => {
    store.deleteObject(itemId);
  }
- 
+
  defineExpose({
    openOverlay,
    dataTableHeader
  });
-
 
 </script>
 
@@ -242,8 +240,8 @@ const startResize = (event, column) => {
             <th class="tuni-table-header-cell" v-for="(key, index) in $tm('tableHeaders')" :key="key" :style="{ width: columnWidths[index] + 'px' }">
               <div class="sort-wrapper" @click.stop="toggleSort(key)" style="cursor: pointer;">
                 <span class="header-text">{{ key }}</span>
-
-                  <i :class="getSortClass(key)"></i>
+                <i :class="getSortClass(key)"></i>
+                <ProductNameInfoPopover v-if="index === 0" />
               </div>
               <span class="resizer" @pointerdown="startResize($event, index)" role="separator" aria-orientation="vertical"></span>
             </th>
@@ -321,7 +319,7 @@ thead tr:first-child th:last-child {
   border-top-right-radius: 8px;
 }*/
 
-/* Round bottom corners of last row 
+/* Round bottom corners of last row
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
@@ -339,7 +337,7 @@ tbody tr:hover {
   background-color: #f0f0f0;
 }
 */
-/* Round bottom corners of the last row 
+/* Round bottom corners of the last row
 tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
@@ -385,5 +383,11 @@ tbody tr:last-child td:last-child {
   width: 2px;
   background: rgba(0,0,0,0.18);
   border-radius: 1px;
+}
+
+.sort-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 </style>

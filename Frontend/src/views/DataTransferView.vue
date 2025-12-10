@@ -204,11 +204,10 @@ const exportData = async () => {
                   :disabled="isImporting"
                 />
               </div>
-              <!-- TODO: Re-enable with :disabled="!selectedFile || isImporting" -->
               <button
                 class="btn btn-primary"
                 @click="previewImport"
-                :disabled="true"
+                :disabled="!selectedFile || isImporting"
               >
                 <span v-if="isImporting">
                   <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>

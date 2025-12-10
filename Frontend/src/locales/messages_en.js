@@ -120,6 +120,7 @@ export default {
 	  ja_lisaa_virheellisia: "...and more invalid rows",
 	  varoitus_duplikaatit: "Duplicate instruments detected",
 	  duplikaatit_kuvaus_valitse: "The following instruments might already exist in the database. Select the ones you wish to import.",
+	  duplikaatit_peruste: "Duplicates are identified by the combination of TAY-number, product name, and brand and model.",
 	  ei_uusia_laitteita: "No new instruments to import",
 	  ei_uusia_laitteita_kuvaus: "All rows in the file are either duplicates or invalid. Please correct the invalid rows and try again.",
 	  ei_uusia_laitteita_duplikaatteja: "No new instruments to import (only duplicates)",
@@ -155,9 +156,9 @@ export default {
 	  kayttajan_hallinta: "Manage user",
 	  tarkka_haku: "Direct Search",
 	  alykas_haku: "Smart Search",
-	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings.",
+	  smart_search_info_content: "This feature is experimental and may not always produce accurate results.\n\nSmart search understands the meaning of your search terms and can find results that are conceptually similar, even if they don't contain the exact words. It also tolerates typos and misspellings.\n\nBoolean operators are currently NOT supported.",
 	  haluatko_poistaa_adminin: "Are you sure you want to remove this user's admin rights?",
-	  import_prosessointi: "Product names are being translated, wait.",
+	  import_prosessointi: "Product names are being translated. You can leave this page.",
 	  import_prosessointi_jaljella: "items remaining",
 	  import_prosessointi_epaonnistui: "{count} translation(s) failed. Please review the data.",
 	  import_prosessointi_valmis: "Translations ready. Search is now up to date.",
@@ -179,7 +180,9 @@ export default {
 	  ei_liitteita: "No attachments",
 	  liitteet_vain_kirjautuneille: "Attachments are only visible to logged-in users",
 	  odottaa_paivitysta: "Waiting for update",
-	  poistetaan: "Will be deleted"
+	  poistetaan: "Will be deleted",
+	  ai_translation_warning_title: "Translation Notice",
+	  ai_translation_warning_content: "Some of the product name translations are AI-generated and may contain mistakes. Please verify critical information."
 	},
 	tableHeaders: [
 	  "Product Name",
