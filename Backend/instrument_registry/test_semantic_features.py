@@ -63,9 +63,11 @@ class PrecomputeEmbeddingsTest(TestCase):
         ]
 
         # Second call: embedding for existing English text (inst3)
-        mock_response_embedding = MagicMock()
-        mock_response_embedding.status_code = 200
-        mock_response_embedding.json.return_value = {'embedding': [0.3]*768}
+        mock_response_batch_embedding = MagicMock()
+        mock_response_batch_embedding.status_code = 200
+        mock_response_batch_embedding.json.return_value = {
+            'embeddings': [[0.3]*768]
+        }
 
         # Configure side_effect to return different responses for different calls
         # The logic in precompute_instrument_embeddings does:
@@ -77,7 +79,7 @@ class PrecomputeEmbeddingsTest(TestCase):
             if 'process_batch' in url:
                 return mock_response_translation
             elif 'embed_en' in url:
-                return mock_response_embedding
+                return mock_response_batch_embedding
             return MagicMock(status_code=404)
 
         mock_session.post.side_effect = side_effect

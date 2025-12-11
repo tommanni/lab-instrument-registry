@@ -108,3 +108,8 @@ async def process_batch_text(input_texts: InputTexts):
 async def embed_en_endpoint(input_text: InputText):
     embedding = embed_en(CONTEXT_PREFIX_EN + input_text.text.strip().lower())
     return {"embedding": embedding}
+
+@app.post("/embed_en_batch")
+async def embed_en_batch_endpoint(input_texts: InputTexts):
+    embeddings = embed_en_batch(input_texts.texts, EMBEDDING_BATCH_SIZE)
+    return {"embeddings": embeddings.tolist()}

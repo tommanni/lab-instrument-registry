@@ -494,7 +494,7 @@ const cancelDuplicateUpdate = () => {
                         <span class="fw-semibold">
                           {{ tm('fullHeaders')[fieldToIndexMap[change.field]] || change.field }}:
                         </span>
-                        <template v-if="record.history_type !== 'Created'">
+                        <template v-if="!['Created', 'Attachment'].some(s => record.history_type.includes(s))">
                           <span class="text-muted">
                             {{ change.old || '-' }}
                           </span>
