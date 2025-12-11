@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-
 def run_precompute_subprocess(
     *,
     force: bool = False,

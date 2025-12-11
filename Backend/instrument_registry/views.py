@@ -1,12 +1,12 @@
 from instrument_registry.models import Instrument, RegistryUser, InviteCode, InstrumentAttachment
 from instrument_registry.serializers import InstrumentSerializer, InstrumentCSVSerializer, RegistryUserSerializer, InstrumentAttachmentSerializer
 from instrument_registry.authentication import JSONAuthentication
-from instrument_registry.permissions import IsSameUserOrReadOnly
-from instrument_registry.util import model_to_csv, csv_to_model, parse_date, should_translate_to_english, check_csv_duplicates, clean_whitespace
+from instrument_registry.util import model_to_csv, parse_date, should_translate_to_english, check_csv_duplicates, clean_whitespace
 from instrument_registry.translations import translate_password_error
 from instrument_registry.job_runner import run_precompute_subprocess
+from simple_history.utils import bulk_create_with_history
 from rest_framework.views import APIView
-from rest_framework import viewsets, generics, permissions
+from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from knox import views as knox_views
@@ -14,15 +14,15 @@ from knox.auth import TokenAuthentication
 from django.http import HttpResponse, FileResponse
 from django.conf import settings
 from datetime import datetime
-from knox.views import LoginView as KnoxLoginView
 from django.db.models import Q
-from django.core.exceptions import ValidationError
-from django.contrib.auth.password_validation import validate_password
 import csv
 import io
+import logging
 from pgvector.django import CosineDistance
 import requests
 import json
+
+logger = logging.getLogger(__name__)
 
 # Custom authentication class to handle login tokens in HttpOnly cookies
 class CookieTokenAuthentication(TokenAuthentication):
@@ -122,7 +122,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
                 'history_type': 'Attachment ' + history_type,
                 'changes': [
                     {
-                        'field': 'attachment',
+                        'field': 'Attachment',
                         'old': None,
                         'new': change_desc
                     }
@@ -149,7 +149,6 @@ class InstrumentValueSet(APIView):
             unique_values.add(getattr(i, field_name))
         return Response({'data': list(unique_values)})
 
-
 # This view returns all the data in Instrument table as a csv file.
 class InstrumentCSVExport(APIView):
     authentication_classes = [CookieTokenAuthentication]
@@ -159,7 +158,7 @@ class InstrumentCSVExport(APIView):
         # only admins can export instruments
         if not (request.user.is_staff or request.user.is_superuser):
             return Response({'message': 'Not authorized.'}, status=403)
-        
+
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
         source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en'))
@@ -181,7 +180,7 @@ class InstrumentCSVPreview(APIView):
         # only admins can import instruments
         if not (request.user.is_staff or request.user.is_superuser):
             return Response({'message': 'Not authorized.'}, status=403)
-        
+
         if 'file' not in request.FILES:
             return Response({'error': 'No file provided'}, status=400)
 
@@ -247,7 +246,7 @@ class InstrumentCSVImport(APIView):
 
             # Combine new rows with selected duplicates
             rows_to_import = new_rows + duplicates_to_import
-            
+
             if not rows_to_import:
                 return Response({
                     'success': True,
@@ -271,11 +270,24 @@ class InstrumentCSVImport(APIView):
                     cleaned_row[key] = trimmed_value
                 data.append(cleaned_row)
 
+            # Use Serializer for Validation & Cleaning
             serializer = InstrumentCSVSerializer(data=data, many=True)
+
             if not serializer.is_valid():
                 return Response({'error': serializer.errors}, status=400)
 
-            serializer.save()
+            # Extract the cleaned data
+            clean_rows = serializer.validated_data
+
+            # Convert to Model Instances
+            instrument_instances = [
+            	Instrument(**row)
+             	for row in clean_rows
+            ]
+
+            # Bulk create with simple history utility function
+            if instrument_instances:
+            	bulk_create_with_history(instrument_instances, Instrument, batch_size=1000)
 
             precompute_pid = None
             try:
@@ -316,59 +328,70 @@ class InstrumentSearch(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    SERVICE_URL = getattr(settings, 'SEMANTIC_SERVICE_URL', 'http://semantic-search-service:8001')
+
+    # Search term - search result cosine distance treshold
+    # Distance of 0.0 is identical. Distance of 0.3 is somewhat similar.
+    MAX_DISTANCE_THRESHOLD = 0.30
+
     def get(self, request):
-        search_term = request.query_params.get('q', None)
+        search_term = request.query_params.get('q', '').strip()
 
         if not search_term:
             return Response({'message': 'search term not provided'}, status=400)
 
-        # Threshold for search term - search result similarity
-        SIMILARITY_THRESHOLD = 0.30
+        embedding = self._fetch_query_embedding(search_term)
 
+        if not embedding:
+            return Response(
+	            {'message': 'Failed to generate search embedding'},
+	            status=500
+            )
+
+        # Start with base queryset
+        instruments = (
+            Instrument.objects
+            .annotate(distance=CosineDistance('embedding_en', embedding))
+            .filter(distance__lt=self.MAX_DISTANCE_THRESHOLD)
+            .defer('embedding_en')
+            .order_by('distance')[:60]
+        )
+
+        serializer = InstrumentSerializer(instruments, many=True)
+        return Response(serializer.data)
+
+    def _fetch_query_embedding(self, text):
+        """
+        Helper to handle the external semantic service logic.
+        """
         try:
-            if should_translate_to_english(search_term): # If Finnish language detected, translate to English
-                response = requests.post(
-                    "http://semantic-search-service:8001/process",
-                    json={"text": search_term},
-                    timeout=5.0
-                )
-                if response.status_code != 200:
-                    return Response({'message': 'error from semantic search service'}, status=500)
-                service_payload = response.json()
-                search_embedding = service_payload.get('embedding_en')
+            # Determine endpoint and payload
+            if should_translate_to_english(text):
+                endpoint = f"{self.SERVICE_URL}/process"
+                result_key = 'embedding_en'
             else:
-                response = requests.post(
-                    "http://semantic-search-service:8001/embed_en",
-                    json={"text": search_term},
-                    timeout=5.0
-                )
-                if response.status_code != 200:
-                    return Response({'message': 'error from semantic search service'}, status=500)
-                service_payload = response.json()
-                search_embedding = service_payload.get('embedding')
+                endpoint = f"{self.SERVICE_URL}/embed_en"
+                result_key = 'embedding'
 
-            if not search_embedding:
-                return Response({'message': 'could not generate embedding for search term'}, status=500)
-            
-            # Start with base queryset
-            instruments = Instrument.objects.annotate(
-                distance=CosineDistance('embedding_en', search_embedding)
-            ).filter(distance__lt=SIMILARITY_THRESHOLD).defer('embedding_en')
+            response = requests.post(
+                endpoint,
+                json={"text": text},
+                timeout=5.0
+            )
+            response.raise_for_status()
 
-            instruments = instruments.order_by('distance')[:60]
-
-            serializer = InstrumentSerializer(instruments, many=True)
-            return Response(serializer.data)
+            payload = response.json()
+            return payload.get(result_key)
 
         except requests.Timeout:
-            print("Semantic search service request timed out")
-            return Response({'message': 'semantic search service request timed out'}, status=504)
+            logger.warning(f"Semantic search timeout for query: '{text}'")
+            return None
         except requests.RequestException as e:
-            print(f"Error connecting to semantic search service: {e}")
-            return Response({'message': 'could not connect to semantic search service'}, status=500)
+            logger.error(f"Semantic search connection error: {e}")
+            return None
         except ValueError:
-            print("Semantic search service returned invalid JSON")
-            return Response({'message': 'invalid response from semantic search service'}, status=500)
+            logger.error("Semantic search returned invalid JSON")
+            return None
 
 class ServiceValueSet(APIView):
     authentication_classes = [CookieTokenAuthentication]
@@ -376,8 +399,8 @@ class ServiceValueSet(APIView):
 
     def get(self, request):
         queryset = Instrument.objects.filter(
-            Q(huoltosopimus_loppuu__isnull=False) | 
-            Q(seuraava_huolto__isnull=False) | 
+            Q(huoltosopimus_loppuu__isnull=False) |
+            Q(seuraava_huolto__isnull=False) |
             Q(edellinen_huolto__isnull=False)
         ).defer('embedding_en')
         serializer = InstrumentSerializer(queryset, many=True)
@@ -406,13 +429,13 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RegistryUserSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_object(self):
         # if the URL argument is 'me', return logged in user
         id = self.kwargs.get(self.lookup_field)
         if str(id) == 'me':
             return self.request.user
-        
+
         # otherwise use default functionality (search by pk)
         request_user = self.request.user
         search_user = super().get_object()
@@ -437,11 +460,11 @@ class GenerateInviteCode(APIView):
         # only admins can create invite codes
         if not (request.user.is_staff or request.user.is_superuser):
             return Response({'message': 'Not authorized.'}, status=403)
-        
+
         invite_code = InviteCode.objects.create()
         return Response({'invite_code': invite_code.code})
 
-# This view allows for registering of new users using the invite code.        
+# This view allows for registering of new users using the invite code.
 class Register(APIView):
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
@@ -479,7 +502,7 @@ class Register(APIView):
 class ChangePassword(APIView):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def post(self, request):
         user_id = request.data.get('id')
         new_password = request.data.get('new_password')
@@ -523,7 +546,7 @@ class ChangeAdminStatus(APIView):
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
             return Response({'message': 'User not found.'}, status=404)
-        
+
         if user.is_staff:
             user.is_staff = False
             user.is_superuser = False
@@ -551,7 +574,7 @@ class ChangeSuperadminStatus(APIView):
             user = RegistryUser.objects.get(pk=user_id)
         except RegistryUser.DoesNotExist:
             return Response({'message': 'User not found.'}, status=404)
-        
+
         if user.is_superuser:
             user.is_staff = False
             user.is_superuser = False
@@ -583,7 +606,7 @@ class DeleteUser(APIView):
 
         if user == request.user: # prevent self-deletion
             return Response({'message': 'You cannot delete your own account.'}, status=400)
-        
+
         user.delete()
 
         return Response({'message': 'User deleted successfully.'})

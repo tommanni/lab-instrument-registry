@@ -105,6 +105,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Semantic search service URL
+SEMANTIC_SEARCH_SERVICE_URL = 'http://semantic-search-service:8001'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
