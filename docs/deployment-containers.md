@@ -67,7 +67,7 @@ sudo git pull origin main
 sudo npm install  # if package.json changed
 sudo npm run build
 sudo systemctl stop httpd
-sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/build_backup_$(date +%Y-%m-%d_%H%M)
+sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/backups/build_backup_$(date +%Y-%m-%d_%H%M)
 sudo mv dist /var/www/html/metlabs/build
 sudo chown -R apache:apache /var/www/html/metlabs/build
 sudo systemctl start httpd
@@ -145,7 +145,7 @@ sudo npm run build
 
 # 4. Deploy
 sudo systemctl stop httpd
-sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/build_backup_$(date +%Y-%m-%d_%H%M)
+sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/backups/build_backup_$(date +%Y-%m-%d_%H%M)
 sudo mv dist /var/www/html/metlabs/build
 sudo chown -R apache:apache /var/www/html/metlabs/build
 sudo systemctl start httpd
