@@ -31,7 +31,7 @@ make up
 
 # 2. Import your data (optional), file needs to be in the Backend directory under root
 # this also preprocesses
-make import-csv-old FILE=your-data.csv 
+make import-csv FILE=your-data.csv 
 
 # 3.1 Install dependencies (first time only) with
 make frontend-install
