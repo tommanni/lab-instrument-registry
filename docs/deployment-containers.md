@@ -38,6 +38,7 @@ Production server: `met-metlabs.rd.tuni.fi`
 - Use `sudo su - metlabs` to switch to the service account
 - Manage containers with `podman` and `podman-compose` commands
 - The service account has lingering enabled, so containers auto-start on server reboot
+- **Note**: If systemd user commands fail with "Failed to connect to bus: No medium found", run: `export XDG_RUNTIME_DIR=/run/user/989`
 
 **Why rootless?**
 - More secure (containers don't run as root)
@@ -60,68 +61,37 @@ Production server: `met-metlabs.rd.tuni.fi`
 
 ## Quick Reference
 
-### Frontend Only
+**Frontend:**
 ```bash
 cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab/Frontend
-sudo git pull origin main
-sudo npm install  # if package.json changed
-sudo npm run build
+sudo git pull origin main && sudo npm run build
 sudo systemctl stop httpd
-sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/backups/build_backup_$(date +%Y-%m-%d_%H%M)
-sudo mv dist /var/www/html/metlabs/build
-sudo chown -R apache:apache /var/www/html/metlabs/build
+sudo mv /var/www/html/metlabs/build /var/www/html/metlabs/build_backup_$(date +%Y%m%d_%H%M)
+sudo mv dist /var/www/html/metlabs/build && sudo chown -R apache:apache /var/www/html/metlabs/build
 sudo systemctl start httpd
 ```
 
-### Backend Only (Code Changes)
+**Backend (code changes):**
 ```bash
-# Pull latest code
-cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
 sudo git pull origin main
-
-# Switch to metlabs service account
 sudo su - metlabs
-cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
+podman-compose -f docker-compose.prod.yml build web && podman stop metlabs-web
+```
 
-# Rebuild and recreate web container
-podman-compose -f docker-compose.prod.yml build web
-podman stop metlabs-web
-podman rm metlabs-web
-podman-compose -f docker-compose.prod.yml up -d web
+**Backend (dependency changes):**
+```bash
+sudo git pull origin main
+sudo su - metlabs
+podman-compose -f docker-compose.prod.yml build --no-cache web && podman stop metlabs-web
+```
 
-# Check logs
+**Check logs:**
+```bash
+sudo su - metlabs
 podman logs -f metlabs-web
 ```
 
-### Backend (Dependency Changes)
-```bash
-# Pull latest code
-cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
-sudo git pull origin main
-
-# Switch to metlabs service account
-sudo su - metlabs
-cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
-
-# Rebuild with --no-cache to force fresh install
-podman-compose -f docker-compose.prod.yml build --no-cache web
-podman stop metlabs-web
-podman rm metlabs-web
-podman-compose -f docker-compose.prod.yml up -d web
-```
-
-### Database Migrations
-```bash
-# Switch to metlabs service account
-sudo su - metlabs
-
-# Migrations run automatically on container start
-# Check migration status
-podman exec metlabs-web python manage.py showmigrations
-
-# Or run manually
-podman exec metlabs-web python manage.py migrate
-```
+**Note**: Systemd auto-restarts containers after `podman stop`. See [Detailed Deployment Steps](#detailed-deployment-steps) for full explanations.
 
 ---
 
@@ -173,12 +143,13 @@ cd /var/www/html/metlabs/proj-a2025-g02-instrument-registry-for-met-lab
 # 3. Rebuild web container
 podman-compose -f docker-compose.prod.yml build web
 
-# 4. Recreate container
+# 4. Stop container (systemd auto-restarts with new image)
 podman stop metlabs-web
-podman rm metlabs-web
-podman-compose -f docker-compose.prod.yml up -d web
 
-# 5. Watch logs to ensure it starts correctly
+# 5. Wait for systemd to restart it
+sleep 5
+
+# 6. Watch logs to ensure it starts correctly
 podman logs -f metlabs-web
 # Press Ctrl+C when you see "Booting worker with pid"
 ```
@@ -189,7 +160,10 @@ podman ps  # All containers should show "Up" and "healthy"
 curl http://localhost:8000/api/instruments/
 ```
 
-**Note**: Migrations run automatically on container start (see `docker-compose.prod.yml` command).
+**Notes**:
+- Migrations run automatically on container start (see `docker-compose.prod.yml` command)
+- The systemd service (`container-metlabs-web.service`) has `Restart=always`, so stopping the container triggers an automatic restart with the newly built image
+- No need to manually remove containers or run `podman-compose up`
 
 ---
 
@@ -225,8 +199,10 @@ sudo su - metlabs
 # Restart all
 podman-compose -f docker-compose.prod.yml restart
 
-# Restart specific container
+# Restart specific container (or use systemd)
 podman restart metlabs-web
+# OR (requires XDG_RUNTIME_DIR if it fails)
+systemctl --user restart container-metlabs-web.service
 ```
 
 ### Stop/Start Containers
@@ -240,11 +216,13 @@ podman-compose -f docker-compose.prod.yml down
 # Start all
 podman-compose -f docker-compose.prod.yml up -d
 
-# Stop specific container
+# Stop specific container (systemd will auto-restart unless you disable the service)
 podman stop metlabs-web
 
 # Start specific container
 podman start metlabs-web
+# OR use systemd (requires XDG_RUNTIME_DIR if it fails)
+systemctl --user start container-metlabs-web.service
 ```
 
 ### Execute Commands in Containers
