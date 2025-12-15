@@ -1,6 +1,7 @@
 from rest_framework import serializers
 import requests
 from .models import Instrument, RegistryUser, InstrumentAttachment
+from collections import Counter
 
 # Mixin to clean whitespace from all CharFields
 class WhitespaceCleaningSerializerMixin:
@@ -128,10 +129,24 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
         instrument.embedding_en = embedding_en
 
     def _find_existing_translation(self, tuotenimi):
-        return Instrument.objects.filter(
+        # Get all valid translations for this Finnish name
+        existing = Instrument.objects.filter(
             tuotenimi__iexact=tuotenimi
         ).exclude(
             tuotenimi_en__in=["", "Translation Failed"]
+        ).values_list('tuotenimi_en', 'embedding_en')
+        
+        if not existing:
+            return None
+        
+        # Use majority voting - pick most common translation
+        translations = [t[0] for t in existing]
+        most_common_translation = Counter(translations).most_common(1)[0][0]
+        
+        # Return first instrument with that translation
+        return Instrument.objects.filter(
+            tuotenimi__iexact=tuotenimi,
+            tuotenimi_en=most_common_translation
         ).first()
 
     def _post_to_service(self, endpoint, payload):
