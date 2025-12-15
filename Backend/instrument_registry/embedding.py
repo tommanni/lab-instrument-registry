@@ -1,3 +1,35 @@
+"""
+Instrument Translation and Embedding Pipeline
+
+This module handles the automated translation of instrument names from Finnish to English
+and generates semantic embeddings for search functionality. The system is designed to handle 
+multiple instruments with the same Finnish name (tuotenimi) but with
+different valid English translations (tuotenimi_en).
+
+DESIGN CHOICES:
+- Instruments with existing valid translations are never automatically overwritten
+- When multiple translations exist for the same Finnish name, majority voting determines
+  the "canonical" translation for new instruments
+- Translations and embeddings are cached to minimize API calls to the semantic service
+- Batch processing is used for efficiency
+
+WORKFLOW:
+1. Build caches from existing database records:
+   - name_translation_cache: Finnish name → most common English translation
+   - embedding_by_translation: English translation → embedding vector
+2. For each batch of instruments:
+   a. Collect state (which need translation, which need embedding)
+   b. Translate missing Finnish names via semantic service
+   c. Identify which English translations still need embeddings
+   d. Generate embeddings for missing translations
+   e. Update instruments in database atomically
+
+ERROR HANDLING:
+- Translation failures are marked with "Translation Failed" string
+- Embedding failures are marked with None
+- Both are tracked in INVALID_TRANSLATION_VALUES to prevent re-processing
+"""
+
 from collections import Counter, defaultdict
 
 from django.db import transaction
@@ -30,7 +62,9 @@ def _requests_retry_session(
     return session
 
 
+# Translation values that indicate a missing or failed translation
 INVALID_TRANSLATION_VALUES = {"", "Translation Failed"}
+
 SERVICE_URL = getattr(settings, 'SEMANTIC_SERVICE_URL', 'http://semantic-search-service:8001')
 
 def precompute_instrument_embeddings(
@@ -39,9 +73,9 @@ def precompute_instrument_embeddings(
     force: bool = False,
     on_info=lambda msg: None,
     on_error=lambda msg: None,
-) -> dict:
+):
     """
-    Shared helper that performs embedding and translation precomputation work.
+    Main entry point for precomputing translations and embeddings for instruments.
     Returns a summary dict with totals so callers can display results.
     """
     if force:
@@ -69,39 +103,15 @@ def precompute_instrument_embeddings(
             if not batch:
                 continue
 
-            batch_states, unique_names_to_translate = _collect_batch_state(
-                batch,
-                name_translation_cache,
-                embedding_by_translation
+            instruments_to_update = _process_batch(
+                batch, 
+                session, 
+                (name_translation_cache, embedding_by_translation), 
+                on_error
             )
 
-            if unique_names_to_translate:
-                # translate missing names
-                _translate_missing(
-                    unique_names_to_translate,
-                    session,
-                    (name_translation_cache, embedding_by_translation),
-                    on_error,
-                )
-
-            translations_needing_embedding = _resolve_translations_and_identify_missing_embeddings(
-                batch_states,
-                (name_translation_cache, embedding_by_translation)
-            )
-
-            _embed_missing(
-                translations_needing_embedding,
-                session,
-                embedding_by_translation,
-                on_error,
-            )
-
-            instruments_to_update = _build_instruments_to_update(
-                batch_states,
-                embedding_by_translation
-            )
-
-            with transaction.atomic(): # Either whole batch update succeeds or none of them do
+            # Save batch to database atomically with django-simple-history utility function to track history
+            with transaction.atomic():
                 bulk_update_with_history(
                     instruments_to_update,
                     Instrument,
@@ -125,7 +135,12 @@ def precompute_instrument_embeddings(
 
 def _build_translation_and_embedding_caches():
     """
-    Builds a cache of translations and embeddings for each product name.
+    Builds in-memory caches from existing database records to minimize API calls.
+    
+    This function implements a majority voting system for translations. Since multiple
+    instruments can have the same Finnish name but different English translations
+    (by design), we count all occurrences and use the most common translation as the
+    default for instruments that don't yet have a translation.
     """
     name_translation_counts = defaultdict(Counter)
     embedding_by_translation = {}
@@ -138,20 +153,76 @@ def _build_translation_and_embedding_caches():
     for instrument in existing_translations:
         tuotenimi_key = instrument.tuotenimi.lower()
         translation_value = instrument.tuotenimi_en
+        # Count occurrences of each translation for this Finnish name (for majority voting)
         name_translation_counts[tuotenimi_key][translation_value] += 1
+        # Cache embedding for each unique translation
         if instrument.embedding_en is not None and translation_value not in embedding_by_translation:
             embedding_by_translation[translation_value] = instrument.embedding_en
 
-    # Cache most common translation for each product name
+    # Use majority voting: for each Finnish name, pick the most common English translation
     name_translation_cache = {
         key: counter.most_common(1)[0][0] for key, counter in name_translation_counts.items()
     }
 
     return embedding_by_translation, name_translation_cache
 
+def _process_batch(batch, session, caches, on_error):
+    """
+    Processes a batch of instruments by translating missing Finnish names and generating embeddings.
+    """
+    name_translation_cache, embedding_by_translation = caches
+
+    # Step 1: Analyze what each instrument needs (translation, embedding, or both)
+    batch_states, unique_names_to_translate = _collect_batch_state(
+        batch,
+        name_translation_cache,
+        embedding_by_translation
+    )
+
+    # Step 2: Translate any Finnish names not in cache via API
+    if unique_names_to_translate:
+        _translate_missing(
+            unique_names_to_translate,
+            session,
+            (name_translation_cache, embedding_by_translation),
+            on_error,
+        )
+
+    # Step 3: Update batch_states with new translations and identify which need embeddings
+    translations_needing_embedding = _resolve_translations_and_identify_missing_embeddings(
+        batch_states,
+        (name_translation_cache, embedding_by_translation)
+    )
+
+    # Step 4: Generate embeddings for English translations not in cache
+    _embed_missing(
+        translations_needing_embedding,
+        session,
+        embedding_by_translation,
+        on_error,
+    )
+
+    # Step 5: Prepare instruments with final translations and embeddings
+    instruments_to_update = _build_instruments_to_update(
+        batch_states,
+        embedding_by_translation
+    )
+
+    return instruments_to_update
+
 def _collect_batch_state(batch, name_translation_cache, embedding_by_translation):
     """
-    Collects the state of each instrument in the batch.
+    Analyzes a batch of instruments to determine what processing is needed.
+    
+    For each instrument, this function determines:
+    1. Does it have a valid existing translation? (If yes, keep it)
+    2. If not, can we use a cached translation from similar instruments?
+    3. If not cached, mark the Finnish name for translation via API
+    4. Does it need an embedding? (Check instrument first, then cache)
+    
+    Note:
+        Existing valid translations on instruments are NEVER overwritten (has_valid_translation=True),
+        respecting the system's design that allows multiple translations for the same Finnish name.
     """
     batch_states = []
     unique_names_to_translate = {}
@@ -160,16 +231,22 @@ def _collect_batch_state(batch, name_translation_cache, embedding_by_translation
         name = instrument.tuotenimi or ""
         tuotenimi_key = name.lower()
 
+        # Check if this instrument already has a valid translation
+        # If yes, we NEVER overwrite it
         has_valid_translation = instrument.tuotenimi_en not in INVALID_TRANSLATION_VALUES
+        # Use existing translation if valid, otherwise try to get from cache (majority vote)
         desired_translation = instrument.tuotenimi_en if has_valid_translation else name_translation_cache.get(tuotenimi_key)
 
+        # If no valid translation exists and not in cache, mark for API translation
         if (
             not has_valid_translation
             and desired_translation is None
             and tuotenimi_key not in unique_names_to_translate
         ):
+            # Store original-case Finnish name for API call
             unique_names_to_translate[tuotenimi_key] = instrument.tuotenimi
 
+        # Try to get embedding from instrument first, then from cache
         resolved_embedding = instrument.embedding_en
         if resolved_embedding is None and desired_translation:
             resolved_embedding = embedding_by_translation.get(desired_translation)
@@ -184,34 +261,16 @@ def _collect_batch_state(batch, name_translation_cache, embedding_by_translation
 
     return batch_states, unique_names_to_translate
 
-def _build_instruments_to_update(batch_states, embedding_by_translation):
-    """
-    Builds the list of instruments to update.
-    """
-    instruments_to_update = []
-    for state in batch_states:
-        instrument = state['instrument']
-        translation = state['desired_translation']
-
-        if not state['has_valid_translation']:
-            instrument.tuotenimi_en = translation or "Translation Failed"
-
-        # If we still don't have the embedding in state, check the newly populated cache
-        if (
-            state['resolved_embedding'] is None and
-            translation not in INVALID_TRANSLATION_VALUES
-        ):
-            state['resolved_embedding'] = embedding_by_translation.get(translation)
-
-        if instrument.embedding_en is None and state['resolved_embedding'] is not None:
-            instrument.embedding_en = state['resolved_embedding']
-
-        instruments_to_update.append(instrument)
-    return instruments_to_update
-
 def _translate_missing(unique_names_to_translate, session, caches, on_error):
     """
-    Translates missing names.
+    Translates Finnish instrument names to English via the semantic search service.
+    
+    Makes a batch API call to /process_batch endpoint which returns both translations
+    and embeddings. Updates both caches with the results.
+    
+    Note:
+        On any error (network, timeout, API error), all names in the batch are marked
+        as "Translation Failed" to prevent infinite retry loops.
     """
     name_translation_cache, embedding_by_translation = caches
 
@@ -250,7 +309,17 @@ def _translate_missing(unique_names_to_translate, session, caches, on_error):
 
 def _resolve_translations_and_identify_missing_embeddings(batch_states, caches):
     """
-    Resolves translations and identifies missing embeddings.
+    Updates batch state with newly cached translations and identifies which need embeddings.
+    
+    This function runs after _translate_missing has potentially added new translations to the cache.
+    It performs a second pass over batch_states to:
+    1. Fill in any desired_translation values that were None (from newly cached translations)
+    2. Check if embeddings are now available in the cache
+    3. Build a set of English translations that still need embeddings generated
+    
+    Note:
+        This two-pass approach (collect → translate → resolve) allows us to batch
+        translation API calls efficiently while still handling all edge cases.
     """
     name_translation_cache, embedding_by_translation = caches
 
@@ -280,9 +349,15 @@ def _resolve_translations_and_identify_missing_embeddings(batch_states, caches):
 
 def _embed_missing(translations_needing_embedding, session, embedding_by_translation, on_error):
     """
-    Embeds missing translations.
+    Generates embeddings for English translations via the semantic search service.
+    
+    This function is called when we have English translations (either from existing
+    instruments or from _translate_missing) but don't have embeddings for them yet.
+    
+    Note:
+        On any error, all texts in the batch get None embeddings (graceful degradation).
+        Instruments will be saved with translations but without embeddings for search.
     """
-
     texts_to_embed = list(translations_needing_embedding)
     if texts_to_embed:
         try:
@@ -309,3 +384,36 @@ def _embed_missing(translations_needing_embedding, session, embedding_by_transla
             on_error(f'Unexpected error during batch embedding: {exc}')
             for text in texts_to_embed:
                 embedding_by_translation[text] = None
+
+def _build_instruments_to_update(batch_states, embedding_by_translation):
+    """
+    Prepares instruments for database update by applying translations and embeddings.
+    
+    This function finalizes the state of each instrument by:
+    1. Setting tuotenimi_en if the instrument didn't have a valid translation
+       (uses desired_translation from state, or "Translation Failed" as fallback)
+    2. Setting embedding_en if available in the cache and not already on instrument
+    """
+    instruments_to_update = []
+    for state in batch_states:
+        instrument = state['instrument']
+        translation = state['desired_translation']
+
+        # Apply translation to instruments that didn't have one
+        if not state['has_valid_translation']:
+            instrument.tuotenimi_en = translation or "Translation Failed"
+
+        # Check cache again for embeddings: they may have been added by _translate_missing
+        # or _embed_missing after the initial state collection
+        if (
+            state['resolved_embedding'] is None and
+            translation not in INVALID_TRANSLATION_VALUES
+        ):
+            state['resolved_embedding'] = embedding_by_translation.get(translation)
+
+        # Apply embedding to instruments that don't have one
+        if instrument.embedding_en is None and state['resolved_embedding'] is not None:
+            instrument.embedding_en = state['resolved_embedding']
+
+        instruments_to_update.append(instrument)
+    return instruments_to_update
