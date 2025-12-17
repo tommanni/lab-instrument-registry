@@ -2,23 +2,31 @@
 
 A Django REST API backend with Vue.js frontend for managing laboratory equipment inventory.
 
-## Git Policy
+## About This Project
 
-- All changes should be merged into `dev` via a merge request.
-- All merge requests should be reviewed by at least one person.
-- When starting work on a new issue, create a new branch:
-  - A new branch can be created in multiple ways
-    - First make sure you are currently on the `dev` branch and you have the newest changes locally
-      - you can pull the latest changes by running `git pull origin dev`
-    - To create the branch: one example is `git checkout -b <branch-name>`)
-  - Begin the branch name with the issue ID, followed by a short description separated by hyphens.
-  - Example: Issue #34232 is about deleting the whole system, branch naming would be `34232-delete-entire-system`.
-  - Including the issue ID helps GitLab automatically link the branch to the issue under "Related branches".
-- When necessary changes have been checked by the customer, `dev` is merged into `main`
-- Write code comments in English.
-- Use `snake_case` for variable names in Python.
-- Use `camelCase` for variable names in Vue.
+This is a university software engineering project developed for Tampere University's MET Laboratory. The system helps track laboratory instruments, their maintenance schedules, and history.
 
+**Project History:** Built by student teams across two semesters (Spring 2025 and Autumn 2025) with continued development and feature additions.
+
+### My Contributions (Tomi Manninen - Autumn 2025)
+
+**Semantic Search Service & AI Integration:**
+- Built a FastAPI microservice handling both machine translation and embedding generation, optimized for CPU-only/RAM-limited deployment
+- Fine-tuned a Finnish→English translation model (Helsinki-NLP/opus-mt) for domain-specific laboratory terminology
+- Integrated automated translation and embedding generation into CSV import and single instrument creation
+- Implemented smart search combining semantic similarity (pgvector) with fuzzy search
+- Added bulk translation update feature allowing users to fix translations for all instruments sharing the same Finnish name
+
+**Data Import & Performance:**
+- Built background job pipeline for translation/embedding generation with caching, batch processing, and majority voting for translation consistency
+- Performance-optimized duplicate detection and CSV import row insertion
+- Built the feature for selecting which duplicates to import
+
+**Instrument History:**
+- Implemented full audit history with diff generation, showing what changed, when, and by whom
+
+**Other**
+- Automated tests, various bug fixes and UI improvements
 
 ## 🚀 Quick Start
 
@@ -30,10 +38,10 @@ make up
 # (first run installs Docker images, PyTorch deps, and ML models—expect a slow boot)
 
 # 2. Import your data (optional), file needs to be in the Backend directory under root
-# this also preprocesses
+# this also preprocesses instruments for embeddings and translations
 make import-csv FILE=your-data.csv 
 
-# 3.1 Install dependencies (first time only) with
+# 3.1 Install frontend dependencies (first time only) with
 make frontend-install
 
 # 3.2 Start frontend in dev mode
