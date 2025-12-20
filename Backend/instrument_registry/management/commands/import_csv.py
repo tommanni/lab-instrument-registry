@@ -18,7 +18,7 @@ class Command(BaseCommand):
         # default handling assumes that the csv has the same format as exported csv
         if options['mode'] == 'default':
             csv_path = options["csv_path"]
-            with open(csv_path, "r", encoding="windows-1252") as file:
+            with open(csv_path, "r", encoding="utf-8") as file:
                 csv_to_model(InstrumentCSVSerializer, file)
             return
         # the 'old' way of handling this, because the original csv provided by customer was janky

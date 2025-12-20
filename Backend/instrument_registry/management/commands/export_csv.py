@@ -14,6 +14,6 @@ class Command(BaseCommand):
         now = datetime.now().strftime("%G-%m-%d")
         filename = "laiterekisteri_" + now + ".csv"
 
-        with open(path + filename, "w", encoding="windows-1251") as destination:
+        with open(path + filename, "w", encoding="utf-8") as destination:
             source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.all())
             copyfileobj(source, destination)
