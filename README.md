@@ -2,16 +2,29 @@
 
 A Django REST API backend with Vue.js frontend for managing laboratory equipment inventory.
 
-## About This Project
+## 📖 About This Project
 
 This is a university software engineering project developed for Tampere University's MET Laboratory. The system helps track laboratory instruments, their maintenance schedules, and history.
 
 **Project History:** Built by student teams across two semesters (Spring 2025 and Autumn 2025) with continued development and feature additions.
 
-### My Contributions (Tomi Manninen)
+### ⭐ My Contributions (Tomi Manninen)
 
 **Course:** Software Engineering Project 1 - Autumn 2025
+
 **Project Role:** Junior Fullstack Developer
+
+**Cross-Lingual Smart Search**
+
+<img src="docs/images/smart-search-demo.png" alt="Smart Search Demo" width="800"/>
+
+*User searches in **English**, and the system finds the **Finnish** instrument ("termostaatti") using vector embeddings.*
+
+**Audit Trail & AI Automation**
+
+<img src="docs/images/instrument-history-demo.png" alt="Audit Log Demo" width="800"/>
+
+*Tracks changes by users ("Tomi") and shows background **ML translation pipeline ("System")** automatically filling in translations.*
 
 **AI Integration:**
 - Built a FastAPI microservice responsible for:
@@ -20,7 +33,7 @@ This is a university software engineering project developed for Tampere Universi
 - Fine-tuned Helsinki-NLP/opus-mt translation model for domain-specific laboratory terminology
 - Integrated automated translation and embedding generation into:
     - CSV import
-    - Single-instrument creation workflow
+    - Single-instrument creation
 - Implemented a hybrid smart search combining:
     - Semantic similarity (PostgreSQL + pgvector)
     - Fuzzy text matching
