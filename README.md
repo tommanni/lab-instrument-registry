@@ -8,25 +8,43 @@ This is a university software engineering project developed for Tampere Universi
 
 **Project History:** Built by student teams across two semesters (Spring 2025 and Autumn 2025) with continued development and feature additions.
 
-### My Contributions (Tomi Manninen - Autumn 2025)
+### My Contributions (Tomi Manninen)
 
-**Semantic Search Service & AI Integration:**
-- Built a FastAPI microservice handling both machine translation and embedding generation, optimized for CPU-only/RAM-limited deployment
-- Fine-tuned a Finnish→English translation model (Helsinki-NLP/opus-mt) for domain-specific laboratory terminology
-- Integrated automated translation and embedding generation into CSV import and single instrument creation
-- Implemented smart search combining semantic similarity (pgvector) with fuzzy search
-- Added bulk translation update feature allowing users to fix translations for all instruments sharing the same Finnish name
+**Course:** Software Engineering Project 1 - Autumn 2025
+**Project Role:** Junior Fullstack Developer
+
+**AI Integration:**
+- Built a FastAPI microservice responsible for:
+    - Finnish→English machine translation
+    - English embedding generation for semantic search
+- Fine-tuned Helsinki-NLP/opus-mt translation model for domain-specific laboratory terminology
+- Integrated automated translation and embedding generation into:
+    - CSV import
+    - Single-instrument creation workflow
+- Implemented a hybrid smart search combining:
+    - Semantic similarity (PostgreSQL + pgvector)
+    - Fuzzy text matching
+- Added bulk translation correction, allowing one fix to update all instruments sharing the same Finnish name
 
 **Data Import & Performance:**
-- Built background job pipeline for translation/embedding generation with caching, batch processing, and majority voting for translation consistency
-- Performance-optimized duplicate detection and CSV import row insertion
-- Built the feature for selecting which duplicates to import
+- Built a background job pipeline for translation/embedding generation with:
+    - Caching
+    - Batch processing
+    - Majority voting to ensure translation consistency
+- Optimized duplicate detection and CSV row insertion to handle large datasets efficiently
+- Implemented a feature for selecting which duplicates to import
 
 **Instrument History:**
-- Implemented full audit history with diff generation, showing what changed, when, and by whom
+- Implemented a full audit history for instruments:
+    - Field-level diffs
+    - Timestamps
+    - User attribution
+- Enables traceability of all changes to instruments over time
 
-**Other**
-- Automated tests, various bug fixes and UI improvements
+**Quality & UI/UX:**
+- Authored automated test suites for the frontend, backend, and microservice
+- Fixed various bugs across the stack
+- Implemented UI/UX improvements
 
 ## 🚀 Quick Start
 
@@ -80,7 +98,7 @@ make logs        # View logs
 make shell       # Django shell
 make db-shell    # PostgreSQL shell
 make test        # Run Django tests
-make semantic-test # Run Semantic Search Service tests
+make semantic-test # Run semantic search service tests
 ```
 
 ### Data Management
