@@ -5,6 +5,9 @@ on: [push]
 jobs:
   frontend-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
 
     steps:
       - uses: actions/checkout@v2
@@ -12,12 +15,13 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-        working-directory: Frontend
       - run: npm run test:unit
-        working-directory: Frontend
   
   backend-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
     
     services:
       postgres:
@@ -40,9 +44,7 @@ jobs:
         with:
           python-version: 3.13
       - run: pip install -r requirements.txt
-        working-directory: Backend
       - run: python manage.py test
-        working-directory: Backend
         env:
           SECRET_KEY: test-secret-key-for-ci
           DB_NAME: test_db
@@ -54,6 +56,9 @@ jobs:
   ml-microservice-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: semantic_search_service
     
     steps:
       - uses: actions/checkout@v2
@@ -67,8 +72,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-semantic-
       - run: pip install torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
-        working-directory: semantic_search_service
       - run: pip install -r requirements.txt
-        working-directory: semantic_search_service
       - run: pytest -v
-        working-directory: semantic_search_service
