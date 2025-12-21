@@ -50,3 +50,25 @@ jobs:
           DB_PASSWORD: postgres
           DB_HOST: localhost
           DB_PORT: 5432
+  
+  ml-microservice-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.13
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-semantic-${{ hashFiles('semantic_search_service/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-semantic-
+      - run: pip install torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+        working-directory: semantic_search_service
+      - run: pip install -r requirements.txt
+        working-directory: semantic_search_service
+      - run: pytest -v
+        working-directory: semantic_search_service
