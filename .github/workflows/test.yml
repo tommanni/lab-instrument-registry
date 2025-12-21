@@ -1,0 +1,17 @@
+name: Test
+
+on: [push]
+
+jobs:
+  frontend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: Frontend
+      - run: npm run test:unit
+        working-directory: Frontend
