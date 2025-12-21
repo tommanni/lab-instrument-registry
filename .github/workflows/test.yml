@@ -15,3 +15,38 @@ jobs:
         working-directory: Frontend
       - run: npm run test:unit
         working-directory: Frontend
+  
+  backend-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17-trixie
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.13
+      - run: pip install -r requirements.txt
+        working-directory: Backend
+      - run: python manage.py test
+        working-directory: Backend
+        env:
+          SECRET_KEY: test-secret-key-for-ci
+          DB_NAME: test_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
