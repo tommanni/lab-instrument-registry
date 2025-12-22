@@ -31,7 +31,7 @@ class InstrumentState:
     instrument: Instrument
     name_key: str
     has_valid_translation: bool
-    desired_translation: str | None
+    resolved_translation: str | None
     resolved_embedding: list | None
 
 def _requests_retry_session(
@@ -123,7 +123,7 @@ def precompute_instrument_embeddings(
 def _build_translation_and_embedding_caches():
     """
     Builds in-memory caches from existing database records to minimize API calls.
-    Uses majority voting when multiple translations exist for the same Finnish name.
+    Uses majority voting because multiple translations can exist for the same Finnish name.
     """
     name_translation_counts = defaultdict(Counter)
     embedding_by_translation = {}
@@ -202,25 +202,25 @@ def _collect_instrument_states(batch, name_translation_cache, embedding_by_trans
         name_key = name.lower()
 
         has_valid_translation = instrument.tuotenimi_en not in INVALID_TRANSLATION_VALUES
-        desired_translation = instrument.tuotenimi_en if has_valid_translation else name_translation_cache.get(name_key)
+        resolved_translation = instrument.tuotenimi_en if has_valid_translation else name_translation_cache.get(name_key)
 
         if (
             not has_valid_translation
-            and desired_translation is None
+            and resolved_translation is None
             and name_key not in unique_names_to_translate
         ):
             unique_names_to_translate[name_key] = instrument.tuotenimi
 
         resolved_embedding = instrument.embedding_en
-        if resolved_embedding is None and desired_translation:
-            resolved_embedding = embedding_by_translation.get(desired_translation)
+        if resolved_embedding is None and resolved_translation:
+            resolved_embedding = embedding_by_translation.get(resolved_translation)
 
         instrument_states.append(
             InstrumentState(
                 instrument=instrument,
                 name_key=name_key,
                 has_valid_translation=has_valid_translation,
-                desired_translation=desired_translation,
+                resolved_translation=resolved_translation,
                 resolved_embedding=resolved_embedding,
             )
         )
@@ -274,21 +274,21 @@ def _resolve_translations_and_identify_missing_embeddings(instrument_states, cac
 
     translations_needing_embedding = set()
     for state in instrument_states:
-        if state.desired_translation is None:
-            state.desired_translation = name_translation_cache.get(
+        if state.resolved_translation is None:
+            state.resolved_translation = name_translation_cache.get(
                 state.name_key,
                 "Translation Failed"
             )
         if (
             state.resolved_embedding is None and
-            state.desired_translation not in INVALID_TRANSLATION_VALUES
+            state.resolved_translation not in INVALID_TRANSLATION_VALUES
         ):
-            cached_embedding = embedding_by_translation.get(state.desired_translation)
+            cached_embedding = embedding_by_translation.get(state.resolved_translation)
 
             if cached_embedding is not None:
                 state.resolved_embedding = cached_embedding
             else:
-                translations_needing_embedding.add(state.desired_translation)
+                translations_needing_embedding.add(state.resolved_translation)
 
     return translations_needing_embedding
 
@@ -329,7 +329,7 @@ def _build_instruments_to_update(instrument_states, embedding_by_translation):
     instruments_to_update = []
     for state in instrument_states:
         instrument = state.instrument
-        translation = state.desired_translation
+        translation = state.resolved_translation
 
         if not state.has_valid_translation:
             instrument.tuotenimi_en = translation or "Translation Failed"
