@@ -62,6 +62,8 @@ across hundreds of users.
 - Fixed various bugs across the stack
 - Implemented UI/UX improvements
 
+**Semantic Search Flow:**
+
 ```mermaid
 flowchart LR
     subgraph Frontend
