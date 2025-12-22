@@ -56,8 +56,40 @@ This is a university software engineering project developed for Tampere Universi
 
 **Quality & UI/UX:**
 - Authored automated test suites for the frontend, backend, and microservice
+- Implemented GitHub Actions CI pipeline that runs tests across all services on every push
 - Fixed various bugs across the stack
 - Implemented UI/UX improvements
+
+```mermaid
+flowchart LR
+    subgraph Frontend
+        UI[Vue.js]
+    end
+
+    subgraph Backend["Django API"]
+        API[REST API]
+        LANG{Language?}
+    end
+
+    subgraph ML["Semantic Service"]
+        TRANS[Translate FI→EN]
+        EMBED[Generate Embedding]
+    end
+
+    subgraph DB["PostgreSQL"]
+        PG[(pgvector)]
+    end
+
+    UI -->|"Search query"| API
+    API --> LANG
+    LANG -->|Finnish| TRANS --> EMBED
+    LANG -->|English| EMBED
+    EMBED -->|"768-dim vector"| API
+    API <-->|"Cosine similarity"| PG
+    API -->|"Ranked results"| UI
+```
+
+*User searches in Finnish or English → Django detects language → Finnish queries get translated first → All queries become vector embeddings → PostgreSQL finds similar instruments using cosine distance → Results returned ranked by relevance.*
 
 ## 🚀 Quick Start
 
@@ -199,12 +231,11 @@ docker-compose logs -f   # Instead of 'make logs'
 
 ## 🎯 Architecture
 
-**API-First Design:**
-- Django REST API backend handles all data operations
-- Vue.js frontend consumes the API
-- PostgreSQL database for data persistence
-- Token-based authentication
-- Docker containers for easy deployment
+- **Frontend:** Vue.js + Bootstrap
+- **Backend:** Django REST Framework
+- **ML Service:** FastAPI + Helsinki-NLP + SentenceTransformer
+- **Database:** PostgreSQL 17 + pgvector extension
+- **Infrastructure:** Docker Compose
 
 ---
 
