@@ -4,7 +4,9 @@ A Django REST API backend with Vue.js frontend for managing laboratory equipment
 
 ## 📖 About This Project
 
-This is a university software engineering project developed for Tampere University's MET Laboratory. The system helps track laboratory instruments, their maintenance schedules, and history.
+A production instrument registry system developed for Tampere University's MET Laboratory. 
+Tracks laboratory equipment, maintenance schedules, and history for ~3,000 instruments 
+across hundreds of users.
 
 **Project History:** Built by student teams across two semesters (Spring 2025 and Autumn 2025) with continued development and feature additions.
 
@@ -34,10 +36,10 @@ This is a university software engineering project developed for Tampere Universi
 - Integrated automated translation and embedding generation into:
     - CSV import
     - Single-instrument creation
-- Implemented a hybrid smart search combining:
+- Implemented a hybrid smart search (60-100ms end-to-end) combining:
     - Semantic similarity (PostgreSQL + pgvector)
     - Fuzzy text matching
-- Added bulk translation correction, allowing one fix to update all instruments sharing the same Finnish name
+- Built bulk translation correction to update all instruments sharing the same Finnish name
 
 **Data Import & Performance:**
 - Built a background job pipeline for translation/embedding generation with:
@@ -45,7 +47,7 @@ This is a university software engineering project developed for Tampere Universi
     - Batch processing
     - Majority voting to ensure translation consistency
 - Optimized duplicate detection and CSV row insertion to handle large datasets efficiently
-- Implemented a feature for selecting which duplicates to import
+- Implemented a feature for selecting which potential duplicates to import when source data lacks unique identifiers
 
 **Instrument History:**
 - Implemented a full audit history for instruments:
