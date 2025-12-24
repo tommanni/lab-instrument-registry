@@ -66,6 +66,8 @@ class InstrumentHistory(generics.RetrieveAPIView):
 
         first_record = history_records[0]
         changes = []
+
+        exclude_fields = ['embedding_fi', 'embedding_en', 'enriched_description']
         # Add first record as creation event
         changes.append({
             'history_date': first_record.history_date,
@@ -74,7 +76,7 @@ class InstrumentHistory(generics.RetrieveAPIView):
             'changes': [
                 {'field': f.name, 'old': None, 'new': getattr(first_record, f.name)}
                 for f in first_record.instance._meta.get_fields()
-                if f.concrete and not f.many_to_many and not f.auto_created and f.name != 'embedding_fi' and f.name != 'embedding_en'
+                if f.concrete and not f.many_to_many and not f.auto_created and f.name not in exclude_fields
             ]
         })
 
