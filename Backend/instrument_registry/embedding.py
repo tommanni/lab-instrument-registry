@@ -22,6 +22,10 @@ from django.conf import settings
 from simple_history.utils import bulk_update_with_history
 
 from instrument_registry.models import Instrument
+from instrument_registry.enrichment import (
+    enrich_instruments_batch, 
+    INVALID_ENRICHMENT_VALUES
+)
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -31,6 +35,8 @@ class InstrumentState:
     instrument: Instrument
     name_key: str
     has_valid_translation: bool
+    has_valid_enrichment: bool
+    resolved_enrichment: str | None
     resolved_translation: str | None
     resolved_embedding: list | None
 
@@ -64,17 +70,27 @@ def precompute_instrument_embeddings(
     force: bool = False,
     on_info=lambda msg: None,
     on_error=lambda msg: None,
+    skip_enrichment: bool = False,
 ):
     """Precomputes translations and embeddings for instruments. Returns summary dict."""
     if force:
         instruments_queryset = Instrument.objects.all()
         on_info('Forcing re-processing of all instruments.')
     else:
-        instruments_queryset = Instrument.objects.filter(
-            Q(tuotenimi_en__in=["", "Translation Failed"]) |
-            Q(embedding_en__isnull=True)
-        )
-        on_info('Processing only instruments that need translation/embedding.')
+        if skip_enrichment:
+            instruments_queryset = Instrument.objects.filter(
+                Q(tuotenimi_en__in=["", "Translation Failed"]) |
+                Q(embedding_en__isnull=True)
+            )
+            on_info('Processing only instruments that need translation/embedding.')
+        else:
+            instruments_queryset = Instrument.objects.filter(
+                Q(tuotenimi_en__in=["", "Translation Failed"]) |
+                Q(enriched_description__isnull=True) |
+                Q(embedding_en__isnull=True)
+            )
+            on_info('Processing instruments that need translation/enrichment/embedding.')
+        
 
     instruments = list(instruments_queryset)
     total_instruments_to_process = len(instruments)

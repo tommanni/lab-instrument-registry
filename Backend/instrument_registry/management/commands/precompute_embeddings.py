@@ -11,6 +11,7 @@ class Command(BaseCommand):
             default=100,
             help='Number of instruments to process in a single batch.'
         )
+
         # Might be useful for model update or data corruption
         parser.add_argument(
             '--force',
@@ -18,13 +19,21 @@ class Command(BaseCommand):
             help='Force re-processing of all instruments, even if already processed.'
         )
 
+        parser.add_argument(
+            '--skip-enrichment',
+            action='store_true',
+            help='Skip enrichment step and use translations for embeddings.'
+        )
+
     def handle(self, *args, **options):
         batch_size = options['batch_size']
         force_reprocess = options['force']
-
+        skip_enrichment = options['skip_enrichment']
+        
         summary = precompute_instrument_embeddings(
             batch_size=batch_size,
             force=force_reprocess,
+            skip_enrichment=skip_enrichment,
             on_info=lambda message: self.stdout.write(self.style.SUCCESS(message)),
             on_error=lambda message: self.stdout.write(self.style.ERROR(message)),
         )
