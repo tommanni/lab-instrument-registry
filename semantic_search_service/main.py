@@ -118,3 +118,12 @@ async def embed_en_batch_endpoint(input_texts: InputTexts):
     
     embeddings = embed_en_batch(prefixed_texts, EMBEDDING_BATCH_SIZE)
     return {"embeddings": embeddings.tolist()}
+
+@app.post("/translate_batch")
+async def translate_batch_endpoint(input_texts: InputTexts):
+    prefixed_texts = [
+        CONTEXT_PREFIX + text.strip().lower()
+        for text in input_texts.texts
+    ]
+    translations = translate_fi_to_en_batch(prefixed_texts)
+    return {"translations": translations}
