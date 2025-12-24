@@ -31,7 +31,7 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
 
     class Meta:
         model = Instrument
-        exclude = ['embedding_en']
+        exclude = ['embedding_en', 'enriched_description']
 
     def create(self, validated_data):
         tuotenimi = validated_data.get('tuotenimi', '').lower()
