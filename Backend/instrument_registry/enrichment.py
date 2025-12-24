@@ -258,20 +258,13 @@ Output ONLY the JSON array, no other text:"""
             raise
 
 
-def enrich_instruments_batch(instruments_data, enrichment_cache, on_error=lambda msg: None):
+def enrich_instruments_batch(unique_names_to_enrich, enrichment_cache, on_error=lambda msg: None):
     """Enrich instruments using cached values when possible. Returns updated cache."""
     items_to_enrich = []
-    keys_to_enrich = []
     
-    for item in instruments_data:
-        cache_key = item['cache_key']
-        if cache_key not in enrichment_cache:
-            items_to_enrich.append({
-                'name': item['finnish_name'],
-                'brand_model': item.get('brand_model', ''),
-                'info': item.get('info', '')
-            })
-            keys_to_enrich.append(cache_key)
+    for item in unique_names_to_enrich:
+        if item not in enrichment_cache:
+            items_to_enrich.append(item)
     
     if not items_to_enrich:
         return enrichment_cache
@@ -281,16 +274,16 @@ def enrich_instruments_batch(instruments_data, enrichment_cache, on_error=lambda
     try:
         service = EnrichmentService()
         enriched_results = service.enrich_batch(items_to_enrich)
-        for key, enrichment in zip(keys_to_enrich, enriched_results):
-            enrichment_cache[key] = enrichment
+        for item, enrichment in zip(items_to_enrich, enriched_results):
+            enrichment_cache[item] = enrichment
             if enrichment not in INVALID_ENRICHMENT_VALUES:
-                logger.debug(f"Enriched '{key}': {enrichment[:50]}...")
+                logger.debug(f"Enriched '{item}': {enrichment[:50]}...")
             
     except Exception as e:
         error_msg = f"Batch enrichment error: {e}"
         logger.error(error_msg)
         on_error(error_msg)
-        for key in keys_to_enrich:
-            enrichment_cache[key] = "Enrichment Failed"
+        for item in items_to_enrich:
+            enrichment_cache[item] = "Enrichment Failed"
     
     return enrichment_cache
