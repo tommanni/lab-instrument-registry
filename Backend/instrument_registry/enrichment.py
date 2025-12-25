@@ -10,12 +10,19 @@ from google.genai import types
 from django.conf import settings
 import time
 import logging
-import json
-import re
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 INVALID_ENRICHMENT_VALUES = {"", "Enrichment Failed"}
+
+# Pydantic models for the response
+class InstrumentDescription(BaseModel):
+    index: int = Field(description="The index number matching the input list (1-based)")
+    description: str = Field(description="2-3 sentence English semantic description in lowercase")
+
+class BatchResponse(BaseModel):
+    results: list[InstrumentDescription]
 
 class EnrichmentService:
     """Handles AI enrichment using Google Gemini 2.0 Flash"""
@@ -28,8 +35,8 @@ class EnrichmentService:
         self.client = genai.Client(api_key=api_key)
         self.model_id = getattr(settings, 'GOOGLE_AI_MODEL', 'gemini-2.0-flash-exp')
         
-        # Rate limiting (15 RPM for Google AI Studio free tier)
-        self.requests_per_minute = 15
+        # Rate limiting
+        self.requests_per_minute = 2000
         self.last_request_times = []
     
     def _rate_limit(self):
@@ -68,7 +75,7 @@ class EnrichmentService:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.3,  # Lower temperature for more factual output
-                    max_output_tokens=400,  # Keep descriptions concise
+                    max_output_tokens=8192,
                 )
             )
             
@@ -91,13 +98,12 @@ class EnrichmentService:
         Sends multiple instruments in single API call for efficiency.
         """
         all_results = []
-        
+
         for i in range(0, len(items), sub_batch_size):
             sub_batch = items[i:i + sub_batch_size]
             
             try:
                 self._rate_limit()
-                
                 prompt = self._build_batch_prompt(sub_batch)
                 
                 response = self.client.models.generate_content(
@@ -105,23 +111,20 @@ class EnrichmentService:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         temperature=0.3,
-                        max_output_tokens=100 * len(sub_batch),
+                        max_output_tokens=8192,
+                        response_mime_type="application/json",
+                        response_schema=BatchResponse,
                     )
                 )
                 
-                enrichments = self._parse_batch_response(response.text, len(sub_batch))
-                
-                if len(enrichments) != len(sub_batch):
-                    logger.warning(
-                        f"Expected {len(sub_batch)} enrichments, got {len(enrichments)}. "
-                        f"Falling back to individual processing."
-                    )
-                    enrichments = self._fallback_individual_enrichment(sub_batch)
-                
+                # Single validation step
+                batch_data = BatchResponse.model_validate_json(response.text)
+                enrichments = self._process_structured_results(batch_data, len(sub_batch))
                 all_results.extend(enrichments)
                 
             except Exception as e:
-                logger.error(f"Batch enrichment failed for {len(sub_batch)} items: {e}")
+                # Catches both Network errors AND Pydantic/Validation errors
+                logger.error(f"Batch failed (Batch {i}-{i+len(sub_batch)}): {e}")
                 enrichments = self._fallback_individual_enrichment(sub_batch)
                 all_results.extend(enrichments)
         
@@ -134,13 +137,13 @@ class EnrichmentService:
         for item in items:
             try:
                 enriched = self.enrich_single(
-                    item.get('name', ''),
+                    item.get('finnish_name', ''),
                     item.get('brand_model', ''),
                     item.get('info', '')
                 )
                 results.append(enriched)
             except Exception as e:
-                logger.error(f"Individual enrichment failed for {item.get('name')}: {e}")
+                logger.error(f"Individual enrichment failed for {item.get('finnish_name')}: {e}")
                 results.append("Enrichment Failed")
         return results
     
@@ -155,8 +158,7 @@ class EnrichmentService:
         
         additional_context = ". ".join(context_parts) if context_parts else ""
         
-        prompt = f"""You are a laboratory equipment expert. You will receive a Finnish instrument name and generate a concise English semantic description optimized for search.
-
+        return f"""You are a laboratory equipment expert. You will receive a Finnish instrument name and generate a concise English semantic description optimized for search.
 Finnish Equipment Name: {finnish_name}
 {additional_context}
 
@@ -168,15 +170,26 @@ Generate a 2-3 sentence English description that includes:
 Requirements:
 - OUTPUT MUST BE IN ENGLISH
 - Be factual and concise
-- Use lowercase
 - Focus on searchable semantic content
 - Include the English equipment name/category naturally in the description
 - Do not repeat unnecessarily
 - Do not include brand names unless provided above
 
 English Description:"""
+
+    def _process_structured_results(self, batch_data: BatchResponse, expected_count: int):
+        """Map the structured results back to a simple list of strings."""
+        # Create a placeholder list to ensure alignment
+        final_list = ["Enrichment Failed"] * expected_count
         
-        return prompt
+        for item in batch_data.results:
+            # Adjust 1-based index to 0-based
+            idx = item.index - 1
+            if 0 <= idx < expected_count:
+                if len(item.description) > 10:
+                    final_list[idx] = item.description.lower()
+        
+        return final_list
     
     def _build_batch_prompt(self, items):
         """Build prompt for batch enrichment of multiple instruments."""
@@ -187,66 +200,23 @@ English Description:"""
         
         instruments_text = "\n".join(instrument_list)
         
-        prompt = f"""You are a laboratory equipment expert. Generate concise English semantic descriptions for {len(items)} laboratory instruments.
+        return f"""You are a laboratory equipment expert. 
+Generate concise English semantic descriptions for these {len(items)} laboratory instruments.
 
 INSTRUMENTS:
 {instruments_text}
 
-OUTPUT FORMAT: JSON array with exactly {len(items)} objects. Each object MUST have:
-- "index": the number (1 to {len(items)})
-- "description": 2-3 sentence English description in lowercase
-
-Requirements for each description:
+DESCRIPTION REQUIREMENTS:
 - What the equipment is and its primary purpose
 - Common applications in laboratory/research settings
 - Key characteristics or capabilities
 - OUTPUT MUST BE IN ENGLISH
-- Use lowercase throughout
 - Be factual and concise
 - Focus on searchable semantic content
-- Include the English equipment name/category naturally
+- Include the English equipment name naturally
 - Do not repeat brand names unnecessarily
 
-Output ONLY the JSON array, no other text:"""
-        
-        return prompt
-    
-    def _parse_batch_response(self, response_text, expected_count):
-        """Parse JSON array from batch response."""
-        try:
-            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-            if not json_match:
-                raise ValueError("No JSON array found in response")
-            
-            data = json.loads(json_match.group())
-            
-            if not isinstance(data, list):
-                raise ValueError("Response is not a JSON array")
-            
-            if len(data) != expected_count:
-                logger.warning(
-                    f"JSON array length mismatch: expected {expected_count}, got {len(data)}"
-                )
-            
-            sorted_data = sorted(data, key=lambda x: x.get('index', 0))
-            
-            descriptions = []
-            for item in sorted_data:
-                desc = item.get('description', '').strip().lower()
-                if desc and len(desc) >= 10:
-                    descriptions.append(desc)
-                else:
-                    descriptions.append("Enrichment Failed")
-            
-            return descriptions
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-            raise ValueError(f"Invalid JSON in response: {e}")
-        except Exception as e:
-            logger.error(f"Error parsing batch response: {e}")
-            raise
-
+Generate a response following the given schema."""
 
 def enrich_instruments_batch(unique_names_to_enrich, enrichment_cache, on_error=lambda msg: None):
     """Enrich instruments using cached values when possible. Returns updated cache."""
