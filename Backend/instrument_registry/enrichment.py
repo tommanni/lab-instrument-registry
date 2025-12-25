@@ -182,18 +182,8 @@ English Description:"""
         """Build prompt for batch enrichment of multiple instruments."""
         instrument_list = []
         for i, item in enumerate(items, 1):
-            finnish_name = item.get('name', 'Unknown')
-            brand = item.get('brand_model', '')
-            info = item.get('info', '')
-            
-            entry = f"{i}. Finnish name: {finnish_name}"
-            if brand:
-                entry += f", Brand/Model: {brand}"
-            if info and len(info.strip()) > 5:
-                truncated_info = info[:150] if len(info) > 150 else info
-                entry += f", Notes: {truncated_info}"
-            
-            instrument_list.append(entry)
+            finnish_name = item.get('finnish_name', 'Unknown')
+            instrument_list.append(f"{i}. Finnish name: {finnish_name}")
         
         instruments_text = "\n".join(instrument_list)
         
@@ -261,21 +251,27 @@ Output ONLY the JSON array, no other text:"""
 def enrich_instruments_batch(unique_names_to_enrich, enrichment_cache, on_error=lambda msg: None):
     """Enrich instruments using cached values when possible. Returns updated cache."""
     items_to_enrich = []
-    
-    for item in unique_names_to_enrich:
-        if item not in enrichment_cache:
-            items_to_enrich.append(item)
-    
+
+    # unique_names_to_enrich is a dict {name_key: finnish_name}
+    for name_key, finnish_name in unique_names_to_enrich.items():
+        if name_key not in enrichment_cache:
+            items_to_enrich.append({
+                'finnish_name': finnish_name,  # Use actual Finnish name, not lowercase key
+                'brand_model': '',
+                'info': '',
+                'cache_key': name_key
+            })
+
     if not items_to_enrich:
         return enrichment_cache
-    
+
     logger.info(f"Enriching {len(items_to_enrich)} instruments via Google AI (Finnish→English)")
     
     try:
         service = EnrichmentService()
         enriched_results = service.enrich_batch(items_to_enrich)
         for item, enrichment in zip(items_to_enrich, enriched_results):
-            enrichment_cache[item] = enrichment
+            enrichment_cache[item['cache_key']] = enrichment
             if enrichment not in INVALID_ENRICHMENT_VALUES:
                 logger.debug(f"Enriched '{item}': {enrichment[:50]}...")
             
@@ -284,6 +280,6 @@ def enrich_instruments_batch(unique_names_to_enrich, enrichment_cache, on_error=
         logger.error(error_msg)
         on_error(error_msg)
         for item in items_to_enrich:
-            enrichment_cache[item] = "Enrichment Failed"
+            enrichment_cache[item['cache_key']] = "Enrichment Failed"
     
     return enrichment_cache
