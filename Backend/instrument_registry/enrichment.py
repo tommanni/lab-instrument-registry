@@ -1,14 +1,13 @@
 """
 Instrument Enrichment Service
 
-Generates semantic descriptions using Google AI Studio 2.0 Flash for search enhancement.
+Generates semantic descriptions using a Google Gemini LLM for search enhancement.
 Enriched descriptions are internal-only, used for embeddings but never shown to users.
 """
 
 from google import genai
 from google.genai import types
 from django.conf import settings
-import time
 import logging
 from pydantic import BaseModel, Field
 
@@ -25,7 +24,7 @@ class BatchResponse(BaseModel):
     results: list[InstrumentDescription]
 
 class EnrichmentService:
-    """Handles AI enrichment using Google Gemini 2.0 Flash"""
+    """Handles AI enrichment using a Google Gemini LLM"""
     
     def __init__(self):
         api_key = getattr(settings, 'GOOGLE_GENAI_API_KEY', '')
@@ -33,30 +32,7 @@ class EnrichmentService:
             raise ValueError("GOOGLE_GENAI_API_KEY not configured in settings")
         
         self.client = genai.Client(api_key=api_key)
-        self.model_id = getattr(settings, 'GOOGLE_AI_MODEL', 'gemini-2.0-flash-exp')
-        
-        # Rate limiting
-        self.requests_per_minute = 2000
-        self.last_request_times = []
-    
-    def _rate_limit(self):
-        current_time = time.time()
-        
-        # Remove requests older than 1 minute
-        self.last_request_times = [
-            t for t in self.last_request_times 
-            if current_time - t < 60
-        ]
-        
-        # If at limit, wait until oldest request expires
-        if len(self.last_request_times) >= self.requests_per_minute:
-            sleep_time = 60 - (current_time - self.last_request_times[0]) + 0.1
-            if sleep_time > 0:
-                logger.info(f"Rate limit reached, sleeping for {sleep_time:.1f}s")
-                time.sleep(sleep_time)
-                self.last_request_times = []
-        
-        self.last_request_times.append(current_time)
+        self.model_id = getattr(settings, 'GOOGLE_AI_MODEL', 'gemini-2.5-flash-lite')
     
     def enrich_single(self, finnish_name, brand_model="", additional_info=""):
         """Generate English semantic description from Finnish instrument name."""
@@ -64,8 +40,6 @@ class EnrichmentService:
             return "Enrichment Failed"
         
         try:
-            self._rate_limit()
-            
             prompt = self._build_enrichment_prompt(
                 finnish_name, brand_model, additional_info
             )
@@ -103,7 +77,6 @@ class EnrichmentService:
             sub_batch = items[i:i + sub_batch_size]
             
             try:
-                self._rate_limit()
                 prompt = self._build_batch_prompt(sub_batch)
                 
                 response = self.client.models.generate_content(
