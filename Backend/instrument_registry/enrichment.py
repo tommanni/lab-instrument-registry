@@ -1,7 +1,7 @@
 """
 Instrument Enrichment Service
 
-Generates semantic descriptions using a Google Gemini LLM for search enhancement.
+Generates English translations and semantic descriptions using a Google Gemini LLM for search enhancement.
 Enriched descriptions are internal-only, used for embeddings but never shown to users.
 """
 
@@ -13,11 +13,12 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-INVALID_ENRICHMENT_VALUES = {"", "Enrichment Failed"}
+INVALID_ENRICHMENT_VALUES = {"", "Enrichment Failed", "Translation Failed"}
 
 # Pydantic models for the response
 class InstrumentDescription(BaseModel):
     index: int = Field(description="The index number matching the input list (1-based)")
+    translation: str = Field(description="Precise English translation of the instrument name")
     description: str = Field(description="2-3 sentence English semantic description in lowercase")
 
 class BatchResponse(BaseModel):
@@ -31,40 +32,28 @@ class EnrichmentService:
         if not api_key:
             raise ValueError("GOOGLE_GENAI_API_KEY not configured in settings")
         
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=45000) 
+        )
         self.model_id = getattr(settings, 'GOOGLE_AI_MODEL', 'gemini-2.5-flash-lite')
     
     def enrich_single(self, finnish_name, brand_model="", additional_info=""):
         """Generate English semantic description from Finnish instrument name."""
-        if not finnish_name or finnish_name in INVALID_ENRICHMENT_VALUES:
-            return "Enrichment Failed"
+        if not finnish_name:
+            return {'translation': "Translation Failed", 'description': "Enrichment Failed"}
         
         try:
-            prompt = self._build_enrichment_prompt(
-                finnish_name, brand_model, additional_info
-            )
-            
-            response = self.client.models.generate_content(
-                model=self.model_id,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.3,  # Lower temperature for more factual output
-                    max_output_tokens=8192,
-                )
-            )
-            
-            enriched = response.text.strip()
-            
-            # Validate response
-            if not enriched or len(enriched) < 10:
-                logger.warning(f"Invalid enrichment for '{finnish_name}': too short")
-                return "Enrichment Failed"
-            
-            return enriched.lower()
+            # Reuse the batch prompt logic for single items
+            return self.enrich_batch([{
+                'finnish_name': finnish_name, 
+                'brand_model': brand_model, 
+                'info': additional_info
+            }])[0]
             
         except Exception as e:
             logger.error(f"Enrichment error for '{finnish_name}': {e}")
-            return "Enrichment Failed"
+            return {'translation': "Translation Failed", 'description': "Enrichment Failed"}
     
     def enrich_batch(self, items, sub_batch_size=50):
         """
@@ -87,19 +76,27 @@ class EnrichmentService:
                         max_output_tokens=8192,
                         response_mime_type="application/json",
                         response_schema=BatchResponse,
-                    )
+                    ),
                 )
                 
-                # Single validation step
                 batch_data = BatchResponse.model_validate_json(response.text)
                 enrichments = self._process_structured_results(batch_data, len(sub_batch))
                 all_results.extend(enrichments)
                 
             except Exception as e:
-                # Catches both Network errors AND Pydantic/Validation errors
-                logger.error(f"Batch failed (Batch {i}-{i+len(sub_batch)}): {e}")
-                enrichments = self._fallback_individual_enrichment(sub_batch)
-                all_results.extend(enrichments)
+                # If we are already processing a single item (fallback mode), stop the loop.
+                if len(sub_batch) == 1:
+                    logger.error(f"Single item processing failed: {e}")
+                    # Manually append a failed result
+                    all_results.append({
+                        'translation': "Translation Failed",
+                        'description': "Enrichment Failed"
+                    })
+                else:
+                    # Only fallback if it was a group that failed
+                    logger.warning(f"Batch failed (Size {len(sub_batch)}). Retrying individually. Error: {e}")
+                    enrichments = self._fallback_individual_enrichment(sub_batch)
+                    all_results.extend(enrichments)
         
         return all_results
     
@@ -117,112 +114,105 @@ class EnrichmentService:
                 results.append(enriched)
             except Exception as e:
                 logger.error(f"Individual enrichment failed for {item.get('finnish_name')}: {e}")
-                results.append("Enrichment Failed")
+                results.append({
+                    'translation': "Translation Failed",
+                    'description': "Enrichment Failed"
+                })
         return results
-    
-    def _build_enrichment_prompt(self, finnish_name, brand, info):
-        """Build prompt for single instrument enrichment."""
-        context_parts = []
-        if brand:
-            context_parts.append(f"Brand/Model: {brand}")
-        if info and len(info.strip()) > 5:
-            truncated_info = info[:200] if len(info) > 200 else info
-            context_parts.append(f"Notes: {truncated_info}")
-        
-        additional_context = ". ".join(context_parts) if context_parts else ""
-        
-        return f"""You are a laboratory equipment expert. You will receive a Finnish instrument name and generate a concise English semantic description optimized for search.
-Finnish Equipment Name: {finnish_name}
-{additional_context}
-
-Generate a 2-3 sentence English description that includes:
-- What the equipment is and its primary purpose
-- Common applications in laboratory/research settings
-- Key characteristics or capabilities
-
-Requirements:
-- OUTPUT MUST BE IN ENGLISH
-- Be factual and concise
-- Focus on searchable semantic content
-- Include the English equipment name/category naturally in the description
-- Do not repeat unnecessarily
-- Do not include brand names unless provided above
-
-English Description:"""
 
     def _process_structured_results(self, batch_data: BatchResponse, expected_count: int):
         """Map the structured results back to a simple list of strings."""
         # Create a placeholder list to ensure alignment
-        final_list = ["Enrichment Failed"] * expected_count
+        final_list = [{
+            'translation': "Translation Failed", 
+            'description': "Enrichment Failed"
+        } for _ in range(expected_count)]
         
         for item in batch_data.results:
-            # Adjust 1-based index to 0-based
             idx = item.index - 1
             if 0 <= idx < expected_count:
-                if len(item.description) > 10:
-                    final_list[idx] = item.description.lower()
+                final_list[idx] = {
+                    'translation': item.translation.strip(),
+                    'description': item.description.strip().lower()
+                }
         
         return final_list
     
     def _build_batch_prompt(self, items):
-        """Build prompt for batch enrichment of multiple instruments."""
+        """Prompt asking for Translation AND Description"""
         instrument_list = []
         for i, item in enumerate(items, 1):
             finnish_name = item.get('finnish_name', 'Unknown')
-            instrument_list.append(f"{i}. Finnish name: {finnish_name}")
+            # Optional: Add brand/info to the prompt text if available to help translation
+            extra = ""
+            if item.get('brand_model'): extra += f" (Model: {item.get('brand_model')})"
+            
+            instrument_list.append(f"{i}. {finnish_name}{extra}")
         
         instruments_text = "\n".join(instrument_list)
         
         return f"""You are a laboratory equipment expert. 
-Generate concise English semantic descriptions for these {len(items)} laboratory instruments.
+Process these {len(items)} Finnish laboratory instruments.
 
 INSTRUMENTS:
 {instruments_text}
 
-DESCRIPTION REQUIREMENTS:
-- What the equipment is and its primary purpose
-- Common applications in laboratory/research settings
-- Key characteristics or capabilities
-- OUTPUT MUST BE IN ENGLISH
-- Be factual and concise
-- Focus on searchable semantic content
-- Include the English equipment name naturally
-- Do not repeat brand names unnecessarily
+TASKS:
+1. TRANSLATE: Provide the most accurate professional English name (e.g., "vetokaappi" -> "Fume Hood").
+2. DESCRIBE: Generate a 2-3 sentence semantic description in lowercase.
+
+-DESCRIPTION REQUIREMENTS:
+-- What the equipment is and its primary purpose
+-- Common applications in laboratory/research settings
+-- Key characteristics or capabilities
+-- OUTPUT MUST BE IN ENGLISH
+-- Be factual and concise
+-- Focus on searchable semantic content
+-- Include the English equipment name naturally
+-- Do not repeat brand names unnecessarily
 
 Generate a response following the given schema."""
 
-def enrich_instruments_batch(unique_names_to_enrich, enrichment_cache, on_error=lambda msg: None):
-    """Enrich instruments using cached values when possible. Returns updated cache."""
+def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichment_cache, on_error=lambda msg: None):
+    """
+    Updates translation_cache and enrichment_cache with the results of the enrichment.
+    unique_names_to_enrich is dict: {name_key: finnish_name}
+    """
     items_to_enrich = []
 
-    # unique_names_to_enrich is a dict {name_key: finnish_name}
+    # Identify items that need processing (if EITHER cache is missing/failed)
     for name_key, finnish_name in unique_names_to_enrich.items():
-        if name_key not in enrichment_cache:
+        needs_trans = name_key not in translation_cache or translation_cache[name_key] in INVALID_ENRICHMENT_VALUES
+        needs_enrich = name_key not in enrichment_cache or enrichment_cache[name_key] in INVALID_ENRICHMENT_VALUES
+        
+        if needs_trans or needs_enrich:
             items_to_enrich.append({
-                'finnish_name': finnish_name,  # Use actual Finnish name, not lowercase key
-                'brand_model': '',
-                'info': '',
+                'finnish_name': finnish_name,
                 'cache_key': name_key
             })
 
     if not items_to_enrich:
-        return enrichment_cache
+        return
 
-    logger.info(f"Enriching {len(items_to_enrich)} instruments via Google AI (Finnish→English)")
+    logger.info(f"Enriching & Translating {len(items_to_enrich)} instruments via Gemini") 
     
     try:
         service = EnrichmentService()
-        enriched_results = service.enrich_batch(items_to_enrich)
-        for item, enrichment in zip(items_to_enrich, enriched_results):
-            enrichment_cache[item['cache_key']] = enrichment
-            if enrichment not in INVALID_ENRICHMENT_VALUES:
-                logger.debug(f"Enriched '{item}': {enrichment[:50]}...")
+        results = service.enrich_batch(items_to_enrich)
+        
+        for item, result in zip(items_to_enrich, results):
+            key = item['cache_key']
+            
+            # Update caches
+            if result['translation'] != "Translation Failed":
+                translation_cache[key] = result['translation']
+            
+            if result['description'] != "Enrichment Failed":
+                enrichment_cache[key] = result['description']
+
+            logger.debug(f"Processed '{key}': {result['translation']}")
             
     except Exception as e:
-        error_msg = f"Batch enrichment error: {e}"
+        error_msg = f"Batch processing error: {e}"
         logger.error(error_msg)
         on_error(error_msg)
-        for item in items_to_enrich:
-            enrichment_cache[item['cache_key']] = "Enrichment Failed"
-    
-    return enrichment_cache
