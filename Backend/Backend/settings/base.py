@@ -153,4 +153,4 @@ INVITE_CODE_LIFETIME = timedelta(hours=2)
 INVITE_CODE_DIGITS = 8
 
 GOOGLE_GENAI_API_KEY = os.environ.get('GOOGLE_GENAI_API_KEY', '')
-GOOGLE_AI_MODEL = 'gemini-2.0-flash-exp'
+GOOGLE_AI_MODEL = 'gemini-2.5-flash-lite'
