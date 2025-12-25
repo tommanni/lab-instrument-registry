@@ -5,6 +5,8 @@ venv/
 /env
 *.env
 *.csv
+*.log
+logs/
 
 # Media files (user uploads)
 /Backend/Backend/media
