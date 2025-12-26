@@ -44,7 +44,7 @@ services:
       - DB_PORT=5432
       - DJANGO_SETTINGS_MODULE=Backend.settings.prod
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-met-metlabs.rd.tuni.fi,localhost}
-      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
     volumes:
       - static_files:/app/Backend/staticfiles
       - media_files:/app/Backend/media
