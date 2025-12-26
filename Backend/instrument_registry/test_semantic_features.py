@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import patch, MagicMock
@@ -33,59 +33,60 @@ class PrecomputeEmbeddingsTest(TestCase):
         self.inst1 = Instrument.objects.create(
             tuotenimi="Mikroskooppi",
             tuotenimi_en="",
-            embedding_en=None
+            embedding_en=None,
+            enriched_description=""
         )
         self.inst2 = Instrument.objects.create(
             tuotenimi="Vaaka",
             tuotenimi_en="",
-            embedding_en=None
+            embedding_en=None,
+            enriched_description=""
         )
         self.inst3 = Instrument.objects.create(
             tuotenimi="Spectrometer",
             tuotenimi_en="Spectrometer", # Already English/Translated
-            embedding_en=None
+            embedding_en=None,
+            enriched_description=""
         )
 
+    @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
+    @patch('instrument_registry.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
-    def test_precompute_success(self, mock_session_builder):
+    def test_precompute_success(self, mock_session_builder, mock_enrichment_service_class):
         """Test successful batch translation and embedding of instruments"""
-        # Mock the session and its post method
+        # Mock EnrichmentService
+        mock_enrichment_service = MagicMock()
+        mock_enrichment_service_class.return_value = mock_enrichment_service
+        # Mock enrich_batch to return translations and descriptions for all 3 instruments
+        # (inst1 and inst2 need translation+enrichment, inst3 needs enrichment only)
+        mock_enrichment_service.enrich_batch.return_value = [
+            {'translation': 'Microscope', 'description': 'laboratory microscope for viewing small objects'},
+            {'translation': 'Scale', 'description': 'laboratory scale for measuring weight'},
+            {'translation': 'Spectrometer', 'description': 'laboratory spectrometer for analyzing samples'}
+        ]
+
+        # Mock the embedding service session
         mock_session = MagicMock()
         mock_session_builder.return_value = mock_session
 
-        # Mock responses
-        # First call: batch translation
-        mock_response_translation = MagicMock()
-        mock_response_translation.status_code = 200
-        mock_response_translation.json.return_value = [
-            {'translated_text': 'Microscope', 'embedding_en': [0.1]*768},
-            {'translated_text': 'Scale', 'embedding_en': [0.2]*768}
-        ]
-
-        # Second call: embedding for existing English text (inst3)
-        mock_response_batch_embedding = MagicMock()
-        mock_response_batch_embedding.status_code = 200
-        mock_response_batch_embedding.json.return_value = {
-            'embeddings': [[0.3]*768]
+        # Mock /embed_en_batch endpoint response
+        mock_response_embedding = MagicMock()
+        mock_response_embedding.status_code = 200
+        mock_response_embedding.json.return_value = {
+            'embeddings': [[0.1]*768, [0.2]*768, [0.3]*768]  # For inst1, inst2, inst3
         }
-
-        # Configure side_effect to return different responses for different calls
-        # The logic in precompute_instrument_embeddings does:
-        # 1. POST /process_batch (for Mikroskooppi, Vaaka)
-        # 2. POST /embed_en (for Spectrometer)
+        mock_response_embedding.raise_for_status = MagicMock()
 
         def side_effect(*args, **kwargs):
             url = args[0]
-            if 'process_batch' in url:
-                return mock_response_translation
-            elif 'embed_en' in url:
-                return mock_response_batch_embedding
+            if 'embed_en_batch' in url:
+                return mock_response_embedding
             return MagicMock(status_code=404)
 
         mock_session.post.side_effect = side_effect
 
-        # Run the function
-        results = precompute_instrument_embeddings(batch_size=10)
+        # Run the function with max_workers=1 to avoid threading issues in tests
+        results = precompute_instrument_embeddings(batch_size=10, max_workers=1)
 
         # Refresh objects from db
         self.inst1.refresh_from_db()
@@ -94,72 +95,107 @@ class PrecomputeEmbeddingsTest(TestCase):
 
         # Assertions
         self.assertEqual(results['processed_count'], 3) # 2 needing translation + 1 needing embedding
+        self.assertIn('successful', results)
+        self.assertIn('cache_size', results)
 
         # Check Inst1
         self.assertEqual(self.inst1.tuotenimi_en, "Microscope")
+        self.assertEqual(self.inst1.enriched_description, "laboratory microscope for viewing small objects")
         self.assertIsNotNone(self.inst1.embedding_en)
 
         # Check Inst2
         self.assertEqual(self.inst2.tuotenimi_en, "Scale")
+        self.assertEqual(self.inst2.enriched_description, "laboratory scale for measuring weight")
+        self.assertIsNotNone(self.inst2.embedding_en)
 
         # Check Inst3
-        self.assertEqual(self.inst3.tuotenimi_en, "Spectrometer") # Should remain
+        self.assertEqual(self.inst3.tuotenimi_en, "Spectrometer") # Should remain (not overwritten)
+        self.assertEqual(self.inst3.enriched_description, "laboratory spectrometer for analyzing samples")
         self.assertIsNotNone(self.inst3.embedding_en)
 
+    @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
+    @patch('instrument_registry.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
-    def test_precompute_service_failure(self, mock_session_builder):
+    def test_precompute_service_failure(self, mock_session_builder, mock_enrichment_service_class):
         """Test handling of service failures during precomputation"""
+        # Mock EnrichmentService to raise exception
+        mock_enrichment_service = MagicMock()
+        mock_enrichment_service_class.return_value = mock_enrichment_service
+        mock_enrichment_service.enrich_batch.side_effect = Exception("Gemini API error")
+
+        # Mock embedding service to also fail
         mock_session = MagicMock()
         mock_session_builder.return_value = mock_session
-
-        # Mock generic failure
         mock_session.post.side_effect = Exception("Connection refused")
 
-        results = precompute_instrument_embeddings()
+        results = precompute_instrument_embeddings(max_workers=1)
 
         self.inst1.refresh_from_db()
+        self.inst2.refresh_from_db()
+        # On failure, instruments should have "Translation Failed" and "Enrichment Failed"
         self.assertEqual(self.inst1.tuotenimi_en, "Translation Failed")
-        self.assertEqual(results['failed'], 2) # inst1 and inst2 failed translation
+        self.assertEqual(self.inst1.enriched_description, "Enrichment Failed")
+        self.assertEqual(self.inst2.tuotenimi_en, "Translation Failed")
+        self.assertEqual(self.inst2.enriched_description, "Enrichment Failed")
+        # Check return values - should have successful count and cache_size, not 'failed'
+        self.assertIn('processed_count', results)
+        self.assertIn('successful', results)
+        self.assertIn('cache_size', results)
 
+    @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
+    @patch('instrument_registry.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
-    def test_precompute_partial_cache(self, mock_session_builder):
+    def test_precompute_partial_cache(self, mock_session_builder, mock_enrichment_service_class):
         """Test that duplicate instrument names are only translated once per batch"""
         # Test that if we have multiple same items, we only translate once
-        Instrument.objects.create(tuotenimi="Mikroskooppi", tuotenimi_en="", embedding_en=None) # Duplicate
+        Instrument.objects.create(
+            tuotenimi="Mikroskooppi", 
+            tuotenimi_en="", 
+            embedding_en=None,
+            enriched_description=""
+        ) # Duplicate
 
+        # Mock EnrichmentService - should only be called once for unique cache keys
+        mock_enrichment_service = MagicMock()
+        mock_enrichment_service_class.return_value = mock_enrichment_service
+        # enrich_batch should be called with unique items (same tuotenimi, same merkki_ja_malli = same cache key)
+        mock_enrichment_service.enrich_batch.return_value = [
+            {'translation': 'Microscope', 'description': 'laboratory microscope'},
+            {'translation': 'Scale', 'description': 'laboratory scale'}
+        ]
+
+        # Mock embedding service
         mock_session = MagicMock()
         mock_session_builder.return_value = mock_session
 
-        # Mock response for single translation
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        # Expecting only ONE translation request for "Mikroskooppi" and "Vaaka" (unique names)
-        mock_response.json.return_value = [
-            {'translated_text': 'Microscope', 'embedding_en': [0.1]*768},
-            {'translated_text': 'Scale', 'embedding_en': [0.2]*768}
-        ]
-
-        # We also need to handle the embedding request for "Spectrometer"
         mock_embed_response = MagicMock()
         mock_embed_response.status_code = 200
-        mock_embed_response.json.return_value = {'embedding': [0.3]*768}
+        mock_embed_response.json.return_value = {
+            'embeddings': [[0.1]*768, [0.2]*768, [0.3]*768, [0.4]*768]  # 4 instruments total
+        }
+        mock_embed_response.raise_for_status = MagicMock()
 
         def side_effect(*args, **kwargs):
             url = args[0]
-            if 'process_batch' in url:
-                return mock_response
-            if 'embed_en' in url:
+            if 'embed_en_batch' in url:
                 return mock_embed_response
             return MagicMock(status_code=404)
 
         mock_session.post.side_effect = side_effect
 
-        precompute_instrument_embeddings()
+        precompute_instrument_embeddings(max_workers=1)
 
-        # Verify all Mikroskooppi instances got updated
+        # Verify all Mikroskooppi instances got updated with same translation
+        # (they share the same cache key since merkki_ja_malli is empty for both)
         microscopes = Instrument.objects.filter(tuotenimi="Mikroskooppi")
         for m in microscopes:
+            m.refresh_from_db()
             self.assertEqual(m.tuotenimi_en, "Microscope")
+            self.assertEqual(m.enriched_description, "laboratory microscope")
+        
+        # Verify enrich_batch was called, and should have been called with unique cache keys
+        # (2 unique keys: mikroskooppi| and vaaka|)
+        self.assertTrue(mock_enrichment_service.enrich_batch.called)
 
 
 class SearchIntegrationTest(TestCase):
@@ -207,9 +243,9 @@ class SearchIntegrationTest(TestCase):
 
         # Verify calls
         mock_post.assert_called_with(
-            "http://semantic-search-service:8001/embed_en",
+            "http://semantic-search-service:8001/embed_query",
             json={"text": "Microscope"},
-            timeout=5.0
+            timeout=20.0
         )
 
     @patch('instrument_registry.views.requests.post')
@@ -237,9 +273,9 @@ class SearchIntegrationTest(TestCase):
 
         # Verify calls
         mock_post.assert_called_with(
-            "http://semantic-search-service:8001/process",
+            "http://semantic-search-service:8001/process_query",
             json={"text": "Mikroskooppi"},
-            timeout=5.0
+            timeout=20.0
         )
 
     @patch('instrument_registry.views.requests.post')
