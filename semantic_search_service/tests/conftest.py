@@ -42,7 +42,7 @@ class MockTranslationModel:
 # Mocks for Embeddings
 # ==========================================================
 class MockEmbeddingModel:
-    def encode(self, sentences, batch_size=32, show_progress_bar=False, convert_to_numpy=True):
+    def encode(self, sentences, batch_size=32, show_progress_bar=False, convert_to_numpy=True, normalize_embeddings=True):
         # Return fixed embeddings
         # If input is a single string, return 1D array
         if isinstance(sentences, str):

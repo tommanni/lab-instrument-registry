@@ -5,7 +5,7 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 ## Stack
 
 - **FastAPI + Uvicorn** for the HTTP API  
-- **SentenceTransformer** (`all-mpnet-base-v2`) for embeddings  
+- **SentenceTransformer** (`BAAI/bge-base-en-v1.5`) for embeddings  
 - **Helsinki-NLP/opus-mt-fi-en** (fine-tuned) for Finnish→English translation  
 - **PyTorch (CPU)** with dynamic quantization for smaller memory footprint and faster inference
 
@@ -14,8 +14,12 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/process` | Translate a single Finnish string and generate embeddings (`embedding_en`). |
-| `POST` | `/process_batch` | Batch version of `/process` (up to `MAX_BATCH_SIZE` = 256). |
+| `POST` | `/process_query` | Translate a Finnish query string and generate query-optimized embeddings. |
+| `POST` | `/process_batch` | Batch version of `/process` |
 | `POST` | `/embed_en` | English embedding only. |
+| `POST` | `/embed_query` | English query embedding. |
+| `POST` | `/embed_en_batch` | Batch English embeddings. |
+| `POST` | `/translate_batch` | Batch translation only (no embeddings). |
 | `GET` | `/healthz` | Returns `{"status": "ok"}` once all models are loaded (used by Docker healthcheck). |
 
 ## Model Handling
@@ -101,4 +105,4 @@ This requires the service to be running (`make semantic-search`).
 
 *   `tests/conftest.py`: Contains global fixtures, including mocks for the `MarianMT` (translation) and `SentenceTransformer` (embedding) models.
 *   `tests/test_services.py`: Unit tests for core logic (prefix handling, validation, batch processing).
-*   `tests/test_main.py`: Integration tests for the FastAPI endpoints (`/process`, `/process_batch`, `/healthz`).
+*   `tests/test_main.py`: Integration tests for the FastAPI endpoints (`/process`, `/process_query`, `/process_batch`, `/embed_en`, `/embed_query`, `/embed_en_batch`, `/healthz`).

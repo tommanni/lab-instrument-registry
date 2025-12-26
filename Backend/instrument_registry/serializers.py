@@ -31,7 +31,7 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
 
     class Meta:
         model = Instrument
-        exclude = ['embedding_en']
+        exclude = ['embedding_en', 'enriched_description']
 
     def create(self, validated_data):
         tuotenimi = validated_data.get('tuotenimi', '').lower()
@@ -173,7 +173,7 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
 class InstrumentCSVSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = Instrument
-        exclude = ['id', 'embedding_en']
+        exclude = ['id', 'embedding_en', 'enriched_description']
 
 # User serializer
 class RegistryUserSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelSerializer):

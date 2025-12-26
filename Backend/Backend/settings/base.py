@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import timedelta
 from rest_framework.settings import api_settings
 import environ
+import os
 
 # environment configuration
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -150,3 +151,6 @@ REST_KNOX = {
 # Variables used for configuring the invite code for creating new users
 INVITE_CODE_LIFETIME = timedelta(hours=2)
 INVITE_CODE_DIGITS = 8
+
+GOOGLE_GENAI_API_KEY = os.environ.get('GOOGLE_GENAI_API_KEY', '')
+GOOGLE_AI_MODEL = 'gemini-2.5-flash-lite'

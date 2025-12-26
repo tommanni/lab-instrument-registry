@@ -7,6 +7,7 @@ from models import (
     CONTEXT_PREFIX,
     CONTEXT_PREFIX_EN,
     EMBEDDING_BATCH_SIZE,
+    BGE_INSTRUCTION,
     warm_up_models,
     ensure_models_loaded,
 )
@@ -48,15 +49,36 @@ class InputTexts(BaseModel):
 async def process_text(input_text: InputText):
     fi_text = input_text.text.strip().lower()
 
-    # Translate text
     translated_text = translate_fi_to_en(CONTEXT_PREFIX + fi_text)
 
-    # Generate embeddings
     embedding_en_result = (
         embed_en(CONTEXT_PREFIX_EN + translated_text)
         if translated_text != "Translation Failed"
         else None
     )
+
+    return {
+        "translated_text": translated_text.lower(),
+        "embedding_en": embedding_en_result,
+    }
+
+@app.post("/process_query")
+async def process_query_endpoint(input_text: InputText):
+    fi_text = input_text.text.strip().lower()
+
+    translated_text = translate_fi_to_en(CONTEXT_PREFIX + fi_text)
+
+    if translated_text == "Translation Failed":
+        return {
+            "translated_text": None, 
+            "embedding_en": None
+        }
+
+    query_text = translated_text
+    if not query_text.startswith("Represent this sentence"):
+        query_text = BGE_INSTRUCTION + query_text
+
+    embedding_en_result = embed_en(query_text)
 
     return {
         "translated_text": translated_text.lower(),
@@ -106,15 +128,30 @@ async def process_batch_text(input_texts: InputTexts):
 
 @app.post("/embed_en")
 async def embed_en_endpoint(input_text: InputText):
-    embedding = embed_en(CONTEXT_PREFIX_EN + input_text.text.strip().lower())
+    embedding = embed_en(input_text.text.strip())
+    return {"embedding": embedding}
+
+@app.post("/embed_query")
+async def embed_query_endpoint(input_text: InputText):    
+    query = input_text.text.strip()
+    if not query.startswith("Represent this sentence"):
+        query = BGE_INSTRUCTION + query
+        
+    embedding = embed_en(query)
     return {"embedding": embedding}
 
 @app.post("/embed_en_batch")
 async def embed_en_batch_endpoint(input_texts: InputTexts):
+    clean_texts = [text.strip() for text in input_texts.texts]
+    
+    embeddings = embed_en_batch(clean_texts, EMBEDDING_BATCH_SIZE)
+    return {"embeddings": embeddings.tolist()}
+
+@app.post("/translate_batch")
+async def translate_batch_endpoint(input_texts: InputTexts):
     prefixed_texts = [
-        CONTEXT_PREFIX_EN + text.strip().lower() 
+        CONTEXT_PREFIX + text.strip()
         for text in input_texts.texts
     ]
-    
-    embeddings = embed_en_batch(prefixed_texts, EMBEDDING_BATCH_SIZE)
-    return {"embeddings": embeddings.tolist()}
+    translations = translate_fi_to_en_batch(prefixed_texts)
+    return {"translations": translations}

@@ -39,10 +39,11 @@ class Instrument(models.Model):
     edellinen_huolto = models.DateField(null=True, blank=True)
     seuraava_huolto = models.DateField(null=True, blank=True)
     tilanne = models.CharField(max_length=100)
+    enriched_description = models.TextField(max_length=400, default="", blank=True)
     embedding_en = VectorField(blank=True, null=True, dimensions=768)
     history = HistoricalRecords(
         bases=[UsernameHistoricalModel],
-        excluded_fields=['embedding_en'],
+        excluded_fields=['embedding_en', 'enriched_description'],
     )
 
 # Manager model used for creating users

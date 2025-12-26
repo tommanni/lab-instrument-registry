@@ -26,7 +26,7 @@ def translate_fi_to_en(text: str) -> str:
         tokens = tokenizer(text, return_tensors="pt", padding=True)
         translated = model.generate(**tokens)
         result = tokenizer.decode(translated[0], skip_special_tokens=True).strip()
-        if len(result) > 3 * len(text) or len(result) > 100:
+        if len(result) > 3 * len(text):
             return "Translation Failed"
         result = _strip_context_prefix(result)
         return result
@@ -82,7 +82,7 @@ def translate_fi_to_en_batch(texts: List[str]) -> List[str]:
 def embed_en(text: str) -> list:
     """Generate English embedding for a single text"""
     model = get_embedding_model_en()
-    return model.encode(text).tolist()
+    return model.encode(text, normalize_embeddings=True).tolist()
 
 def embed_en_batch(texts: List[str], batch_size: int = 100) -> list:
     """Generate English embeddings for multiple texts"""
@@ -91,7 +91,8 @@ def embed_en_batch(texts: List[str], batch_size: int = 100) -> list:
         texts,
         batch_size=batch_size, 
         show_progress_bar=False,
-        convert_to_numpy=True
+        convert_to_numpy=True,
+        normalize_embeddings=True
     )
 
 # ==========================================================

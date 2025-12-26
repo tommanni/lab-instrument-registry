@@ -14,6 +14,7 @@ from transformers import MarianMTModel, MarianTokenizer
 MAX_BATCH_SIZE = 256
 CONTEXT_PREFIX = "tieteellinen instrumentti: "
 CONTEXT_PREFIX_EN = "a scientific instrument: "
+BGE_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 EMBEDDING_BATCH_SIZE = 100
 
 # --- Opus MT Model for translation (Fine-tuned or original) ---
@@ -23,7 +24,7 @@ sanitized_model_name = opus_mt_model_name.replace("/", "_")
 
 # Model paths
 TRANSLATION_MODEL_PATH = f"/app/models/{sanitized_model_name}"
-EMBEDDING_MODEL_EN_PATH = "/app/models/all-mpnet-base-v2"
+EMBEDDING_MODEL_EN_PATH = "/app/models/bge-base-en-v1.5"
 
 # ==========================================================
 # Logging setup
@@ -145,6 +146,7 @@ __all__ = [
     "MAX_BATCH_SIZE",
     "CONTEXT_PREFIX",
     "CONTEXT_PREFIX_EN",
+    "BGE_INSTRUCTION",
     "EMBEDDING_BATCH_SIZE",
     "ensure_models_loaded",
     "warm_up_models",

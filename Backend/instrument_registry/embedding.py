@@ -16,38 +16,46 @@ KEY DESIGN:
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
-from django.db import transaction
+from django.db import transaction, connection, close_old_connections
 from django.db.models import Q
 from django.conf import settings
 from simple_history.utils import bulk_update_with_history
 
 from instrument_registry.models import Instrument
+from instrument_registry.enrichment import (
+    enrich_instruments_batch, 
+    INVALID_ENRICHMENT_VALUES
+)
+
 import requests
+import threading
+import concurrent.futures
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 @dataclass
 class InstrumentState:
     instrument: Instrument
-    name_key: str
+    cache_key: str
     has_valid_translation: bool
+    has_valid_enrichment: bool
+    resolved_enrichment: str | None
     resolved_translation: str | None
     resolved_embedding: list | None
 
-def _requests_retry_session(
-    retries=3,
-    backoff_factor=0.3,
-    status_forcelist=(500, 502, 504),
-):
+def _requests_retry_session(pool_size=10):
+    """
+    Creates a session with a connection pool
+    """
     session = requests.Session()
     retry = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
+        total=3,
+        read=3,
+        connect=3,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
     )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=5, pool_maxsize=pool_size)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session
@@ -58,12 +66,26 @@ INVALID_TRANSLATION_VALUES = {"", "Translation Failed"}
 
 SERVICE_URL = getattr(settings, 'SEMANTIC_SERVICE_URL', 'http://semantic-search-service:8001')
 
+def _get_cache_key(instrument):
+    """
+    Creates a composite key from Name + Model Info.
+    This ensures that 'Analysaattori (Model A)' is treated differently 
+    from 'Analysaattori (Model B)'.
+    """
+    name = (instrument.tuotenimi or "").strip().lower()
+    
+    brand_info = (instrument.merkki_ja_malli or "").strip().lower()
+    
+    return f"{name}|{brand_info}"
+
 def precompute_instrument_embeddings(
     *,
-    batch_size: int = 100,
+    batch_size: int = 50,
+    max_workers: int = 6,
     force: bool = False,
     on_info=lambda msg: None,
     on_error=lambda msg: None,
+    skip_enrichment: bool = False,
 ):
     """Precomputes translations and embeddings for instruments. Returns summary dict."""
     if force:
@@ -72,259 +94,300 @@ def precompute_instrument_embeddings(
     else:
         instruments_queryset = Instrument.objects.filter(
             Q(tuotenimi_en__in=["", "Translation Failed"]) |
+            Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
             Q(embedding_en__isnull=True)
         )
-        on_info('Processing only instruments that need translation/embedding.')
+        on_info('Processing instruments that need updates.')
 
     instruments = list(instruments_queryset)
-    total_instruments_to_process = len(instruments)
+    total_count = len(instruments)
+    
+    if total_count == 0:
+        on_info("No instruments to process.")
+        return {'processed_count': 0}
 
-    embedding_by_translation, name_translation_cache = _build_translation_and_embedding_caches()
+    # Create a Lock for the shared cache
+    cache_lock = threading.Lock()
 
-    on_info(f'Starting to process {total_instruments_to_process} instruments in batches of {batch_size}.')
+    translation_cache, enrichment_cache, embedding_cache = _build_caches()
 
-    session = _requests_retry_session()
+    on_info(f'Starting to process {total_count} instruments in batches of {batch_size}.')
 
-    try:
-        for i in range(0, total_instruments_to_process, batch_size):
-            batch = instruments[i:i + batch_size]
-            if not batch:
-                continue
+    batches = [instruments[i:i + batch_size] for i in range(0, total_count, batch_size)]
 
-            instruments_to_update = _process_batch(
+    # Execute batches in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Map futures to their batch index for logging
+        future_to_idx = {
+            executor.submit(
+                _process_batch_worker, 
                 batch, 
-                session, 
-                (name_translation_cache, embedding_by_translation), 
+                skip_enrichment,
+                (translation_cache, enrichment_cache, embedding_cache), 
+                cache_lock,
+                max_workers,
                 on_error
-            )
+            ): i for i, batch in enumerate(batches)
+        }
 
-            with transaction.atomic():
-                bulk_update_with_history(
-                    instruments_to_update,
-                    Instrument,
-                    ['tuotenimi_en', 'embedding_en']
-                )
-                on_info(
-                    f'Batch {i//batch_size + 1}/{(total_instruments_to_process + batch_size - 1)//batch_size} processed and updated.'
-                )
-    finally:
-        session.close()
+        # As tasks complete (in any order), write to DB
+        for future in concurrent.futures.as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                # Get the result from the worker
+                instruments_to_update = future.result()
 
-    successful = Instrument.objects.exclude(tuotenimi_en__in=["", "Translation Failed"]).count()
-    failed = Instrument.objects.filter(tuotenimi_en="Translation Failed").count()
+                # MAIN THREAD: Write to Database
+                if instruments_to_update:
+                    with transaction.atomic():
+                        bulk_update_with_history(
+                            instruments_to_update,
+                            Instrument,
+                            ['tuotenimi_en', 'enriched_description', 'embedding_en']
+                        )
+                    on_info(f'Batch {idx + 1}/{len(batches)} saved.')
+
+            except Exception as exc:
+                on_error(f'Batch {idx + 1} failed with error: {exc}')
 
     return {
-        'processed_count': total_instruments_to_process,
-        'successful': successful,
-        'failed': failed,
-        'cache_size': len(name_translation_cache),
+        'processed_count': total_count,
+        'successful': Instrument.objects.exclude(tuotenimi_en__in=["", "Translation Failed"]).count(),
+        'cache_size': len(translation_cache),
     }
 
-def _build_translation_and_embedding_caches():
+def _build_caches():
     """
     Builds in-memory caches from existing database records to minimize API calls.
     Uses majority voting because multiple translations can exist for the same Finnish name.
     """
-    name_translation_counts = defaultdict(Counter)
-    embedding_by_translation = {}
+    key_translation_counts = defaultdict(Counter)
+    embedding_cache = {}
+    enrichment_cache = {}
 
     existing_translations = Instrument.objects.exclude(
         tuotenimi_en__in=INVALID_TRANSLATION_VALUES
-    ).only('tuotenimi', 'tuotenimi_en', 'embedding_en')
+    ).only('tuotenimi', 'merkki_ja_malli', 'tuotenimi_en')
 
     for instrument in existing_translations:
-        name_key = instrument.tuotenimi.lower()
-        translation_value = instrument.tuotenimi_en
-        name_translation_counts[name_key][translation_value] += 1
-        if instrument.embedding_en is not None and translation_value not in embedding_by_translation:
-            embedding_by_translation[translation_value] = instrument.embedding_en
+        key = _get_cache_key(instrument)
+        key_translation_counts[key][instrument.tuotenimi_en] += 1
 
-    name_translation_cache = {
-        key: counter.most_common(1)[0][0] for key, counter in name_translation_counts.items()
+    existing_embeddings = Instrument.objects.exclude(
+        embedding_en__isnull=True
+    ).only('tuotenimi', 'merkki_ja_malli', 'embedding_en')
+
+    for instrument in existing_embeddings:
+        cache_key = _get_cache_key(instrument)
+        embedding_cache[cache_key] = instrument.embedding_en
+
+    existing_enrichments = Instrument.objects.exclude(
+        enriched_description__in=INVALID_ENRICHMENT_VALUES
+    ).only('tuotenimi', 'merkki_ja_malli', 'enriched_description')
+
+    for instrument in existing_enrichments:
+        cache_key = _get_cache_key(instrument)
+        enrichment_cache[cache_key] = instrument.enriched_description
+
+    translation_cache = {
+        key: counter.most_common(1)[0][0] for key, counter in key_translation_counts.items()
     }
 
-    return embedding_by_translation, name_translation_cache
+    return translation_cache, enrichment_cache, embedding_cache
 
-def _process_batch(batch, session, caches, on_error):
-    """Processes batch by translating missing names and generating embeddings."""
-    name_translation_cache, embedding_by_translation = caches
+def _process_batch_worker(batch, skip_enrichment, global_caches, cache_lock, pool_size, on_error):
+    """
+    Worker function: Handles Network I/O.
+    """
+    close_old_connections()
 
-    # Step 1: Analyze what each instrument needs (translation, embedding, or both)
-    instrument_states, unique_names_to_translate = _collect_instrument_states(
-        batch,
-        name_translation_cache,
-        embedding_by_translation
-    )
+    # Create a session local to this thread
+    session = _requests_retry_session(pool_size=pool_size)
 
-    # Step 2: Translate any Finnish names not in cache via API
-    if unique_names_to_translate:
-        _translate_missing(
-            unique_names_to_translate,
-            session,
-            (name_translation_cache, embedding_by_translation),
-            on_error,
+    # Unpack shared global cahces
+    global_trans_cache, global_enrich_cache, global_embed_cache = global_caches
+
+    try:
+        # Step 1: Analyze
+        instrument_states, unique_items_to_process = _collect_instrument_states(batch, global_caches)
+
+        # Step 2: Gemini API 
+        if unique_items_to_process:
+            #Create empty local dictionaries for this thread
+            local_trans_sandbox = {}
+            local_enrich_sandbox = {}
+
+            enrich_instruments_batch(
+                unique_items_to_process, 
+                local_trans_sandbox, 
+                local_enrich_sandbox, 
+                on_error
+            )
+
+            # Merge local sandboxes into global caches
+            with cache_lock:
+                global_trans_cache.update(local_trans_sandbox)
+                global_enrich_cache.update(local_enrich_sandbox)
+
+            # Update local state from cache
+            _resolve_translations_and_enrichments(instrument_states, (global_trans_cache, global_enrich_cache))
+
+        # Step 3: Embeddings
+        instruments_needing_embedding = _identify_missing_embeddings(
+            instrument_states, 
+            global_embed_cache
         )
 
-    # Step 3: Update instrument_states with new translations and identify which need embeddings
-    translations_needing_embedding = _resolve_translations_and_identify_missing_embeddings(
-        instrument_states,
-        (name_translation_cache, embedding_by_translation)
-    )
+        if instruments_needing_embedding:
+            local_embed_sandbox = {}
 
-    # Step 4: Generate embeddings for English translations not in cache
-    _embed_missing(
-        translations_needing_embedding,
-        session,
-        embedding_by_translation,
-        on_error,
-    )
+            _embed_missing(
+                instruments_needing_embedding, 
+                session, 
+                (global_trans_cache, global_enrich_cache), 
+                local_embed_sandbox, 
+                on_error
+            )
 
-    # Step 5: Prepare instruments with final translations and embeddings
-    instruments_to_update = _build_instruments_to_update(
-        instrument_states,
-        embedding_by_translation
-    )
+            # Merge local sandbox into global cache
+            with cache_lock:
+                global_embed_cache.update(local_embed_sandbox)
 
-    return instruments_to_update
+        # Step 4: Return data to main thread
+        return _build_instruments_to_update(instrument_states, global_embed_cache)
 
-def _collect_instrument_states(batch, name_translation_cache, embedding_by_translation):
+    finally:
+        session.close()
+        close_old_connections()
+
+def _collect_instrument_states(batch, caches):
     """
     Analyzes batch to determine what processing each instrument needs.
     
     Note: Existing valid translations are never overwritten, supporting multiple 
     valid translations for the same Finnish name.
     """
+    translation_cache, enrichment_cache, embedding_cache = caches
+
     instrument_states = []
-    unique_names_to_translate = {}
+    unique_items_to_process = {}
 
     for instrument in batch:
-        name = instrument.tuotenimi or ""
-        name_key = name.lower()
+        cache_key = _get_cache_key(instrument)
 
+        # If DB has a value, mark as valid (User Override protection)
         has_valid_translation = instrument.tuotenimi_en not in INVALID_TRANSLATION_VALUES
-        resolved_translation = instrument.tuotenimi_en if has_valid_translation else name_translation_cache.get(name_key)
+        resolved_translation = instrument.tuotenimi_en if has_valid_translation else translation_cache.get(cache_key)
 
-        if (
-            not has_valid_translation
-            and resolved_translation is None
-            and name_key not in unique_names_to_translate
-        ):
-            unique_names_to_translate[name_key] = instrument.tuotenimi
+        has_valid_enrichment = instrument.enriched_description not in INVALID_ENRICHMENT_VALUES
+        resolved_enrichment = instrument.enriched_description if has_valid_enrichment else enrichment_cache.get(cache_key)
 
+        # If we are missing EITHER valid data OR a cached value, we need to process it
+        needs_trans = not has_valid_translation and resolved_translation is None
+        needs_enrich = not has_valid_enrichment and resolved_enrichment is None
+        
+        if (needs_trans or needs_enrich) and cache_key not in unique_items_to_process:
+            brand_info = instrument.merkki_ja_malli or ""
+            unique_items_to_process[cache_key] = {
+                'finnish_name': instrument.tuotenimi, # MUST be 'finnish_name'
+                'brand_model': brand_info
+            }
+
+        # Check embedding
         resolved_embedding = instrument.embedding_en
-        if resolved_embedding is None and resolved_translation:
-            resolved_embedding = embedding_by_translation.get(resolved_translation)
+        if resolved_embedding is None:
+            resolved_embedding = embedding_cache.get(cache_key)
 
         instrument_states.append(
             InstrumentState(
                 instrument=instrument,
-                name_key=name_key,
-                has_valid_translation=has_valid_translation,
+                cache_key=cache_key,
+                has_valid_translation=has_valid_translation, 
                 resolved_translation=resolved_translation,
                 resolved_embedding=resolved_embedding,
+                has_valid_enrichment=has_valid_enrichment,
+                resolved_enrichment=resolved_enrichment,
             )
         )
 
-    return instrument_states, unique_names_to_translate
+    return instrument_states, unique_items_to_process
 
-def _translate_missing(unique_names_to_translate, session, caches, on_error):
+def _resolve_translations_and_enrichments(instrument_states, caches):
     """
-    Translates Finnish names to English via /process_batch endpoint.
-    Updates both translation and embedding caches. Marks failures as "Translation Failed".
+    Updates instrument states with newly cached translations and enrichments.
     """
-    name_translation_cache, embedding_by_translation = caches
-
-    texts_to_process = list(unique_names_to_translate.values())
-    keys_to_process = list(unique_names_to_translate.keys())
-
-    try:
-        response = session.post(
-            f"{SERVICE_URL}/process_batch",
-            json={"texts": texts_to_process},
-            timeout=30
-        )
-        response.raise_for_status()
-
-        batch_results = response.json()
-
-        for name, result in zip(keys_to_process, batch_results):
-            translated_text = result['translated_text']
-            embedding_en = result['embedding_en']
-
-            name_translation_cache[name] = translated_text
-
-            if translated_text not in INVALID_TRANSLATION_VALUES and embedding_en is not None:
-                embedding_by_translation[translated_text] = embedding_en
-
-    except requests.exceptions.RequestException as exc:
-        on_error(f'Error connecting to semantic search service for batch: {exc}')
-        for name in keys_to_process:
-            name_translation_cache[name] = "Translation Failed"
-    except Exception as exc:
-        on_error(f'An unexpected error occurred: {exc}')
-        for name in keys_to_process:
-            name_translation_cache[name] = "Translation Failed"
-
-def _resolve_translations_and_identify_missing_embeddings(instrument_states, caches):
-    """
-    Updates instrument states with newly cached translations and identifies which 
-    translations still need embeddings generated.
-    """
-    name_translation_cache, embedding_by_translation = caches
-
-    translations_needing_embedding = set()
+    translation_cache, enrichment_cache = caches
     for state in instrument_states:
         if state.resolved_translation is None:
-            state.resolved_translation = name_translation_cache.get(
-                state.name_key,
-                "Translation Failed"
-            )
-        if (
-            state.resolved_embedding is None and
-            state.resolved_translation not in INVALID_TRANSLATION_VALUES
-        ):
-            cached_embedding = embedding_by_translation.get(state.resolved_translation)
+            state.resolved_translation = translation_cache.get(state.cache_key,"Translation Failed")
+        if state.resolved_enrichment is None:
+            state.resolved_enrichment = enrichment_cache.get(state.cache_key, "Enrichment Failed")
 
+def _identify_missing_embeddings(instrument_states, embedding_cache):
+    """
+    Identifies which instruments still need embeddings generated.
+    """
+    instruments_needing_embedding = set()
+    for state in instrument_states:
+        if state.resolved_embedding is None:
+            cached_embedding = embedding_cache.get(state.cache_key)
             if cached_embedding is not None:
                 state.resolved_embedding = cached_embedding
             else:
-                translations_needing_embedding.add(state.resolved_translation)
+                instruments_needing_embedding.add(state.cache_key)
 
-    return translations_needing_embedding
+    return instruments_needing_embedding
 
-def _embed_missing(translations_needing_embedding, session, embedding_by_translation, on_error):
+def _embed_missing(instruments_needing_embedding, session, source_caches, target_cache, on_error):
     """
-    Generates embeddings for English translations via /embed_en_batch endpoint.
-    On error, sets embeddings to None (graceful degradation).
+    Generates embeddings for instruments via /embed_en_batch endpoint.
+    Updates embedding cache (Sandbox). Marks failures as None.
     """
-    texts_to_embed = list(translations_needing_embedding)
+    translation_cache, enrichment_cache = source_caches
+
+    texts_to_embed = []
+    names_to_embed = []
+
+    for cache_key in instruments_needing_embedding:
+        translation = translation_cache.get(cache_key) or ""
+        enrichment = enrichment_cache.get(cache_key) or ""
+
+        if translation in INVALID_TRANSLATION_VALUES:
+            translation = ""
+        if enrichment in INVALID_ENRICHMENT_VALUES:
+            enrichment = ""
+
+        combined_text = ": ".join(filter(None, [translation, enrichment]))
+        if combined_text:  # Only embed if we have some text
+            texts_to_embed.append(combined_text)
+            names_to_embed.append(cache_key)
+
     if texts_to_embed:
         try:
             response = session.post(
                 f"{SERVICE_URL}/embed_en_batch",
                 json={"texts": texts_to_embed},
-                timeout=30
+                timeout=60
             )
             response.raise_for_status()
-
             embeddings_result = response.json().get('embeddings', [])
 
-            for text, embedding in zip(texts_to_embed, embeddings_result, strict=True):
-                embedding_by_translation[text] = embedding
+            for cache_key, embedding in zip(names_to_embed, embeddings_result, strict=True):
+                target_cache[cache_key] = embedding
 
         except requests.exceptions.RequestException as exc:
             on_error(f'Error connecting to batch embedding service: {exc}')
-            for text in texts_to_embed:
-                embedding_by_translation[text] = None
+            for cache_key in names_to_embed:
+                target_cache[cache_key] = None
 
         except Exception as exc:
             on_error(f'Unexpected error during batch embedding: {exc}')
-            for text in texts_to_embed:
-                embedding_by_translation[text] = None
+            for cache_key in names_to_embed:
+                target_cache[cache_key] = None
 
-def _build_instruments_to_update(instrument_states, embedding_by_translation):
+def _build_instruments_to_update(instrument_states, embedding_cache):
     """
-    Applies final translations and embeddings to instruments for database update.
+    Builds list of instruments to update with final translations, enrichments and embeddings.
     """
     instruments_to_update = []
     for state in instrument_states:
@@ -334,14 +397,14 @@ def _build_instruments_to_update(instrument_states, embedding_by_translation):
         if not state.has_valid_translation:
             instrument.tuotenimi_en = translation or "Translation Failed"
 
-        if (
-            state.resolved_embedding is None and
-            translation not in INVALID_TRANSLATION_VALUES
-        ):
-            state.resolved_embedding = embedding_by_translation.get(translation)
+        if state.resolved_embedding is None:
+            state.resolved_embedding = embedding_cache.get(state.cache_key)
 
         if instrument.embedding_en is None and state.resolved_embedding is not None:
             instrument.embedding_en = state.resolved_embedding
+
+        if not state.has_valid_enrichment:
+            instrument.enriched_description = state.resolved_enrichment or "Enrichment Failed"
 
         instruments_to_update.append(instrument)
     return instruments_to_update

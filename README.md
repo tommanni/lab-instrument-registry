@@ -30,11 +30,14 @@ across hundreds of users.
 
 **AI Integration:**
 - Built a FastAPI microservice responsible for:
-    - Finnish→English machine translation
+    - Finnish→English machine translation for search queries (Helsinki-NLP/opus-mt)
     - English embedding generation for semantic search
+- Integrated Google Gemini LLM for:
+    - High-quality Finnish→English translation
+    - Semantic description generation (enriched descriptions for better search)
 - Fine-tuned Helsinki-NLP/opus-mt translation model for domain-specific laboratory terminology
-- Integrated automated translation and embedding generation into:
-    - CSV import
+- Integrated automated translation, data enrichment, and embedding generation into:
+    - Background batch processing pipeline after a CSV import
     - Single-instrument creation
 - Implemented a hybrid smart search (60-100ms end-to-end) combining:
     - Semantic similarity (PostgreSQL + pgvector)
@@ -42,9 +45,9 @@ across hundreds of users.
 - Built bulk translation correction to update all instruments sharing the same Finnish name
 
 **Data Import & Performance:**
-- Built a background job pipeline for translation/embedding generation with:
-    - Caching
-    - Batch processing
+- Built a background job pipeline for translation/enrichment/embedding generation with:
+    - Caching (translation, enrichment, and embedding caches)
+    - Batch processing (parallel batch workers)
     - Majority voting to ensure translation consistency
 - Optimized duplicate detection and CSV row insertion to handle large datasets efficiently
 - Implemented a feature for selecting which potential duplicates to import when source data lacks unique identifiers
@@ -178,7 +181,7 @@ make semantic-search          # (Re)start FastAPI translator/embedding service
 make semantic-test            # Run tests for the semantic search service
 docker compose logs -f semantic-search-service   # Follow logs
 ```
-The semantic-search container powers Finnish→English translations and English embeddings; imports and preprocessing commands rely on it.
+The semantic-search container powers Finnish→English translations and English embeddings. The Django backend also uses Google Gemini API for high-quality translation and semantic description generation (enrichment). Imports and preprocessing commands rely on both services.
 
 ## 🗂️ Project Structure
 
@@ -211,6 +214,7 @@ The system uses Docker environment variables (no manual setup needed):
 - **Database:** PostgreSQL 17 on port 5432
 - **Backend:** Django on port 8000
 - **Frontend:** Vite dev server on port 5173
+- **Google Gemini API:** Required for enrichment (translation + semantic descriptions). Set `GOOGLE_GENAI_API_KEY` in your environment (.env)
 
 ## 🚨 Troubleshooting
 
@@ -237,7 +241,9 @@ docker-compose logs -f   # Instead of 'make logs'
 
 - **Frontend:** Vue.js + Bootstrap
 - **Backend:** Django REST Framework
-- **ML Service:** FastAPI + Helsinki-NLP + SentenceTransformer
+- **ML Services:**
+    - **Semantic Search Service:** FastAPI + Helsinki-NLP (translation) + SentenceTransformer (embeddings)
+    - **Enrichment Service:** Google Gemini LLM (translation + semantic descriptions)
 - **Database:** PostgreSQL 17 + pgvector extension
 - **Infrastructure:** Docker Compose
 
