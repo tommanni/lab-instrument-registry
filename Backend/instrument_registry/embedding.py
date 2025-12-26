@@ -16,7 +16,7 @@ KEY DESIGN:
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
-from django.db import transaction, connection
+from django.db import transaction, connection, close_old_connections
 from django.db.models import Q
 from django.conf import settings
 from simple_history.utils import bulk_update_with_history
@@ -28,6 +28,7 @@ from instrument_registry.enrichment import (
 )
 
 import requests
+import threading
 import concurrent.futures
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -105,6 +106,9 @@ def precompute_instrument_embeddings(
         on_info("No instruments to process.")
         return {'processed_count': 0}
 
+    # Create a Lock for the shared cache
+    cache_lock = threading.Lock()
+
     translation_cache, enrichment_cache, embedding_cache = _build_caches()
 
     on_info(f'Starting to process {total_count} instruments in batches of {batch_size}.')
@@ -120,6 +124,7 @@ def precompute_instrument_embeddings(
                 batch, 
                 skip_enrichment,
                 (translation_cache, enrichment_cache, embedding_cache), 
+                cache_lock,
                 max_workers,
                 on_error
             ): i for i, batch in enumerate(batches)
@@ -190,42 +195,70 @@ def _build_caches():
 
     return translation_cache, enrichment_cache, embedding_cache
 
-def _process_batch_worker(batch, skip_enrichment, caches, pool_size, on_error):
+def _process_batch_worker(batch, skip_enrichment, global_caches, cache_lock, pool_size, on_error):
     """
     Worker function: Handles Network I/O.
     """
+    close_old_connections()
+
     # Create a session local to this thread
     session = _requests_retry_session(pool_size=pool_size)
 
+    # Unpack shared global cahces
+    global_trans_cache, global_enrich_cache, global_embed_cache = global_caches
+
     try:
         # Step 1: Analyze
-        instrument_states, unique_items_to_process = _collect_instrument_states(batch, caches)
+        instrument_states, unique_items_to_process = _collect_instrument_states(batch, global_caches)
 
         # Step 2: Gemini API 
         if unique_items_to_process:
+            #Create empty local dictionaries for this thread
+            local_trans_sandbox = {}
+            local_enrich_sandbox = {}
+
             enrich_instruments_batch(
                 unique_items_to_process, 
-                caches[0], 
-                caches[1], 
+                local_trans_sandbox, 
+                local_enrich_sandbox, 
                 on_error
             )
+
+            # Merge local sandboxes into global caches
+            with cache_lock:
+                global_trans_cache.update(local_trans_sandbox)
+                global_enrich_cache.update(local_enrich_sandbox)
+
             # Update local state from cache
-            _resolve_translations_and_enrichments(instrument_states, (caches[0], caches[1]))
+            _resolve_translations_and_enrichments(instrument_states, (global_trans_cache, global_enrich_cache))
 
         # Step 3: Embeddings
         instruments_needing_embedding = _identify_missing_embeddings(
             instrument_states, 
-            caches[2]
+            global_embed_cache
         )
-        
-        _embed_missing(instruments_needing_embedding, session, caches, on_error)
+
+        if instruments_needing_embedding:
+            local_embed_sandbox = {}
+
+            _embed_missing(
+                instruments_needing_embedding, 
+                session, 
+                (global_trans_cache, global_enrich_cache), 
+                local_embed_sandbox, 
+                on_error
+            )
+
+            # Merge local sandbox into global cache
+            with cache_lock:
+                global_embed_cache.update(local_embed_sandbox)
 
         # Step 4: Return data to main thread
-        return _build_instruments_to_update(instrument_states, caches[2])
+        return _build_instruments_to_update(instrument_states, global_embed_cache)
 
     finally:
         session.close()
-        connection.close()
+        close_old_connections()
 
 def _collect_instrument_states(batch, caches):
     """
@@ -305,14 +338,16 @@ def _identify_missing_embeddings(instrument_states, embedding_cache):
 
     return instruments_needing_embedding
 
-def _embed_missing(instruments_needing_embedding, session, caches, on_error):
+def _embed_missing(instruments_needing_embedding, session, source_caches, target_cache, on_error):
     """
     Generates embeddings for instruments via /embed_en_batch endpoint.
-    Updates embedding cache. Marks failures as None.
+    Updates embedding cache (Sandbox). Marks failures as None.
     """
-    translation_cache, enrichment_cache, embedding_cache = caches
+    translation_cache, enrichment_cache = source_caches
+
     texts_to_embed = []
     names_to_embed = []
+
     for cache_key in instruments_needing_embedding:
         translation = translation_cache.get(cache_key) or ""
         enrichment = enrichment_cache.get(cache_key) or ""
@@ -326,6 +361,7 @@ def _embed_missing(instruments_needing_embedding, session, caches, on_error):
         if combined_text:  # Only embed if we have some text
             texts_to_embed.append(combined_text)
             names_to_embed.append(cache_key)
+
     if texts_to_embed:
         try:
             response = session.post(
@@ -334,21 +370,20 @@ def _embed_missing(instruments_needing_embedding, session, caches, on_error):
                 timeout=60
             )
             response.raise_for_status()
-
             embeddings_result = response.json().get('embeddings', [])
 
             for cache_key, embedding in zip(names_to_embed, embeddings_result, strict=True):
-                embedding_cache[cache_key] = embedding
+                target_cache[cache_key] = embedding
 
         except requests.exceptions.RequestException as exc:
             on_error(f'Error connecting to batch embedding service: {exc}')
             for cache_key in names_to_embed:
-                embedding_cache[cache_key] = None
+                target_cache[cache_key] = None
 
         except Exception as exc:
             on_error(f'Unexpected error during batch embedding: {exc}')
             for cache_key in names_to_embed:
-                embedding_cache[cache_key] = None
+                target_cache[cache_key] = None
 
 def _build_instruments_to_update(instrument_states, embedding_cache):
     """
