@@ -8,7 +8,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--batch-size',
             type=int,
-            default=100,
+            default=50,
             help='Number of instruments to process in a single batch.'
         )
 
@@ -43,6 +43,5 @@ class Command(BaseCommand):
             f'\n=== Summary ===\n'
             f'Total processed: {summary["processed_count"]}\n'
             f'Successful: {summary["successful"]}\n'
-            f'Failed: {summary["failed"]}\n'
             f'Unique translations: {summary["cache_size"]}'
         ))

@@ -38,21 +38,21 @@ Instrument related views
 """
 # This view returns all of the instruments in the database.
 class InstrumentList(generics.ListCreateAPIView):
-    queryset = Instrument.objects.defer('embedding_en')
+    queryset = Instrument.objects.defer('embedding_en', 'enriched_description')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns a single instrument.
 class InstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Instrument.objects.defer('embedding_en')
+    queryset = Instrument.objects.defer('embedding_en', 'enriched_description')
     serializer_class = InstrumentSerializer
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # This view returns the history of a single instrument.
 class InstrumentHistory(generics.RetrieveAPIView):
-    queryset = Instrument.objects.defer('embedding_en')
+    queryset = Instrument.objects.defer('embedding_en', 'enriched_description')
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -146,7 +146,7 @@ class InstrumentValueSet(APIView):
         if field_name not in field_names:
             return Response({'message': 'no such field'}, status=400)
         unique_values = set()
-        instruments = Instrument.objects.defer('embedding_en')
+        instruments = Instrument.objects.defer('embedding_en', 'enriched_description')
         for i in instruments:
             unique_values.add(getattr(i, field_name))
         return Response({'data': list(unique_values)})
@@ -163,7 +163,7 @@ class InstrumentCSVExport(APIView):
 
         now = datetime.now().strftime('%G-%m-%d')
         filename = 'laiterekisteri_' + now + '.csv'
-        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en'))
+        source = model_to_csv(InstrumentCSVSerializer, Instrument.objects.defer('embedding_en', 'enriched_description'))
 
         # Read the CSV content and add UTF-8 BOM for Excel compatibility
         csv_content = source.read()
@@ -283,19 +283,19 @@ class InstrumentCSVImport(APIView):
 
             # Convert to Model Instances
             instrument_instances = [
-            	Instrument(**row)
-             	for row in clean_rows
+                Instrument(**row)
+                for row in clean_rows
             ]
-
+            
             # Bulk create with simple history utility function
             if instrument_instances:
-            	bulk_create_with_history(instrument_instances, Instrument, batch_size=1000)
+                bulk_create_with_history(instrument_instances, Instrument, batch_size=1000)    
 
             precompute_pid = None
             try:
-                precompute_pid, _ = run_precompute_subprocess(force=False) # Compute translations and embeddings
+                precompute_pid, log_path = run_precompute_subprocess(force=False) # Compute translations and embeddings
             except Exception as exc:
-                print(f'Embedding precompute subprocess failed: {exc}')
+                logger.error(f'Embedding precompute subprocess failed: {exc}')
 
             return Response({
                 'success': True,
@@ -333,8 +333,8 @@ class InstrumentSearch(APIView):
     SERVICE_URL = getattr(settings, 'SEMANTIC_SERVICE_URL', 'http://semantic-search-service:8001')
 
     # Search term - search result cosine distance treshold
-    # Distance of 0.0 is identical. Distance of 0.3 is somewhat similar.
-    MAX_DISTANCE_THRESHOLD = 0.30
+    # Distance of 0.0 is identical.
+    MAX_DISTANCE_THRESHOLD = 0.5
 
     def get(self, request):
         search_term = request.query_params.get('q', '').strip()
@@ -346,7 +346,7 @@ class InstrumentSearch(APIView):
 
         if not embedding:
             return Response(
-	            {'message': 'Failed to generate search embedding'},
+	            {'message': f'Failed to generate search embedding'},
 	            status=500
             )
 
@@ -355,7 +355,7 @@ class InstrumentSearch(APIView):
             Instrument.objects
             .annotate(distance=CosineDistance('embedding_en', embedding))
             .filter(distance__lt=self.MAX_DISTANCE_THRESHOLD)
-            .defer('embedding_en')
+            .defer('embedding_en', 'enriched_description')
             .order_by('distance')[:60]
         )
 
@@ -369,16 +369,16 @@ class InstrumentSearch(APIView):
         try:
             # Determine endpoint and payload
             if should_translate_to_english(text):
-                endpoint = f"{self.SERVICE_URL}/process"
+                endpoint = f"{self.SERVICE_URL}/process_query"
                 result_key = 'embedding_en'
             else:
-                endpoint = f"{self.SERVICE_URL}/embed_en"
+                endpoint = f"{self.SERVICE_URL}/embed_query"
                 result_key = 'embedding'
 
             response = requests.post(
                 endpoint,
                 json={"text": text},
-                timeout=5.0
+                timeout=20.0
             )
             response.raise_for_status()
 
@@ -404,7 +404,7 @@ class ServiceValueSet(APIView):
             Q(huoltosopimus_loppuu__isnull=False) |
             Q(seuraava_huolto__isnull=False) |
             Q(edellinen_huolto__isnull=False)
-        ).defer('embedding_en')
+        ).defer('embedding_en', 'enriched_description')
         serializer = InstrumentSerializer(queryset, many=True)
         return Response(serializer.data)
 
