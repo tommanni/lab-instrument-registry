@@ -21,12 +21,15 @@ def download_models():
     else:
         print(f"Model already exists at {model_path_fi_en}")
 
-    # --- English MPNet model ---
-    en_mpnet = "sentence-transformers/all-mpnet-base-v2"
-    en_mpnet_path = os.path.join(models_dir, "all-mpnet-base-v2")
-    if not os.path.exists(en_mpnet_path):
-        print(f"Downloading {en_mpnet}...")
-        SentenceTransformer(en_mpnet).save(en_mpnet_path)
+    # --- English BGE model ---
+    embedding_model = "BAAI/bge-base-en-v1.5"
+    embedding_model_path = os.path.join(models_dir, "bge-base-en-v1.5")
+    if not os.path.exists(embedding_model_path):
+        print(f"Downloading {embedding_model}...")
+        SentenceTransformer(embedding_model).save(embedding_model_path)
+        print(f"Downloaded {embedding_model}")
+    else:
+        print(f"Model already exists at {embedding_model_path}")
 
 if __name__ == "__main__":
     download_models()

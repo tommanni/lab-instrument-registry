@@ -5,7 +5,7 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 ## Stack
 
 - **FastAPI + Uvicorn** for the HTTP API  
-- **SentenceTransformer** (`all-mpnet-base-v2`) for embeddings  
+- **SentenceTransformer** (`BAAI/bge-base-en-v1.5`) for embeddings  
 - **Helsinki-NLP/opus-mt-fi-en** (fine-tuned) for Finnish→English translation  
 - **PyTorch (CPU)** with dynamic quantization for smaller memory footprint and faster inference
 
