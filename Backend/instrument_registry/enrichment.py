@@ -161,14 +161,18 @@ TASKS:
 1. TRANSLATE: Provide the most accurate professional English name (e.g., "vetokaappi" -> "Fume Hood").
 2. DESCRIBE: Generate a 2-3 sentence semantic description in lowercase.
 
--DESCRIPTION REQUIREMENTS:
+- TRANSLATION RULES:
+-- Use the provided Model/Brand info to identify the specific device type (e.g., differentiate a "Chemical Analyzer" from a "Hematology Analyzer").
+-- Output the STANDARD GENERIC NAME, not the brand name (e.g., "Real-Time PCR System", NOT "LightCycler").
+
+- DESCRIPTION REQUIREMENTS:
 -- What the equipment is and its primary purpose
 -- Common applications in laboratory/research settings
 -- Key characteristics or capabilities
+-- **Include common industry synonyms or alternative names naturally (e.g., "also known as...")**
 -- OUTPUT MUST BE IN ENGLISH
 -- Be factual and concise
--- Focus on searchable semantic content
--- Include the English equipment name naturally
+-- **Optimize for search relevance: prioritize technical keywords over flowery language**
 -- Do not repeat brand names unnecessarily
 
 Generate a response following the given schema."""
@@ -181,13 +185,15 @@ def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichme
     items_to_enrich = []
 
     # Identify items that need processing (if EITHER cache is missing/failed)
-    for name_key, finnish_name in unique_names_to_enrich.items():
+    for name_key, item in unique_names_to_enrich.items():
+        # Check if we still need to process this key
         needs_trans = name_key not in translation_cache or translation_cache[name_key] in INVALID_ENRICHMENT_VALUES
         needs_enrich = name_key not in enrichment_cache or enrichment_cache[name_key] in INVALID_ENRICHMENT_VALUES
         
         if needs_trans or needs_enrich:
             items_to_enrich.append({
-                'finnish_name': finnish_name,
+                'finnish_name': item['finnish_name'],  # Extract name
+                'brand_model': item['brand_model'],    # Extract model info
                 'cache_key': name_key
             })
 
