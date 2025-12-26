@@ -210,11 +210,32 @@ The semantic-search container powers Finnish→English translations and English 
 
 ## 🔧 Configuration
 
-The system uses Docker environment variables (no manual setup needed):
+The system uses Docker environment variables. Most configuration is handled automatically, but you need to set up the Google Gemini API key for enrichment features.
+
+### Required: Google Gemini API Key
+
+1. **Create a `.env` file** in the project root directory (same directory as `docker-compose.yml`):
+   ```bash
+   # In the project root directory
+   touch .env
+   ```
+
+2. **Add your Gemini API key** to the `.env` file:
+   ```bash
+   GOOGLE_GENAI_API_KEY=your-api-key-here
+   ```
+   
+   Get your API key from: https://aistudio.google.com/app/apikey
+
+3. **Docker Compose automatically reads** the `.env` file from the root directory.
+
+**Note:** The `.env` file is gitignored and won't be committed to the repository.
+
+### Other Configuration (Automatic)
+
 - **Database:** PostgreSQL 17 on port 5432
 - **Backend:** Django on port 8000
 - **Frontend:** Vite dev server on port 5173
-- **Google Gemini API:** Required for enrichment (translation + semantic descriptions). Set `GOOGLE_GENAI_API_KEY` in your environment (.env)
 
 ## 🚨 Troubleshooting
 
