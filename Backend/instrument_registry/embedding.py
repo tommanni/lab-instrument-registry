@@ -16,7 +16,7 @@ KEY DESIGN:
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
-from django.db import transaction
+from django.db import transaction, connection
 from django.db.models import Q
 from django.conf import settings
 from simple_history.utils import bulk_update_with_history
@@ -26,7 +26,9 @@ from instrument_registry.enrichment import (
     enrich_instruments_batch, 
     INVALID_ENRICHMENT_VALUES
 )
+
 import requests
+import concurrent.futures
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -40,20 +42,19 @@ class InstrumentState:
     resolved_translation: str | None
     resolved_embedding: list | None
 
-def _requests_retry_session(
-    retries=3,
-    backoff_factor=0.3,
-    status_forcelist=(500, 502, 504),
-):
+def _requests_retry_session(pool_size=10):
+    """
+    Creates a session with a connection pool
+    """
     session = requests.Session()
     retry = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
+        total=3,
+        read=3,
+        connect=3,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
     )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=5, pool_maxsize=pool_size)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session
@@ -78,7 +79,8 @@ def _get_cache_key(instrument):
 
 def precompute_instrument_embeddings(
     *,
-    batch_size: int = 100,
+    batch_size: int = 50,
+    max_workers: int = 6,
     force: bool = False,
     on_info=lambda msg: None,
     on_error=lambda msg: None,
@@ -89,71 +91,63 @@ def precompute_instrument_embeddings(
         instruments_queryset = Instrument.objects.all()
         on_info('Forcing re-processing of all instruments.')
     else:
-        if skip_enrichment:
-            instruments_queryset = Instrument.objects.filter(
-                Q(tuotenimi_en__in=["", "Translation Failed"]) |
-                Q(embedding_en__isnull=True)
-            )
-            on_info('Processing only instruments that need translation/embedding.')
-        else:
-            instruments_queryset = Instrument.objects.filter(
-                Q(tuotenimi_en__in=["", "Translation Failed"]) |
-                Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
-                Q(embedding_en__isnull=True)
-            )
-            on_info('Processing instruments that need translation/enrichment/embedding.')
-        
+        instruments_queryset = Instrument.objects.filter(
+            Q(tuotenimi_en__in=["", "Translation Failed"]) |
+            Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
+            Q(embedding_en__isnull=True)
+        )
+        on_info('Processing instruments that need updates.')
 
     instruments = list(instruments_queryset)
-    total_instruments_to_process = len(instruments)
+    total_count = len(instruments)
+    
+    if total_count == 0:
+        on_info("No instruments to process.")
+        return {'processed_count': 0}
 
     translation_cache, enrichment_cache, embedding_cache = _build_caches()
 
-    on_info(f'Starting to process {total_instruments_to_process} instruments in batches of {batch_size}.')
+    on_info(f'Starting to process {total_count} instruments in batches of {batch_size}.')
 
-    session = _requests_retry_session()
+    batches = [instruments[i:i + batch_size] for i in range(0, total_count, batch_size)]
 
-    try:
-        for i in range(0, total_instruments_to_process, batch_size):
-            batch = instruments[i:i + batch_size]
-            if not batch:
-                continue
-
-            instruments_to_update = _process_batch(
+    # Execute batches in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Map futures to their batch index for logging
+        future_to_idx = {
+            executor.submit(
+                _process_batch_worker, 
                 batch, 
-                session, 
                 skip_enrichment,
                 (translation_cache, enrichment_cache, embedding_cache), 
+                max_workers,
                 on_error
-            )
+            ): i for i, batch in enumerate(batches)
+        }
 
-            with transaction.atomic():
-                bulk_update_with_history(
-                    instruments_to_update,
-                    Instrument,
-                    ['tuotenimi_en', 'enriched_description', 'embedding_en']
-                )
-                on_info(
-                    f'Batch {i//batch_size + 1}/{(total_instruments_to_process + batch_size - 1)//batch_size} processed and updated.'
-                )
-    finally:
-        session.close()
+        # As tasks complete (in any order), write to DB
+        for future in concurrent.futures.as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                # Get the result from the worker
+                instruments_to_update = future.result()
 
-    successful = Instrument.objects.exclude(
-        Q(tuotenimi_en__in=["", "Translation Failed"]) |
-        Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
-        Q(embedding_en__isnull=True)
-    ).count()
-    failed = Instrument.objects.filter(
-        Q(tuotenimi_en__in=["", "Translation Failed"]) |
-        Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
-        Q(embedding_en__isnull=True)
-    ).count()
+                # MAIN THREAD: Write to Database
+                if instruments_to_update:
+                    with transaction.atomic():
+                        bulk_update_with_history(
+                            instruments_to_update,
+                            Instrument,
+                            ['tuotenimi_en', 'enriched_description', 'embedding_en']
+                        )
+                    on_info(f'Batch {idx + 1}/{len(batches)} saved.')
+
+            except Exception as exc:
+                on_error(f'Batch {idx + 1} failed with error: {exc}')
 
     return {
-        'processed_count': total_instruments_to_process,
-        'successful': successful,
-        'failed': failed,
+        'processed_count': total_count,
+        'successful': Instrument.objects.exclude(tuotenimi_en__in=["", "Translation Failed"]).count(),
         'cache_size': len(translation_cache),
     }
 
@@ -196,50 +190,42 @@ def _build_caches():
 
     return translation_cache, enrichment_cache, embedding_cache
 
-def _process_batch(batch, session, skip_enrichment, caches, on_error):
-    """Processes batch by translating missing names, enriching missing descriptions, and generating embeddings."""
-    translation_cache, enrichment_cache, embedding_cache = caches
+def _process_batch_worker(batch, skip_enrichment, caches, pool_size, on_error):
+    """
+    Worker function: Handles Network I/O.
+    """
+    # Create a session local to this thread
+    session = _requests_retry_session(pool_size=pool_size)
 
-    # Step 1: Analyze what each instrument needs (translation, enrichment, embedding, or all)
-    instrument_states, unique_names_to_process = _collect_instrument_states(
-        batch,
-        caches,
-    )
+    try:
+        # Step 1: Analyze
+        instrument_states, unique_items_to_process = _collect_instrument_states(batch, caches)
 
-    # Step 2: Enrich any instruments not in cache via API
-    if unique_names_to_process:
-        enrich_instruments_batch(
-            unique_names_to_process, 
-            translation_cache, 
-            enrichment_cache, 
-            on_error
+        # Step 2: Gemini API 
+        if unique_items_to_process:
+            enrich_instruments_batch(
+                unique_items_to_process, 
+                caches[0], 
+                caches[1], 
+                on_error
+            )
+            # Update local state from cache
+            _resolve_translations_and_enrichments(instrument_states, (caches[0], caches[1]))
+
+        # Step 3: Embeddings
+        instruments_needing_embedding = _identify_missing_embeddings(
+            instrument_states, 
+            caches[2]
         )
+        
+        _embed_missing(instruments_needing_embedding, session, caches, on_error)
 
-    # Step 3: Update states from the newly populated caches
-    _resolve_translations_and_enrichments(
-        instrument_states,
-        (translation_cache, enrichment_cache),
-    )   
+        # Step 4: Return data to main thread
+        return _build_instruments_to_update(instrument_states, caches[2])
 
-    # Step 4: Identify which instruments need embeddings
-    instruments_needing_embedding = _identify_missing_embeddings(
-        instrument_states,
-        embedding_cache
-    )
-
-    # Step 5: Generate embeddings for instruments needing embeddings not in cache
-    _embed_missing(
-        instruments_needing_embedding,
-        session,
-        caches,
-        on_error,
-    )
-
-    # Step 6: Prepare instruments with final translations, enrichments and embeddings
-    return _build_instruments_to_update(
-        instrument_states,
-        embedding_cache
-    )
+    finally:
+        session.close()
+        connection.close()
 
 def _collect_instrument_states(batch, caches):
     """
@@ -336,7 +322,7 @@ def _embed_missing(instruments_needing_embedding, session, caches, on_error):
         if enrichment in INVALID_ENRICHMENT_VALUES:
             enrichment = ""
 
-        combined_text = f"{translation} {enrichment}".strip()
+        combined_text = ": ".join(filter(None, [translation, enrichment]))
         if combined_text:  # Only embed if we have some text
             texts_to_embed.append(combined_text)
             names_to_embed.append(cache_key)
@@ -345,7 +331,7 @@ def _embed_missing(instruments_needing_embedding, session, caches, on_error):
             response = session.post(
                 f"{SERVICE_URL}/embed_en_batch",
                 json={"texts": texts_to_embed},
-                timeout=30
+                timeout=60
             )
             response.raise_for_status()
 
