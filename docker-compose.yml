@@ -36,7 +36,7 @@ services:
       - DB_PASSWORD=postgres123
       - DB_HOST=db
       - DB_PORT=5432
-      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
 
   semantic-search-service:
     build:
