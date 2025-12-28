@@ -20,7 +20,7 @@ across hundreds of users.
 
 ![Semantic Search Demo](docs/images/semantic-search-demo.gif)
 
-*User searches in **English**, and the system finds the **Finnish** instrument ("termostaatti") using vector embeddings.*
+*Semantic search example: finding lab instruments from descriptive queries (EN + FI).*
 
 **Audit Trail & AI Automation**
 
