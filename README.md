@@ -39,7 +39,7 @@ across hundreds of users.
 - Integrated automated translation, data enrichment, and embedding generation into:
     - Background batch processing pipeline after a CSV import
     - Single-instrument creation
-- Implemented a hybrid smart search (60-100ms end-to-end) combining:
+- Implemented a hybrid smart search (sub-150ms end-to-end) combining:
     - Semantic similarity (PostgreSQL + pgvector)
     - Fuzzy text matching
 - Built bulk translation correction to update all instruments sharing the same Finnish name
