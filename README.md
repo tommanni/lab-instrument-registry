@@ -16,9 +16,9 @@ across hundreds of users.
 
 **Project Role:** Junior Fullstack Developer
 
-**Cross-Lingual Smart Search**
+**Cross-Lingual Semantic Search**
 
-<img src="docs/images/smart-search-demo.png" alt="Smart Search Demo" width="800"/>
+![Semantic Search Demo](docs/images/semantic-search-demo.gif)
 
 *User searches in **English**, and the system finds the **Finnish** instrument ("termostaatti") using vector embeddings.*
 
