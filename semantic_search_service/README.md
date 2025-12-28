@@ -15,11 +15,9 @@ CPU-only FastAPI microservice that translates Finnish instrument names to Englis
 | --- | --- | --- |
 | `POST` | `/process` | Translate a single Finnish string and generate embeddings (`embedding_en`). |
 | `POST` | `/process_query` | Translate a Finnish query string and generate query-optimized embeddings. |
-| `POST` | `/process_batch` | Batch version of `/process` |
 | `POST` | `/embed_en` | English embedding only. |
 | `POST` | `/embed_query` | English query embedding. |
 | `POST` | `/embed_en_batch` | Batch English embeddings. |
-| `POST` | `/translate_batch` | Batch translation only (no embeddings). |
 | `GET` | `/healthz` | Returns `{"status": "ok"}` once all models are loaded (used by Docker healthcheck). |
 
 ## Model Handling

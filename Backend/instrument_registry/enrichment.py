@@ -143,7 +143,7 @@ class EnrichmentService:
         instrument_list = []
         for i, item in enumerate(items, 1):
             finnish_name = item.get('finnish_name', 'Unknown')
-            # Optional: Add brand/info to the prompt text if available to help translation
+            # Add brand/info to the prompt text if available
             extra = ""
             if item.get('brand_model'): extra += f" (Model: {item.get('brand_model')})"
             
@@ -215,8 +215,6 @@ def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichme
             
             if result['description'] != "Enrichment Failed":
                 enrichment_cache[key] = result['description']
-
-            logger.debug(f"Processed '{key}': {result['translation']}")
             
     except Exception as e:
         error_msg = f"Batch processing error: {e}"
