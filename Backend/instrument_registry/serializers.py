@@ -2,6 +2,8 @@ from rest_framework import serializers
 import requests
 from .models import Instrument, RegistryUser, InstrumentAttachment
 from .enrichment import EnrichmentService
+from .embedding import INVALID_TRANSLATION_VALUES
+from .enrichment import INVALID_ENRICHMENT_VALUES
 from collections import Counter
 from django.db import transaction
 from simple_history.utils import bulk_update_with_history
@@ -130,10 +132,8 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
         embedding_en = data.get('embedding')
         
         if (
-            not translated_text
-            or translated_text.strip() == "Translation Failed"
-            or not description
-            or description.strip() == "Enrichment Failed"
+            translated_text in INVALID_TRANSLATION_VALUES
+            or description in INVALID_ENRICHMENT_VALUES
             or not embedding_en
         ):
             raise serializers.ValidationError(
