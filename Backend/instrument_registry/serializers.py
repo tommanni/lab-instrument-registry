@@ -96,7 +96,7 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
         return instance
 
     def _update_duplicates(self, instance):
-        # Find all other instruments with the same 'tuotenimi'
+        # Find all other instruments with the same name and model
         duplicate_instruments = list(Instrument.objects.filter(
             tuotenimi__iexact=instance.tuotenimi,
             merkki_ja_malli__iexact=instance.merkki_ja_malli
