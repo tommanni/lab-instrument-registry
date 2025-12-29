@@ -40,8 +40,8 @@ across hundreds of users.
     - Background batch processing pipeline after a CSV import
     - Single-instrument creation
 - Implemented a hybrid smart search (sub-150ms end-to-end) combining:
-    - Semantic similarity (PostgreSQL + pgvector)
     - Fuzzy text matching
+    - Semantic similarity fallback (PostgreSQL + pgvector)
 - Built bulk translation correction to update all instruments sharing the same Finnish name
 
 **Data Import & Performance:**

@@ -1,7 +1,10 @@
 from rest_framework import serializers
 import requests
 from .models import Instrument, RegistryUser, InstrumentAttachment
+from .enrichment import EnrichmentService
 from collections import Counter
+from django.db import transaction
+from simple_history.utils import bulk_update_with_history
 
 # Mixin to clean whitespace from all CharFields
 class WhitespaceCleaningSerializerMixin:
@@ -35,19 +38,21 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
 
     def create(self, validated_data):
         tuotenimi = validated_data.get('tuotenimi', '').lower()
+        merkki_ja_malli = validated_data.get('merkki_ja_malli', '').lower()
 
         # Check if another instrument with same name already exists
-        existing = self._find_existing_translation(tuotenimi)
+        existing = self._find_existing_translation(tuotenimi, merkki_ja_malli)
 
         if existing:
-            # Reuse existing translation and embeddings
+            # Reuse existing translation, embeddings and enrichment
             validated_data['tuotenimi_en'] = existing.tuotenimi_en
             validated_data['embedding_en'] = existing.embedding_en
+            validated_data['enriched_description'] = existing.enriched_description
             return Instrument.objects.create(**validated_data)
         else:
             # New unique name, translate and generate embeddings
             instrument = Instrument(**validated_data)
-            self._translate_and_update_embeddings(instrument)
+            self._translate_enrich_and_update_embeddings(instrument)
             instrument.save()
             return instrument
 
@@ -67,58 +72,82 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
         tuotenimi_changed = instance.tuotenimi != original_tuotenimi
         tuotenimi_en_changed = instance.tuotenimi_en != original_tuotenimi_en
 
-        # Update embeddings and translations depending on which fields changed
+        # Update translation, enrichment and embeddings depending on which fields changed
         if tuotenimi_changed and tuotenimi_en_changed:
-            self._update_embedding_en(instance)
+            self._translate_enrich_and_update_embeddings(instance, translation_changed=True)
         elif tuotenimi_changed:
             # Finnish name changed - check for existing translation first
-            existing = self._find_existing_translation(instance.tuotenimi)
+            existing = self._find_existing_translation(instance.tuotenimi, instance.merkki_ja_malli)
             if existing:
                 instance.tuotenimi_en = existing.tuotenimi_en
+                instance.enriched_description = existing.enriched_description
                 instance.embedding_en = existing.embedding_en
             else:
                 # New name - translate it
-                self._translate_and_update_embeddings(instance)
+                self._translate_enrich_and_update_embeddings(instance)
         elif tuotenimi_en_changed:
             self._update_embedding_en(instance)
 
         instance.save()
 
         if update_duplicates_flag and tuotenimi_en_changed and not tuotenimi_changed:
-            # Find all other instruments with the same 'tuotenimi'
-            duplicate_instruments = Instrument.objects.filter(
-                tuotenimi__iexact=instance.tuotenimi
-            ).exclude(pk=instance.pk)
-
-            # Update each duplicate
-            cached_embedding = instance.embedding_en
-            for instrument in duplicate_instruments:
-                instrument.tuotenimi_en = instance.tuotenimi_en
-                instrument.embedding_en = cached_embedding
-                instrument.save(update_fields=["tuotenimi_en", "embedding_en"])
-
+            self._update_duplicates(instance)
 
         return instance
 
-    def _translate_and_update_embeddings(self, instrument):
-        data = self._post_to_service("/process", {"text": instrument.tuotenimi})
-        translated_text = data.get('translated_text')
-        embedding_en = data.get('embedding_en')
+    def _update_duplicates(self, instance):
+        # Find all other instruments with the same 'tuotenimi'
+        duplicate_instruments = list(Instrument.objects.filter(
+            tuotenimi__iexact=instance.tuotenimi,
+            merkki_ja_malli__iexact=instance.merkki_ja_malli
+        ).exclude(pk=instance.pk))
 
+        # Update each duplicate
+        for instrument in duplicate_instruments:
+            instrument.tuotenimi_en = instance.tuotenimi_en
+            instrument.enriched_description = instance.enriched_description
+            instrument.embedding_en = instance.embedding_en
+        
+        with transaction.atomic():
+            bulk_update_with_history(
+                duplicate_instruments,
+                Instrument,
+                ['tuotenimi_en', 'enriched_description', 'embedding_en']
+            )
+
+    def _translate_enrich_and_update_embeddings(self, instrument, translation_changed=False):
+        enrichment = EnrichmentService().enrich_single(instrument.tuotenimi, instrument.merkki_ja_malli)
+        translated_text = enrichment.get('translation')
+        description = enrichment.get('description')
+        
+        # If the user has changed the translation, use the existing translation
+        if translation_changed:
+            combined_text = ": ".join(filter(None, [instrument.tuotenimi_en, description]))
+        else:
+            combined_text = ": ".join(filter(None, [translated_text, description]))
+        
+        data = self._post_to_service("/embed_en", {"text": combined_text})
+        embedding_en = data.get('embedding')
+        
         if (
             not translated_text
-            or translated_text.strip().lower() == "translation failed"
+            or translated_text.strip() == "Translation Failed"
+            or not description
+            or description.strip() == "Enrichment Failed"
             or not embedding_en
         ):
             raise serializers.ValidationError(
-                "Semantic search service could not generate embeddings. Please try again."
+                "Translation or embedding generation failed. Please try again."
             )
 
-        instrument.tuotenimi_en = translated_text
+        if not translation_changed:
+            instrument.tuotenimi_en = translated_text
+        instrument.enriched_description = description
         instrument.embedding_en = embedding_en
 
     def _update_embedding_en(self, instrument):
-        data = self._post_to_service("/embed_en", {"text": instrument.tuotenimi_en})
+        combined_text = ": ".join(filter(None, [instrument.tuotenimi_en, instrument.enriched_description]))
+        data = self._post_to_service("/embed_en", {"text": combined_text})
         embedding_en = data.get('embedding')
 
         if not embedding_en:
@@ -128,24 +157,29 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
 
         instrument.embedding_en = embedding_en
 
-    def _find_existing_translation(self, tuotenimi):
-        # Get all valid translations for this Finnish name
+    def _find_existing_translation(self, tuotenimi, merkki_ja_malli):
+        # Normalize inputs to handle None as empty strings
+        tn = (tuotenimi or "").strip()
+        mm = (merkki_ja_malli or "").strip()
+
         existing = Instrument.objects.filter(
-            tuotenimi__iexact=tuotenimi
+            tuotenimi__iexact=tn,
+            merkki_ja_malli__iexact=mm
         ).exclude(
             tuotenimi_en__in=["", "Translation Failed"]
-        ).values_list('tuotenimi_en', 'embedding_en')
+        ).values_list('tuotenimi_en', 'enriched_description', 'embedding_en')
         
         if not existing:
             return None
         
-        # Use majority voting - pick most common translation
+        # Majority voting
         translations = [t[0] for t in existing]
         most_common_translation = Counter(translations).most_common(1)[0][0]
         
-        # Return first instrument with that translation
+        # Return the specific record
         return Instrument.objects.filter(
-            tuotenimi__iexact=tuotenimi,
+            tuotenimi__iexact=tn,
+            merkki_ja_malli__iexact=mm,
             tuotenimi_en=most_common_translation
         ).first()
 

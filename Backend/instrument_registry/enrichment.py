@@ -39,7 +39,7 @@ class EnrichmentService:
         self.model_id = getattr(settings, 'GOOGLE_AI_MODEL', 'gemini-2.5-flash-lite')
     
     def enrich_single(self, finnish_name, brand_model="", additional_info=""):
-        """Generate English semantic description from Finnish instrument name."""
+        """Generate English translation and semantic description from Finnish instrument name."""
         if not finnish_name:
             return {'translation': "Translation Failed", 'description': "Enrichment Failed"}
         
