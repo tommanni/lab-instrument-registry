@@ -50,7 +50,7 @@ class PrecomputeEmbeddingsTest(TestCase):
         )
 
     @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
-    @patch('instrument_registry.enrichment.EnrichmentService')
+    @patch('instrument_registry.services.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
     def test_precompute_success(self, mock_session_builder, mock_enrichment_service_class):
         """Test successful batch translation and embedding of instruments"""
@@ -114,7 +114,7 @@ class PrecomputeEmbeddingsTest(TestCase):
         self.assertIsNotNone(self.inst3.embedding_en)
 
     @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
-    @patch('instrument_registry.enrichment.EnrichmentService')
+    @patch('instrument_registry.services.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
     def test_precompute_service_failure(self, mock_session_builder, mock_enrichment_service_class):
         """Test handling of service failures during precomputation"""
@@ -143,7 +143,7 @@ class PrecomputeEmbeddingsTest(TestCase):
         self.assertIn('cache_size', results)
 
     @override_settings(GOOGLE_GENAI_API_KEY='test-api-key')
-    @patch('instrument_registry.enrichment.EnrichmentService')
+    @patch('instrument_registry.services.enrichment.EnrichmentService')
     @patch('instrument_registry.embedding._requests_retry_session')
     def test_precompute_partial_cache(self, mock_session_builder, mock_enrichment_service_class):
         """Test that duplicate instrument names are only translated once per batch"""
