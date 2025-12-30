@@ -1,9 +1,8 @@
 from rest_framework import serializers
 import requests
 from .models import Instrument, RegistryUser, InstrumentAttachment
-from .enrichment import EnrichmentService
+from .services.enrichment import EnrichmentService, INVALID_ENRICHMENT_VALUES
 from .embedding import INVALID_TRANSLATION_VALUES
-from .enrichment import INVALID_ENRICHMENT_VALUES
 from collections import Counter
 from django.db import transaction
 from simple_history.utils import bulk_update_with_history
@@ -121,24 +120,21 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
         enrichment = EnrichmentService().enrich_single(instrument.tuotenimi, instrument.merkki_ja_malli)
         translated_text = enrichment.get('translation')
         description = enrichment.get('description')
-        
-        # If the user has changed the translation, use the existing translation
-        if translation_changed:
-            combined_text = ": ".join(filter(None, [instrument.tuotenimi_en, description]))
+
+        is_valid_translation = translated_text not in INVALID_TRANSLATION_VALUES
+        is_valid_enrichment = description not in INVALID_ENRICHMENT_VALUES
+
+        if is_valid_translation and is_valid_enrichment:
+            # If the user has changed the translation, use the existing translation
+            if translation_changed:
+                combined_text = ": ".join(filter(None, [instrument.tuotenimi_en, description]))
+            else:
+                combined_text = ": ".join(filter(None, [translated_text, description]))
+            
+            data = self._post_to_service("/embed_en", {"text": combined_text})
+            embedding_en = data.get('embedding') if data else None
         else:
-            combined_text = ": ".join(filter(None, [translated_text, description]))
-        
-        data = self._post_to_service("/embed_en", {"text": combined_text})
-        embedding_en = data.get('embedding')
-        
-        if (
-            translated_text in INVALID_TRANSLATION_VALUES
-            or description in INVALID_ENRICHMENT_VALUES
-            or not embedding_en
-        ):
-            raise serializers.ValidationError(
-                "Translation or embedding generation failed. Please try again."
-            )
+            embedding_en = None
 
         if not translation_changed:
             instrument.tuotenimi_en = translated_text
@@ -148,12 +144,7 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
     def _update_embedding_en(self, instrument):
         combined_text = ": ".join(filter(None, [instrument.tuotenimi_en, instrument.enriched_description]))
         data = self._post_to_service("/embed_en", {"text": combined_text})
-        embedding_en = data.get('embedding')
-
-        if not embedding_en:
-            raise serializers.ValidationError(
-                "Semantic search service could not generate English embeddings. Please try again."
-            )
+        embedding_en = data.get('embedding') if data else None
 
         instrument.embedding_en = embedding_en
 
@@ -192,15 +183,13 @@ class InstrumentSerializer(WhitespaceCleaningSerializerMixin, serializers.ModelS
                 timeout=5.0
             )
             response.raise_for_status()
-        except requests.Timeout:
-            raise serializers.ValidationError("Semantic search service request timed out.")
-        except requests.RequestException as exc:
-            raise serializers.ValidationError(f"Semantic search service error: {exc}")
+        except (requests.Timeout, requests.RequestException):
+            return None
 
         try:
             return response.json()
         except ValueError:
-            raise serializers.ValidationError("Semantic search service returned invalid JSON.")
+            return None
 
 
 # Instrument serializer for CSV import/export.

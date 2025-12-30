@@ -22,7 +22,7 @@ from django.conf import settings
 from simple_history.utils import bulk_update_with_history
 
 from instrument_registry.models import Instrument
-from instrument_registry.enrichment import (
+from instrument_registry.services.enrichment import (
     enrich_instruments_batch, 
     INVALID_ENRICHMENT_VALUES
 )
@@ -93,7 +93,7 @@ def precompute_instrument_embeddings(
         on_info('Forcing re-processing of all instruments.')
     else:
         instruments_queryset = Instrument.objects.filter(
-            Q(tuotenimi_en__in=["", "Translation Failed"]) |
+            Q(tuotenimi_en__in=INVALID_TRANSLATION_VALUES) |
             Q(enriched_description__in=INVALID_ENRICHMENT_VALUES) |
             Q(embedding_en__isnull=True)
         )
@@ -352,15 +352,15 @@ def _embed_missing(instruments_needing_embedding, session, source_caches, target
         translation = translation_cache.get(cache_key) or ""
         enrichment = enrichment_cache.get(cache_key) or ""
 
-        if translation in INVALID_TRANSLATION_VALUES:
-            translation = ""
-        if enrichment in INVALID_ENRICHMENT_VALUES:
-            enrichment = ""
+        is_valid_trans = translation and translation not in INVALID_TRANSLATION_VALUES
+        is_valid_enrich = enrichment and enrichment not in INVALID_ENRICHMENT_VALUES
 
-        combined_text = ": ".join(filter(None, [translation, enrichment]))
-        if combined_text:  # Only embed if we have some text
+        if is_valid_trans and is_valid_enrich:
+            combined_text = f"{translation}: {enrichment}"
             texts_to_embed.append(combined_text)
             names_to_embed.append(cache_key)
+        else:
+            target_cache[cache_key] = None
 
     if texts_to_embed:
         try:
