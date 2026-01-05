@@ -13,7 +13,9 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-INVALID_ENRICHMENT_VALUES = {"", "Enrichment Failed", "Translation Failed"}
+TRANSLATION_FAILED = "Translation Failed"
+ENRICHMENT_FAILED = "Enrichment Failed"
+INVALID_ENRICHMENT_VALUES = {"", ENRICHMENT_FAILED, TRANSLATION_FAILED}
 
 # Pydantic models for the response
 class InstrumentDescription(BaseModel):
@@ -41,7 +43,7 @@ class EnrichmentService:
     def enrich_single(self, finnish_name, brand_model="", additional_info=""):
         """Generate English translation and semantic description from Finnish instrument name."""
         if not finnish_name:
-            return {'translation': "Translation Failed", 'description': "Enrichment Failed"}
+            return {'translation': TRANSLATION_FAILED, 'description': ENRICHMENT_FAILED}
         
         try:
             # Reuse the batch prompt logic for single items
@@ -53,7 +55,7 @@ class EnrichmentService:
             
         except Exception as e:
             logger.error(f"Enrichment error for '{finnish_name}': {e}")
-            return {'translation': "Translation Failed", 'description': "Enrichment Failed"}
+            return {'translation': TRANSLATION_FAILED, 'description': ENRICHMENT_FAILED}
     
     def enrich_batch(self, items, sub_batch_size=50):
         """
@@ -89,8 +91,8 @@ class EnrichmentService:
                     logger.error(f"Single item processing failed: {e}")
                     # Manually append a failed result
                     all_results.append({
-                        'translation': "Translation Failed",
-                        'description': "Enrichment Failed"
+                        'translation': TRANSLATION_FAILED,
+                        'description': ENRICHMENT_FAILED
                     })
                 else:
                     # Only fallback if it was a group that failed
@@ -115,8 +117,8 @@ class EnrichmentService:
             except Exception as e:
                 logger.error(f"Individual enrichment failed for {item.get('finnish_name')}: {e}")
                 results.append({
-                    'translation': "Translation Failed",
-                    'description': "Enrichment Failed"
+                    'translation': TRANSLATION_FAILED,
+                    'description': ENRICHMENT_FAILED
                 })
         return results
 
@@ -124,8 +126,8 @@ class EnrichmentService:
         """Map the structured results back to a simple list of strings."""
         # Create a placeholder list to ensure alignment
         final_list = [{
-            'translation': "Translation Failed", 
-            'description': "Enrichment Failed"
+            'translation': TRANSLATION_FAILED, 
+            'description': ENRICHMENT_FAILED
         } for _ in range(expected_count)]
         
         for item in batch_data.results:
@@ -210,10 +212,10 @@ def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichme
             key = item['cache_key']
             
             # Update caches
-            if result['translation'] != "Translation Failed":
+            if result['translation'] != TRANSLATION_FAILED:
                 translation_cache[key] = result['translation']
             
-            if result['description'] != "Enrichment Failed":
+            if result['description'] != ENRICHMENT_FAILED:
                 enrichment_cache[key] = result['description']
             
     except Exception as e:

@@ -6,8 +6,8 @@ Includes translation, enrichment and embedding generation.
 """
 
 from ..models import Instrument
-from .enrichment import EnrichmentService
-from ..embedding import INVALID_TRANSLATION_VALUES, INVALID_ENRICHMENT_VALUES
+from .enrichment import EnrichmentService, INVALID_ENRICHMENT_VALUES
+from ..embedding import INVALID_TRANSLATION_VALUES
 from simple_history.utils import bulk_update_with_history
 from django.db import transaction
 from collections import Counter

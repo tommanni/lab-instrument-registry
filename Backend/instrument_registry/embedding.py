@@ -24,6 +24,8 @@ from simple_history.utils import bulk_update_with_history
 from instrument_registry.models import Instrument
 from instrument_registry.services.enrichment import (
     enrich_instruments_batch, 
+    ENRICHMENT_FAILED,
+    TRANSLATION_FAILED,
     INVALID_ENRICHMENT_VALUES
 )
 
@@ -62,7 +64,7 @@ def _requests_retry_session(pool_size=10):
 
 
 # Translation values that indicate a missing or failed translation
-INVALID_TRANSLATION_VALUES = {"", "Translation Failed"}
+INVALID_TRANSLATION_VALUES = {"", TRANSLATION_FAILED}
 
 SERVICE_URL = getattr(settings, 'SEMANTIC_SERVICE_URL', 'http://semantic-search-service:8001')
 
@@ -99,6 +101,8 @@ def precompute_instrument_embeddings(
         )
         on_info('Processing instruments that need updates.')
 
+    # Eagerly load all instruments into memory.
+    # With the current dataset size (< 5000 items), the memory overhead is negligible.
     instruments = list(instruments_queryset)
     total_count = len(instruments)
     
@@ -152,7 +156,7 @@ def precompute_instrument_embeddings(
 
     return {
         'processed_count': total_count,
-        'successful': Instrument.objects.exclude(tuotenimi_en__in=["", "Translation Failed"]).count(),
+        'successful': Instrument.objects.exclude(tuotenimi_en__in=["", TRANSLATION_FAILED]).count(),
         'cache_size': len(translation_cache),
     }
 
@@ -160,6 +164,10 @@ def _build_caches():
     """
     Builds in-memory caches from existing database records to minimize API calls.
     Uses majority voting because multiple translations can exist for the same Finnish name.
+
+    NOTE: Currently optimized for datasets < 5000 items. For larger scale production,
+    this in-memory caching should be replaced with an external cache (e.g. Redis)
+    to prevent OOM (Out Of Memory) issues.
     """
     key_translation_counts = defaultdict(Counter)
     embedding_cache = {}
@@ -319,9 +327,9 @@ def _resolve_translations_and_enrichments(instrument_states, caches):
     translation_cache, enrichment_cache = caches
     for state in instrument_states:
         if state.resolved_translation is None:
-            state.resolved_translation = translation_cache.get(state.cache_key,"Translation Failed")
+            state.resolved_translation = translation_cache.get(state.cache_key, TRANSLATION_FAILED)
         if state.resolved_enrichment is None:
-            state.resolved_enrichment = enrichment_cache.get(state.cache_key, "Enrichment Failed")
+            state.resolved_enrichment = enrichment_cache.get(state.cache_key, ENRICHMENT_FAILED)
 
 def _identify_missing_embeddings(instrument_states, embedding_cache):
     """
@@ -395,7 +403,7 @@ def _build_instruments_to_update(instrument_states, embedding_cache):
         translation = state.resolved_translation
 
         if not state.has_valid_translation:
-            instrument.tuotenimi_en = translation or "Translation Failed"
+            instrument.tuotenimi_en = translation or TRANSLATION_FAILED
 
         if state.resolved_embedding is None:
             state.resolved_embedding = embedding_cache.get(state.cache_key)
@@ -404,7 +412,7 @@ def _build_instruments_to_update(instrument_states, embedding_cache):
             instrument.embedding_en = state.resolved_embedding
 
         if not state.has_valid_enrichment:
-            instrument.enriched_description = state.resolved_enrichment or "Enrichment Failed"
+            instrument.enriched_description = state.resolved_enrichment or ENRICHMENT_FAILED
 
         instruments_to_update.append(instrument)
     return instruments_to_update
