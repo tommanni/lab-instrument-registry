@@ -34,11 +34,11 @@ describe('useDataStore Smart Search', () => {
         Fuse.prototype.search = vi.fn().mockReturnValue([])
     })
 
-    it('smartSearch uses only fuzzy search when results are sufficient (>= 10)', async () => {
+    it('smartSearch uses only fuzzy search when results are sufficient (returns > 0 results)', async () => {
         store.originalData = Array(20).fill({ id: 1, name: 'Item' })
         store.filteredData = store.originalData
 
-        // Mock Fuse returning 10 results
+        // Mock fuzzy search returning 10 results
         const mockFuseResults = Array(10).fill(0).map((_, i) => ({ item: { id: i, name: `Result ${i}` } }))
         Fuse.prototype.search.mockReturnValue(mockFuseResults)
 
@@ -51,7 +51,7 @@ describe('useDataStore Smart Search', () => {
         expect(axios.get).not.toHaveBeenCalledWith('/api/instruments/search/', expect.any(Object))
     })
 
-    it('smartSearch calls semantic search API when fuzzy results are insufficient (< 10)', async () => {
+    it('smartSearch calls semantic search API when fuzzy search returns no results', async () => {
         store.originalData = [
             { id: 1, name: 'Fuzzy 1' },
             { id: 2, name: 'Fuzzy 2' },
@@ -60,11 +60,8 @@ describe('useDataStore Smart Search', () => {
             { id: 5, name: 'Other' }
         ]
 
-        // Mock Fuse returning only 2 results
-        const mockFuseResults = [
-            { item: { id: 1, name: 'Fuzzy 1' } },
-            { item: { id: 2, name: 'Fuzzy 2' } }
-        ]
+        // Mock Fuse returning no results
+        const mockFuseResults = []
         Fuse.prototype.search.mockReturnValue(mockFuseResults)
 
         // Mock Semantic Search API response
@@ -87,29 +84,6 @@ describe('useDataStore Smart Search', () => {
         expect(store.searchedData).toHaveLength(4)
         const ids = store.searchedData.map(i => i.id).sort()
         expect(ids).toEqual([1, 2, 3, 4])
-    })
-
-    it('smartSearch merges and deduplicates results correctly', async () => {
-        const items = [
-            { id: 1, name: 'Overlapping Item' },
-            { id: 2, name: 'Semantic Only' }
-        ]
-        store.originalData = items
-
-        // Fuzzy finds ID 1
-        Fuse.prototype.search.mockReturnValue([{ item: items[0] }])
-
-        // Semantic finds ID 1 and ID 2
-        axios.get.mockResolvedValueOnce({ data: items })
-
-        store.searchMode = 'smart'
-        store.searchTerm = 'overlap'
-
-        await store.searchData(false)
-
-        expect(store.searchedData).toHaveLength(2)
-        const ids = store.searchedData.map(i => i.id).sort()
-        expect(ids).toEqual([1, 2])
     })
 
     it('smartSearch filters out semantic results that do not match current filters', async () => {

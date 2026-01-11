@@ -297,21 +297,17 @@ export const useDataStore = defineStore('dataStore', () => {
 
   const smartSearch = async (candidates, searchTerm) => {
     const fuzzyResults = fuzzySearch(candidates, searchTerm)
-
-    if (!(fuzzyResults.length > 0)) {
-      const semanticResults = await semanticSearch(searchTerm)
-      const allowed = new Map(candidates.map(item => [item.id, item]))
-      const combined = [...fuzzyResults]
-      semanticResults.forEach(result => {
-        const candidate = allowed.get(result.id)
-        if (candidate) {
-          combined.push(candidate)
-        }
-      })
-      return [...new Map(combined.map(item => [item.id, item])).values()]
+    
+    // If fuzzy finds results, use those
+    if (fuzzyResults.length > 0) {
+      return fuzzyResults
     }
-
-    return fuzzyResults
+    
+    // Otherwise, fall back to semantic search
+    const semanticResults = await semanticSearch(searchTerm)
+    const allowedIds = new Set(candidates.map(c => c.id))
+    
+    return semanticResults.filter(result => allowedIds.has(result.id))
   }
 
   const fuzzySearch = (candidates, searchTerm) => {
