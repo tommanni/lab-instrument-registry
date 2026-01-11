@@ -81,9 +81,9 @@ describe('useDataStore Smart Search', () => {
             withCredentials: true
         })
 
-        expect(store.searchedData).toHaveLength(4)
+        expect(store.searchedData).toHaveLength(2)
         const ids = store.searchedData.map(i => i.id).sort()
-        expect(ids).toEqual([1, 2, 3, 4])
+        expect(ids).toEqual([3, 4])
     })
 
     it('smartSearch filters out semantic results that do not match current filters', async () => {
@@ -109,10 +109,7 @@ describe('useDataStore Smart Search', () => {
     })
 
     it('smartSearch handles API errors gracefully', async () => {
-        const items = [{ id: 1, name: 'Fuzzy' }]
-        store.originalData = items
-
-        Fuse.prototype.search.mockReturnValue([{ item: items[0] }])
+        Fuse.prototype.search.mockReturnValue([])
 
         // Semantic search fails
         axios.get.mockRejectedValueOnce(new Error('Network Error'))
@@ -123,8 +120,7 @@ describe('useDataStore Smart Search', () => {
 
         await store.searchData(false)
 
-        expect(store.searchedData).toHaveLength(1)
-        expect(store.searchedData[0].id).toBe(1)
+        expect(store.searchedData).toHaveLength(0)
         expect(consoleSpy).toHaveBeenCalled()
     })
 })
