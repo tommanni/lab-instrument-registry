@@ -106,24 +106,10 @@ export const useDataStore = defineStore('dataStore', () => {
       })
     }
 
-    const anyFieldIncludes = (lower) => (
-      (item.id !== undefined && item.id !== null && item.id.toString().includes(lower)) ||
-      (item.tay_numero && item.tay_numero.toLowerCase().includes(lower)) ||
-      (item.sarjanumero && item.sarjanumero.toLowerCase().includes(lower)) ||
-      (item.toimituspvm && item.toimituspvm.toString().toLowerCase().includes(lower)) ||
-      (item.toimittaja && item.toimittaja.toLowerCase().includes(lower)) ||
-      (item.lisatieto && item.lisatieto.toLowerCase().includes(lower)) ||
-      (item.vanha_sijainti && item.vanha_sijainti.toLowerCase().includes(lower)) ||
-      (item.tuotenimi && item.tuotenimi.toLowerCase().includes(lower)) ||
-      (item.tuotenimi_en && item.tuotenimi_en.toLowerCase().includes(lower)) ||
-      (item.merkki_ja_malli && item.merkki_ja_malli.toLowerCase().includes(lower)) ||
-      (item.yksikko && item.yksikko.toLowerCase().includes(lower)) ||
-      (item.kampus && item.kampus.toLowerCase().includes(lower)) ||
-      (item.rakennus && item.rakennus.toLowerCase().includes(lower)) ||
-      (item.huone && item.huone.toLowerCase().includes(lower)) ||
-      (item.vastuuhenkilo && item.vastuuhenkilo.toLowerCase().includes(lower)) ||
-      (item.tilanne && item.tilanne.toLowerCase().includes(lower))
-    )
+    const anyFieldIncludes = (lower) => Object.values(item).some(value => {
+      return value !== null && value !== undefined &&
+             value.toString().toLowerCase().includes(lower);
+    });
 
     const itemMatchesSingleTerm = (symbol) => {
       const lower = String(symbol.value || '').toLowerCase()
@@ -312,7 +298,7 @@ export const useDataStore = defineStore('dataStore', () => {
   const smartSearch = async (candidates, searchTerm) => {
     const fuzzyResults = fuzzySearch(candidates, searchTerm)
 
-    if (fuzzyResults.length < 10) {
+    if (!(fuzzyResults.length > 0)) {
       const semanticResults = await semanticSearch(searchTerm)
       const allowed = new Map(candidates.map(item => [item.id, item]))
       const combined = [...fuzzyResults]
