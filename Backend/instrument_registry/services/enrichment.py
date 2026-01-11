@@ -20,8 +20,8 @@ INVALID_ENRICHMENT_VALUES = {"", ENRICHMENT_FAILED, TRANSLATION_FAILED}
 # Pydantic models for the response
 class InstrumentDescription(BaseModel):
     index: int = Field(description="The index number matching the input list (1-based)")
-    translation: str = Field(description="Precise English translation of the instrument name")
-    description: str = Field(description="2-3 sentence English semantic description in lowercase")
+    translation: str = Field(description="Standard English laboratory equipment name (generic, not brand)")
+    description: str = Field(description="50-80 word semantic search-optimized description with technical keywords")
 
 class BatchResponse(BaseModel):
     results: list[InstrumentDescription]
@@ -74,7 +74,7 @@ class EnrichmentService:
                     model=self.model_id,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        temperature=0.3,
+                        temperature=0.2,
                         max_output_tokens=8192,
                         response_mime_type="application/json",
                         response_schema=BatchResponse,
@@ -135,7 +135,7 @@ class EnrichmentService:
             if 0 <= idx < expected_count:
                 final_list[idx] = {
                     'translation': item.translation.strip(),
-                    'description': item.description.strip().lower()
+                    'description': item.description.strip()
                 }
         
         return final_list
@@ -145,39 +145,52 @@ class EnrichmentService:
         instrument_list = []
         for i, item in enumerate(items, 1):
             finnish_name = item.get('finnish_name', 'Unknown')
-            # Add brand/info to the prompt text if available
-            extra = ""
-            if item.get('brand_model'): extra += f" (Model: {item.get('brand_model')})"
+            brand_model = item.get('brand_model', '')
+            additional_info = item.get('info', '')
             
-            instrument_list.append(f"{i}. {finnish_name}{extra}")
-        
+            # Build structured entry
+            entry = f"{i}. Finnish Name: {finnish_name}"
+            if brand_model:
+                entry += f" | Model/Brand: {brand_model}"
+            if additional_info:
+                entry += f" | Info: {additional_info}"
+            
+            instrument_list.append(entry)
+
         instruments_text = "\n".join(instrument_list)
         
-        return f"""You are a laboratory equipment expert. 
-Process these {len(items)} Finnish laboratory instruments.
+        return f"""You are a laboratory equipment expert creating search-optimized descriptions.
 
-INSTRUMENTS:
+INSTRUMENTS ({len(items)} total):
 {instruments_text}
 
+FORMAT EXPLANATION:
+- "Finnish Name" is the term to translate
+- "Model/Brand" provides context to identify the specific device type (use this to differentiate equipment)
+- "Info" provides additional context if available
+
 TASKS:
-1. TRANSLATE: Provide the most accurate professional English name (e.g., "vetokaappi" -> "Fume Hood").
-2. DESCRIBE: Generate a 2-3 sentence semantic description in lowercase.
+1. TRANSLATE: Provide the standard English laboratory equipment name
+   - Use Model/Brand info to identify specific device type (e.g., "Hematology Analyzer" not just "Analyzer")
+   - Output GENERIC NAME (e.g., "Real-Time PCR System"), NOT brand name (e.g., NOT "LightCycler")
 
-- TRANSLATION RULES:
--- Use the provided Model/Brand info to identify the specific device type (e.g., differentiate a "Chemical Analyzer" from a "Hematology Analyzer").
--- Output the STANDARD GENERIC NAME, not the brand name (e.g., "Real-Time PCR System", NOT "LightCycler").
+2. DESCRIBE: Generate a semantic search-optimized description (50-80 words)
 
-- DESCRIPTION REQUIREMENTS:
--- What the equipment is and its primary purpose
--- Common applications in laboratory/research settings
--- Key characteristics or capabilities
--- **Include common industry synonyms or alternative names naturally (e.g., "also known as...")**
--- OUTPUT MUST BE IN ENGLISH
--- Be factual and concise
--- **Optimize for search relevance: prioritize technical keywords over flowery language**
--- Do not repeat brand names unnecessarily
+DESCRIPTION REQUIREMENTS:
+- Start directly with equipment type and function (NO "This is a..." or "The equipment...")
+- Include primary purpose and key applications
+- List 2-3 common use cases or sample types
+- Mention technical capabilities (e.g., detection methods, sensitivity, automation level)
+- Naturally incorporate synonyms and alternative names (e.g., "also called...", "synonymous with...")
+- Use domain-specific terminology and technical keywords
+- Prioritize noun phrases and specific technical terms over general descriptors
+- Write in clear English (proper capitalization for acronyms/proper nouns)
+- Avoid marketing language, keep factual
+- Do NOT unnecessarily repeat brand names
 
-Generate a response following the given schema."""
+OPTIMIZE FOR: Technical keyword density, searchability, semantic similarity matching
+
+Generate response following the schema."""
 
 def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichment_cache, on_error=lambda msg: None):
     """
@@ -194,8 +207,9 @@ def enrich_instruments_batch(unique_names_to_enrich, translation_cache, enrichme
         
         if needs_trans or needs_enrich:
             items_to_enrich.append({
-                'finnish_name': item['finnish_name'],  # Extract name
-                'brand_model': item['brand_model'],    # Extract model info
+                'finnish_name': item['finnish_name'],
+                'brand_model': item['brand_model'],
+                'info': item.get('info', ''),
                 'cache_key': name_key
             })
 
